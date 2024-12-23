@@ -64,7 +64,6 @@ void test_bigint(){
 	printf(", y=");
 	bi_printf(y);
 	printf("\n");
-	bi_free(z);
 
 	bi_add(x, y, &z);
 	printf("x+y=");
