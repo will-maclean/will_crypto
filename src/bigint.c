@@ -55,24 +55,28 @@ enum bi_op_result bi_add(struct bigint *a, struct bigint *b, struct bigint **res
 	if (!assert_same_shape(a, b))
 		return -EBADSHAPE;
 
-	bi_init(res, 2*a->words);
+	bi_init(res, a->words);
 
-	unsigned int carry;
+	unsigned int carry = 0;
 	unsigned long sum;
 	for(int i = a->words - 1; i >= 0; i--){
 		sum = (unsigned long)(a->data[i]) + (unsigned long)b->data[i]
 			       	+ (*res)->data[i] + carry;
 		(*res)->data[i] = (unsigned int)(sum & 0xFFFFFFFF);
+		
+		/*
+		printf("step: %d. a->data[i]=%u, b->data[i]=%u, res->data[i]=%u, carry=%u. sum=%lu\nres=",
+				i, a->data[i], b->data[i], (*res)->data[i], carry, sum);
+		bi_printf(*res);
+		printf("\n");
+		*/
+
 		carry = (unsigned int)(sum >> 32);
 
-		if(carry){
+		if(carry && i > 0){
 			(*res)->data[i - 1] += carry;
 		}
 	}
-
-	unsigned int *old = (*res)->data;
-	(*res)->data += a->words;
-	free(old);
 
 	return OKAY;
 }
@@ -250,7 +254,10 @@ bool bi_ge(struct bigint *a, struct bigint *b){
 }
 
 void bi_printf(struct bigint *x){
-	for(int i = 0; i < x->words; i++){
-		printf("%u", x->data[i]);
+	printf("0x");
+	for(int i = 0; i < x->words - 1; i++){
+		printf("%08x_", x->data[i]);
 	}
+	printf("%08x", x->data[x->words-1]);
+
 }
