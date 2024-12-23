@@ -1,5 +1,5 @@
 #ifndef __will_rng
-#define __wil_rng
+#define __will_rng
 
 #include "bigint.h"
 

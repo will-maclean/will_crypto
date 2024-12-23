@@ -38,6 +38,53 @@ void test_bigint(){
 	bi_free(y);
 
 	// test set and copy
+	bi_init(&x, test_words);
+	bi_init_like(&y, x);
+
+	bi_set(x, 0u);
+	bi_set(y, 0u);
+
+	if(!bi_eq(x, y)){
+		printf("testing set: x and y are not equal");
+		exit(1);
+	}
+
+	bi_set(y, 10ul);
+	if(bi_eq(x, y)){
+		printf("testing set: x and y are equal when they shouldn't be");
+		exit(1);
+	}
+
+	// test math functions
+	// we'll veryify all these things manually just to be sure
+	bi_set(x, 2u);
+
+	printf("testing math functions. starting values are x=");
+	bi_printf(x);
+	printf(", y=");
+	bi_printf(y);
+	printf("\n");
+	bi_free(z);
+
+	bi_add(x, y, &z);
+	printf("x+y=");
+	bi_printf(z);
+	printf("\n");
+	bi_free(z);
+
+
+	bi_sub(y, x, &z);
+	printf("y-x=");
+	bi_printf(z);
+	printf("\n");
+	bi_free(z);
+
+
+	bi_mul(x, y, &z);
+	printf("x*y=");
+	bi_printf(z);
+	printf("\n");
+	bi_free(z);
 }
 
 void test_rng(){
