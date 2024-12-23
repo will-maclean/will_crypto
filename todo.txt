@@ -1,0 +1,78 @@
+# Will RSA
+
+Components:
+- Big ints
+- RNG
+- Prime number generation
+- RSA keygen
+- RSA encryption/decryption (inc. padding schemes)
+
+
+## Big Ints
+
+subtraction be like
+
+1.
+	123
+	-39
+	---
+
+9>3, so pull from the left
+
+2.
+	  1
+	113
+	-39
+	---
+	  4
+13-9=4
+
+3.
+	 11
+	013
+	-39
+	---
+	 84
+11-3=8
+
+4.
+	 11
+	013
+	-39
+	---
+	 84
+
+0-0=0
+
+5.
+Done
+
+So:
+1. Starting at least significant digit
+2. If b>a, carry in from the left (scan to the left until finding a digit
+greater than 0, then pull it to the right.
+3. We'll need to make a copy of a so that we don't modify the original data
+
+
+## RNG
+
+Need to check whether the linear thing is cryptographically secure (assuming
+not).
+
+If it is, figure out how to set a. b, m for safe operation.
+
+If it isn't, find a good implementation and do it.
+
+## Prime number gen
+
+Whole thing stil todo. need to find an algorithm and implement it.
+
+## RSA keygen
+
+Check whether the correct results from the EEA are being used.
+
+Other than that, nearly done?
+
+## RSA enc/dec
+
+Padding scheme and actual implementation details still remaining

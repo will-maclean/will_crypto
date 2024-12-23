@@ -17,6 +17,6 @@ struct will_rng_state{
 
 void init_will_rng(struct will_rng_cfg *cfg, unsigned int seed,
 	      struct will_rng_state *new_state);
-void will_rng_next(struct will_rng_state* state, struct bigint *res);
+void will_rng_next(struct will_rng_state* state, struct bigint **res);
 
 #endif

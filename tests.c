@@ -8,29 +8,34 @@ void test_bigint(){
 	// test create and free
 	int test_words = 4;
 
-	struct bigint x, y, z;
+	struct bigint *x, *y, *z;
 
 	// test init and free
+	printf("Testing bi_init\n");
 	enum bi_op_result init_res = bi_init(&x, test_words);
 
 	if(init_res != OKAY){
-		printf("Failed to initialise bigint. Got error: %d", init_res);
+		printf("Failed to initialise bigint. Got error: %d\n", init_res);
 		exit(1);
 	}
-
-	bi_free(&x);
+	bi_printf(x);
+	printf("\n");
+	printf("Testing bi_free\n");
+	bi_free(x);
 
 	// test init_like
+	printf("testing bi_init_like\n");
 	bi_init(&x, test_words);
-	init_res = bi_init_like(&y, &x);
+
+	init_res = bi_init_like(&y, x);
 
 	if(init_res != OKAY){
 		printf("Failed to init_like bigint. Got error: %d", init_res);
 		exit(1);
 	}
 
-	bi_free(&x);
-	bi_free(&y);
+	bi_free(x);
+	bi_free(y);
 
 	// test set and copy
 }
@@ -45,32 +50,31 @@ void test_rng(){
 	 * m to be cryptographically secure. Are there default values that
 	 * always work best? Or should the be randomly set each time?
 	 */
-	struct bigint a, b, m, res;
-	int words = 4;
+	struct bigint *a, *b, *m, *res;
+	int words = 8;
 
 	bi_init(&a, words);
-	bi_set(&a, 7u);
+	bi_set(a, 7u);
 	bi_init(&b, words);
-	bi_set(&b, 11u);
+	bi_set(b, 11u);
 	bi_init(&m, words);
-	bi_set(&m, 29u);
+	bi_set(m, 29u);
 
-	cfg.a = &a;
-	cfg.b = &b;
-	cfg.m = &m;
+	cfg.a = a;
+	cfg.b = b;
+	cfg.m = m;
 	cfg.words = words;
 
-
+	printf("testing init_will_rng\n");
 	init_will_rng(&cfg, seed, &state);
 
-	for(int i = 0; i < cfg.m; i++){
+	printf("testing will_rng_next\n");
+	for(int i = 0; i < 50; i++){
 		will_rng_next(&state, &res);
 
-		bi_print(&res);
+		bi_printf(res);
 		printf("\n");
 	}
-
-	return 0;
 }
 /*
 void test_rsa(){
@@ -86,8 +90,14 @@ void test_rsa(){
 }
 */
 void tests(){
+	printf("Testing bigint\n");
 	test_bigint();
+
+	printf("Testing rng\n");
 	test_rng();
+
+	printf("Tests completed!\n");
+
 //	test_rsa();
 }
 

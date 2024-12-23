@@ -1,6 +1,7 @@
 #ifndef __bigint
 #define __bigint
 
+#include <stdbool.h>
 
 /*
  * struct bigint
@@ -27,14 +28,14 @@ enum bi_op_result {
  * Assigns the memory for a bigint. This is the only function
  * that will raw assign memory for a bigint
  */
-enum bi_op_result bi_init(struct bigint *x, int words);
+enum bi_op_result bi_init(struct bigint **x, int words);
 
 
 /*
  * Initialises a bigint to have the same size/memory as
  * another bigint
  */
-enum bi_op_result bi_init_like(struct bigint *init, struct bigint *like);
+enum bi_op_result bi_init_like(struct bigint **init, struct bigint *like);
 
 /*
  * Clears memory for a bigint. This is the only function that will clear mem
@@ -51,7 +52,7 @@ enum bi_op_result bi_copy(struct bigint *src, struct bigint *trgt);
 /*
  * Initialises memory for trgt, and copes src into target
  */
-enum bi_op_result bi_init_and_copy(struct bigint *src, struct bigint *trgt);
+enum bi_op_result bi_init_and_copy(struct bigint *src, struct bigint **trgt);
 
 /*
  * Can be used in limited scenarios to set the bigint to a user-defined value
@@ -63,15 +64,23 @@ void bi_set(struct bigint *x, unsigned int val);
 /*
  * All math function assume the result is NOT set
  */
-enum bi_op_result bi_add(struct bigint *a, struct bigint *b, struct bigint *res);
-enum bi_op_result bi_sub(struct bigint *a, struct bigint *b, struct bigint *res);
-enum bi_op_result bi_mul(struct bigint *a, struct bigint *b, struct bigint *res);
-enum bi_op_result bi_mod(struct bigint *a, struct bigint *b, struct bigint *res);
-enum bi_op_result bi_eucl_div(struct bigint *a, struct bigint *b, struct bigint *res);
+enum bi_op_result bi_add(struct bigint *a, struct bigint *b, struct bigint **res);
+enum bi_op_result bi_sub(struct bigint *a, struct bigint *b, struct bigint **res);
+enum bi_op_result bi_mul(struct bigint *a, struct bigint *b, struct bigint **res);
 
-int bi_eq(struct bigint *a, struct bigint* b);
-int bi_eq_val(struct bigint *a, unsigned int b);
+/*
+ * remainder of a / b
+ */
+enum bi_op_result bi_mod(struct bigint *a, struct bigint *b, struct bigint **res);
 
+/*
+ * integer division result of a/b
+ */
+enum bi_op_result bi_eucl_div(struct bigint *a, struct bigint *b, struct bigint **res);
+
+bool bi_eq(struct bigint *a, struct bigint* b);
+bool bi_eq_val(struct bigint *a, unsigned int b);
+bool bi_ge(struct bigint *a, struct bigint *b);
 void bi_printf(struct bigint *x);
 
 #endif
