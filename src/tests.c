@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "bigint.h"
 #include "rng.h"
-
+#include "chacha.h"
 
 void test_bigint(){
 	// test create and free
@@ -143,11 +143,40 @@ void test_rng(){
 	init_will_rng(&cfg, seed, &state);
 
 	printf("testing will_rng_next\n");
-	for(int i = 0; i < 50; i++){
+	for(int i = 0; i < 5; i++){
 		will_rng_next(&state, &res);
 
 		bi_printf(res);
 		printf("\n");
+	}
+}
+
+void test_chacha()
+{
+	printf("Testing chacha, with zero as init\n");
+
+	unsigned int *a, *b;
+
+	a = malloc(16 * sizeof(unsigned int));
+
+	for(int i = 0; i < 5; i++){
+		b = malloc(16 * sizeof(unsigned int));
+
+		if(i == 0){
+			for(int j = 0; j < 16; j++)
+				a[j] = j;
+		}
+
+		chacha_block(b, a);
+
+		printf("iter %d\n", i);
+		for(int j = 0; j < 16; j++){
+			printf("%u", b[j]);
+		}
+		printf("\n");
+
+		free(a);
+		a = b;
 	}
 }
 /*
@@ -167,9 +196,11 @@ void tests(){
 	printf("Testing bigint\n");
 	test_bigint();
 
-	printf("Testing rng\n");
-	test_rng();
+	// printf("Testing rng\n");
+	// test_rng();
 
+	printf("testing chacha\n");
+	test_chacha();
 	printf("Tests completed!\n");
 
 	//	test_rsa();

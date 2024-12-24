@@ -302,3 +302,65 @@ void bi_inc(struct bigint *x)
 
 	x->data[i]++;
 }
+
+enum bi_op_result bi_and(struct bigint *a, struct bigint *b, struct bigint **res)
+{
+	if (!assert_same_shape(a, b))
+		return -EBADSHAPE;
+
+	bi_init_like(res, a);
+
+	for(int i = 0; i < a->words; i++){
+		(*res)->data[i] = a->data[i] & b->data[i];
+	}
+
+	return OKAY;
+}
+enum bi_op_result bi_or(struct bigint *a, struct bigint *b, struct bigint **res)
+{
+	if (!assert_same_shape(a, b))
+		return -EBADSHAPE;
+
+	bi_init_like(res, a);
+
+	for(int i = 0; i < a->words; i++){
+		(*res)->data[i] = a->data[i] | b->data[i];
+	}
+
+	return OKAY;
+}
+enum bi_op_result bi_xor(struct bigint *a, struct bigint *b, struct bigint **res)
+{
+	if (!assert_same_shape(a, b))
+		return -EBADSHAPE;
+
+	bi_init_like(res, a);
+
+	for(int i = 0; i < a->words; i++){
+		(*res)->data[i] = a->data[i] ^ b->data[i];
+	}
+
+	return OKAY;
+}
+enum bi_op_result bi_not(struct bigint *a, struct bigint **res)
+{
+	bi_init_like(res, a);
+
+	for(int i = 0; i < a->words; i++){
+		(*res)->data[i] = ~a->data[i];
+	}
+
+	return OKAY;
+}
+
+enum bi_op_result bi_shift_left(struct bigint *a, struct bigint **res)
+{
+	printf("warning: bi_shift)right is not implemented\n");
+	return OKAY;
+}
+
+enum bi_op_result bi_shift_right(struct bigint *a, struct bigint **res)
+{
+	printf("warning: bi_shift)right is not implemented\n");
+	return OKAY;
+}
