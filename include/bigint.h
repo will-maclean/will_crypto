@@ -67,7 +67,7 @@ void bi_set(struct bigint *x, unsigned int val);
 enum bi_op_result bi_add(struct bigint *a, struct bigint *b, struct bigint **res);
 enum bi_op_result bi_sub(struct bigint *a, struct bigint *b, struct bigint **res);
 enum bi_op_result bi_mul(struct bigint *a, struct bigint *b, struct bigint **res);
-
+void bi_inc(struct bigint *x);
 /*
  * remainder of a / b
  */

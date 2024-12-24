@@ -78,9 +78,37 @@ void test_bigint(){
 	printf("\n");
 	bi_free(z);
 
+	bi_set(x, 0xFFFFFFFF);
+	bi_set(y, 0xFFFFFFFF);
+	for(int i = 0; i < 5; i++){
+		bi_mul(x, y, &z);
+		
+		printf("mul step %d. x*y=z, where:\nx: ", i);
+		bi_printf(x);
+		printf("\ny: ");
+		bi_printf(y);
+		printf("\nz: ");
+		bi_printf(z);
+		printf("\n");
 
-	bi_mul(x, y, &z);
-	printf("x*y=");
+		bi_copy(z, y);
+		bi_free(z);
+	}
+	
+	// only least sig fig example
+	bi_set(x, 5u);
+	bi_set(y, 3u);
+	bi_mod(x, y, &z);
+	printf("x%%y=");
+	bi_printf(z);
+	printf("\n");
+	bi_free(z);
+
+	// only least sig fig example
+	bi_set(x, 5u);
+	bi_set(y, 3u);
+	bi_eucl_div(x, y, &z);
+	printf("x/y=");
 	bi_printf(z);
 	printf("\n");
 	bi_free(z);
@@ -144,7 +172,7 @@ void tests(){
 
 	printf("Tests completed!\n");
 
-//	test_rsa();
+	//	test_rsa();
 }
 
 int main(){
