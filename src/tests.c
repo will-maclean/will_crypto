@@ -118,15 +118,10 @@ void test_bigint(){
 void test_rng(){
 	struct will_rng_cfg cfg;
 	unsigned int seed = 12345678u;
-
-	/* poses an interesting question about the best way to choose a, b, and
-	 * m to be cryptographically secure. Are there default values that
-	 * always work best? Or should the be randomly set each time?
-	 */
-	struct bigint *res;
 	int words = 8;
 	cfg.words = words;
 
+	struct bigint *res;
 	printf("testing init_will_rng\n");
 	init_will_rng(&cfg, seed);
 
