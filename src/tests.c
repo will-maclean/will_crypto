@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "bigint.h"
 #include "rng.h"
 #include "chacha.h"
@@ -116,39 +117,38 @@ void test_bigint(){
 
 void test_rng(){
 	struct will_rng_cfg cfg;
-	struct will_rng_state state;
-
 	unsigned int seed = 12345678u;
 
 	/* poses an interesting question about the best way to choose a, b, and
 	 * m to be cryptographically secure. Are there default values that
 	 * always work best? Or should the be randomly set each time?
 	 */
-	struct bigint *a, *b, *m, *res;
+	struct bigint *res;
 	int words = 8;
-
-	bi_init(&a, words);
-	bi_set(a, 7u);
-	bi_init(&b, words);
-	bi_set(b, 11u);
-	bi_init(&m, words);
-	bi_set(m, 29u);
-
-	cfg.a = a;
-	cfg.b = b;
-	cfg.m = m;
 	cfg.words = words;
 
 	printf("testing init_will_rng\n");
-	init_will_rng(&cfg, seed, &state);
+	init_will_rng(&cfg, seed);
 
 	printf("testing will_rng_next\n");
 	for(int i = 0; i < 5; i++){
-		will_rng_next(&state, &res);
+		will_rng_next(&res);
 
 		bi_printf(res);
+		bi_free(res);
 		printf("\n");
 	}
+
+	// See how many rng gens we can get done in a second
+	unsigned long counter = 0;
+	clock_t start = clock();
+	while(clock() - start < CLOCKS_PER_SEC){
+		will_rng_next(&res);
+		bi_free(res);
+		counter++;
+	}
+
+	printf("In one sec, for %d-word numbers, generated %lu nums\n", res->words, counter);
 }
 
 void test_chacha()
@@ -197,7 +197,7 @@ void tests(){
 	test_bigint();
 
 	// printf("Testing rng\n");
-	// test_rng();
+	test_rng();
 
 	printf("testing chacha\n");
 	test_chacha();

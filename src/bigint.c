@@ -364,3 +364,12 @@ enum bi_op_result bi_shift_right(struct bigint *a, struct bigint **res)
 	printf("warning: bi_shift)right is not implemented\n");
 	return OKAY;
 }
+
+enum bi_op_result bi_mod_exp(struct bigint *x, struct bigint *exp, 
+		struct bigint *mod, struct bigint **res)
+{
+	//TODO
+	
+	return OKAY;	
+}
+

@@ -2,6 +2,7 @@
 #define __rsa
 
 #include <stdio.h>
+#include <stdbool.h>
 #include "bigint.h"
 
 #define RSA_DEFAULT_E 65537
@@ -37,4 +38,5 @@ static int gen_e(struct bigint *res);
 void gen_pub_priv_keys(long seed, struct rsa_public_token *pub,
 		       struct rsa_private_token *priv);
 
+bool primality_test(struct bigint *x);
 #endif

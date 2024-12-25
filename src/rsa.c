@@ -102,4 +102,10 @@ void gen_pub_priv_keys(long seed, struct rsa_public_token *pub,
 	priv->n = n;
 }
 
+bool primality_test(struct bigint *x)
+{
+	//TODO
+	
 
+	return false;	
+}
