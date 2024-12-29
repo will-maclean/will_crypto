@@ -68,6 +68,7 @@ enum bi_op_result bi_add(struct bigint *a, struct bigint *b, struct bigint **res
 enum bi_op_result bi_sub(struct bigint *a, struct bigint *b, struct bigint **res);
 enum bi_op_result bi_mul(struct bigint *a, struct bigint *b, struct bigint **res);
 void bi_inc(struct bigint *x);
+void bi_dec(struct bigint *x);
 enum bi_op_result bi_mod_exp(struct bigint *x, struct bigint *exp, 
 		struct bigint *mod, struct bigint **res);
 /*
@@ -82,8 +83,10 @@ enum bi_op_result bi_eucl_div(struct bigint *a, struct bigint *b, struct bigint 
 
 bool bi_eq(struct bigint *a, struct bigint* b);
 bool bi_eq_val(struct bigint *a, unsigned int b);
+bool bi_gt(struct bigint *a, struct bigint *b);
 bool bi_ge(struct bigint *a, struct bigint *b);
 bool bi_lt(struct bigint *a, struct bigint *b);
+bool bi_le(struct bigint *a, struct bigint *b);
 
 // Logical expressions
 enum bi_op_result bi_and(struct bigint *a, struct bigint *b, struct bigint **res);
@@ -94,4 +97,6 @@ enum bi_op_result bi_shift_left(struct bigint *a, struct bigint **res);
 enum bi_op_result bi_shift_right(struct bigint *a, struct bigint **res);
 void bi_printf(struct bigint *x);
 
+// helper functions
+void bi_concat(struct bigint *a, struct bigint *b, struct bigint **res);
 #endif

@@ -54,5 +54,5 @@ void will_rng_next(struct bigint **res)
 }
 
 int get_rng_words(){
-	return rng_state.config->words;
+	return rng_state.cfg->words;
 }

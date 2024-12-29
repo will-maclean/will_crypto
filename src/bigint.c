@@ -265,6 +265,24 @@ bool bi_eq_val(struct bigint *a, unsigned int b)
 	return a->data[a->words-1] == b;
 }
 
+bool bi_gt(struct bigint *a, struct bigint *b){
+	if(a->words != b->words){
+		// Honestly, not sure what to do here. I think for now I'll
+		// just return false
+		return false;
+	}
+
+	for(int i = 0; i < a->words; i++){
+		if(a->data[i] > b->data[i]){
+			return true;
+		} else if (a->data[i] < b->data[i]){
+			return false;
+		}
+	}
+
+	// a and b are equal
+	return false;
+}
 bool bi_ge(struct bigint *a, struct bigint *b){
 	if(a->words != b->words){
 		// Honestly, not sure what to do here. I think for now I'll
@@ -303,6 +321,16 @@ void bi_inc(struct bigint *x)
 	x->data[i]++;
 }
 
+void bi_dec(struct bigint *x)
+{
+	int i = x->words - 1;
+	while(x->data[i] == 0u){
+		x->data[i] = 0xFFFFFFFF;
+		i--;
+	}
+
+	x->data[i]--;
+}
 enum bi_op_result bi_and(struct bigint *a, struct bigint *b, struct bigint **res)
 {
 	if (!assert_same_shape(a, b))
@@ -429,5 +457,45 @@ bool bi_lt(struct bigint *a, struct bigint *b)
 
 	// a and b are equal
 	return false;
+}
+
+bool bi_le(struct bigint *a, struct bigint *b)
+{
+	if(a->words != b->words){
+		// Honestly, not sure what to do here. I think for now I'll
+		// just return false
+		return false;
+	}
+
+	for(int i = 0; i < a->words; i++){
+		if(a->data[i] > b->data[i]){
+			return false;
+		} else if (a->data[i] < b->data[i]){
+			return true;
+		}
+	}
+
+	// a and b are equal
+	return true;
+}
+
+void bi_concat(struct bigint *a, struct bigint *b, struct bigint **res)
+{
+	(*res)->words = a->words + b->words;
+
+	(*res)->data = malloc((*res)->words * sizeof(unsigned int));
+	memcpy((*res)->data, a->data, a->words * sizeof(unsigned int));
+	memcpy(&((*res)->data[a->words]), b->data, b->words * sizeof(unsigned int));
+}
+
+enum bi_op_result bi_init_and_copy(struct bigint *src, struct bigint **trgt)
+{
+	enum bi_op_result init_res = bi_init_like(trgt, src);
+
+	if(init_res != OKAY)
+		return init_res;
+	bi_copy(src, *trgt);
+
+	return OKAY;
 }
 

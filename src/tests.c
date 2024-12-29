@@ -5,6 +5,7 @@
 #include "bigint.h"
 #include "rng.h"
 #include "chacha.h"
+#include "primality.h"
 
 static int successes = 0;
 static int failures = 0;
@@ -263,6 +264,15 @@ void test_rsa(){
 	       seed, pub.e, pub.n, priv.d);
 }
 */
+
+void test_primality()
+{
+	struct bigint *test_prime;
+	will_rng_next(&test_prime);
+
+	miller_rabin(test_prime, 1000);
+}
+
 void tests(){
 	printf("Testing bigint\n");
 	test_bigint();
@@ -275,6 +285,10 @@ void tests(){
 
 	printf("testing bigint maths\n");
 	test_bigint_math_proper();
+
+	printf("Testing primality tests\n");
+	test_primality();
+
 	printf("Tests completed!\n");
 	printf("Tests: %d. Passes: %d. Failures: %d\n", successes + failures, successes, failures);
 
