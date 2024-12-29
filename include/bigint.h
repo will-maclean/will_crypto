@@ -83,6 +83,7 @@ enum bi_op_result bi_eucl_div(struct bigint *a, struct bigint *b, struct bigint 
 bool bi_eq(struct bigint *a, struct bigint* b);
 bool bi_eq_val(struct bigint *a, unsigned int b);
 bool bi_ge(struct bigint *a, struct bigint *b);
+bool bi_lt(struct bigint *a, struct bigint *b);
 
 // Logical expressions
 enum bi_op_result bi_and(struct bigint *a, struct bigint *b, struct bigint **res);

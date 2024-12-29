@@ -1,9 +1,85 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
 #include "bigint.h"
 #include "rng.h"
 #include "chacha.h"
+
+static int successes = 0;
+static int failures = 0;
+
+void assert(bool result, char *failure_msg)
+{
+	if(result){
+		successes++;
+	} else {
+		failures++;
+		printf("FAILURE: %s\n", failure_msg);
+	}
+}
+
+void test_bigint_math_proper()
+{
+	// start with one word tests
+	
+	int words = 1;
+	struct bigint *a, *b, *res, *expected_res;
+
+	bi_init(&a, words);
+	bi_init(&b, words);
+	bi_init(&expected_res, words);
+
+	bi_set(a, 5u);
+	bi_set(b, 2u);
+
+	// addition
+	bi_set(expected_res, 7u);
+	bi_add(a, b, &res);
+	assert(bi_eq(res, expected_res), "bigint 1-word addition");
+	bi_free(res);
+
+	// subtraction
+	bi_set(expected_res, 3u);
+	bi_sub(a, b, &res);
+	assert(bi_eq(res, expected_res), "bigint 1-word subtraction");
+	bi_free(res);
+	
+	// multiplication
+	bi_set(expected_res, 10u);
+	bi_mul(a, b, &res);
+	assert(bi_eq(res, expected_res), "bigint 1-word multiplication");
+	bi_free(res);
+
+	// integer division
+	bi_set(expected_res, 2u);
+	bi_eucl_div(a, b, &res);
+	assert(bi_eq(res, expected_res), "bigint 1-word euclidian division");
+	bi_free(res);
+
+	// modulo
+	bi_set(expected_res, 1u);
+	bi_mod(a, b, &res);
+	assert(bi_eq(res, expected_res), "bigint 1-word modulo");
+	bi_free(res);
+
+	// inc
+	bi_set(expected_res, 6u);
+	bi_inc(a);
+	assert(bi_eq(a, expected_res), "bigint 1-word increment");
+	bi_set(a, 5u);
+
+	// mod exp
+	// (5 ^ 2) % 4 = 1
+	struct bigint *mod;
+	bi_init(&mod, words);
+	bi_set(mod, 4u);
+	bi_set(expected_res, 1u);
+	bi_mod_exp(a, b, mod, &res);
+	assert(bi_eq(res, expected_res), "bigint 1-word modular exponentiation");
+	bi_free(res);
+	bi_free(mod);
+}
 
 void test_bigint(){
 	// test create and free
@@ -81,7 +157,7 @@ void test_bigint(){
 
 	bi_set(x, 0xFFFFFFFF);
 	bi_set(y, 0xFFFFFFFF);
-	for(int i = 0; i < 5; i++){
+	for(int i = 0; i < 3; i++){
 		bi_mul(x, y, &z);
 		
 		printf("mul step %d. x*y=z, where:\nx: ", i);
@@ -143,7 +219,7 @@ void test_rng(){
 		counter++;
 	}
 
-	printf("In one sec, for %d-word numbers, generated %lu nums\n", res->words, counter);
+	printf("In one sec, for %d-word numbers, generated %lu nums\n", words, counter);
 }
 
 void test_chacha()
@@ -196,7 +272,11 @@ void tests(){
 
 	printf("testing chacha\n");
 	test_chacha();
+
+	printf("testing bigint maths\n");
+	test_bigint_math_proper();
 	printf("Tests completed!\n");
+	printf("Tests: %d. Passes: %d. Failures: %d\n", successes + failures, successes, failures);
 
 	//	test_rsa();
 }

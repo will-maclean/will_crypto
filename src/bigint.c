@@ -365,11 +365,69 @@ enum bi_op_result bi_shift_right(struct bigint *a, struct bigint **res)
 	return OKAY;
 }
 
+
+// This is a very simple modular exponentiation algorithm. There are
+// faster, more efficient algorithms that can be implemented later.
 enum bi_op_result bi_mod_exp(struct bigint *x, struct bigint *exp, 
 		struct bigint *mod, struct bigint **res)
 {
-	//TODO
+	if(!assert_same_shape(x, exp))
+		return -EBADSHAPE;
+
+	if(!assert_same_shape(x, mod))
+		return -EBADSHAPE;
+
+	bi_init_like(res, x);
+
+	if(bi_eq_val(mod, 1u)){
+		bi_set(*res, 0u);
+		return OKAY;	
+	}
 	
+	bi_set(*res, 1u);
+	
+	// both the mod and the exp are bigints, which means
+	// we have to use loop methods that support them
+	
+	struct bigint *loop_counter;
+	bi_init_like(&loop_counter, x);
+	bi_set(loop_counter, 0u);
+
+	struct bigint *tmp;
+	while(bi_lt(loop_counter, exp)){
+		// res := (res * base) % mod
+
+		bi_mul(*res, x, &tmp);
+		bi_copy(tmp, *res);
+		bi_free(tmp);
+		
+		bi_mod(*res, mod, &tmp);
+		bi_copy(tmp, *res);
+		bi_free(tmp);
+
+		bi_inc(loop_counter);
+	}
+
 	return OKAY;	
+}
+
+bool bi_lt(struct bigint *a, struct bigint *b)
+{
+	if(a->words != b->words){
+		// Honestly, not sure what to do here. I think for now I'll
+		// just return false
+		return false;
+	}
+
+	for(int i = 0; i < a->words; i++){
+		if(a->data[i] > b->data[i]){
+			return false;
+		} else if (a->data[i] < b->data[i]){
+			return true;
+		}
+	}
+
+	// a and b are equal
+	return false;
 }
 

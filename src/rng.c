@@ -52,3 +52,7 @@ void will_rng_next(struct bigint **res)
 
 	bi_copy(*res, rng_state.prev);
 }
+
+int get_rng_words(){
+	return rng_state.config->words;
+}
