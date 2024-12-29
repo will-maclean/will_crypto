@@ -14,9 +14,9 @@ void init_will_rng(struct will_rng_cfg *cfg, unsigned int seed)
 {
 	// We use chacha for rng. chacha generates 512bit numbers.
 	// We can therefore generate numbers which are multiples of
-	// 512 bits - or 8 words.
-	if (cfg->words % 8 != 0){
-		printf("Can only generate numbers that are multiples of 512 bits (or 8 words) long\n");
+	// 512 bits - or 16 words.
+	if (cfg->words % 16 != 0){
+		printf("Can only generate numbers that are multiples of 512 bits (or 16 words) long\n");
 		exit(1);
 	}
 
@@ -46,7 +46,7 @@ void will_rng_next(struct bigint **res)
 	 */
 	bi_init_like(res, rng_state.prev);
 
-	for(int i = 0; i < (*res)->words; i += 8){
+	for(int i = 0; i < (*res)->words; i += 16){
 		chacha_block(&((*res)->data[i]), &(rng_state.prev->data[i]));
 	}
 

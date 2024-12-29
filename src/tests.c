@@ -195,7 +195,7 @@ void test_bigint(){
 void test_rng(){
 	struct will_rng_cfg cfg;
 	unsigned int seed = 12345678u;
-	int words = 8;
+	int words = 32;
 	cfg.words = words;
 
 	struct bigint *res;
