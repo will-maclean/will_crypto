@@ -14,7 +14,7 @@ void miller_rabin_sd(struct bigint *n, struct bigint **s, struct bigint **d)
 	bi_set(tmp_two, 0u);
 
 	bi_init_and_copy(n, &n_tmp);
-       	bi_dec(n_tmp);
+    bi_dec(n_tmp);
 	
 	bi_mod(n_tmp, tmp_two, &mod_res);
 	while(bi_eq(mod_res, tmp_zero)){
@@ -78,7 +78,7 @@ bool miller_rabin(struct bigint *n, int k)
 	 * 1. n > 2
 	 * 2. n is odd
 	 */
-	struct bigint *tmp1, *tmp2;
+	struct bigint *tmp1;
 	bi_init_like(&tmp1, n);
 	bi_set(tmp1, 2u);
 
@@ -86,14 +86,11 @@ bool miller_rabin(struct bigint *n, int k)
 		// 1 and 2 are prime
 		return true;
 	
-	bi_mod(n, tmp1, &tmp2);
-	bi_set(tmp1, 1u);
-	if(!bi_eq(tmp1, tmp2))
+	if(bi_even(n))
 		// x is even, so therefore is not prime
 		return false;
 
 	bi_free(tmp1);
-	bi_free(tmp2);
 
 	// Assertions have passed, so we can now start
 	// the primality test

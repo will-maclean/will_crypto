@@ -87,6 +87,7 @@ bool bi_gt(struct bigint *a, struct bigint *b);
 bool bi_ge(struct bigint *a, struct bigint *b);
 bool bi_lt(struct bigint *a, struct bigint *b);
 bool bi_le(struct bigint *a, struct bigint *b);
+bool bi_even(struct bigint *a);
 
 // Logical expressions
 enum bi_op_result bi_and(struct bigint *a, struct bigint *b, struct bigint **res);

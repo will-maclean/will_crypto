@@ -193,7 +193,38 @@ enum bi_op_result bi_mod(struct bigint *a, struct bigint *b, struct bigint **res
 {
 	if (!assert_same_shape(a, b))
 		return -EBADSHAPE;
+
+	/* Using the multiple-precision division algorithm from 
+	 * https://cacr.uwaterloo.ca/hac/about/chap14.pdf
+	 */
+
+	// First, find the used words of a and b
+	// These are n and t, respectively.
+	// For completeness, b is 2**32 (max unsigned int size)
+	int n = a->words;
+	int t = b->words;
+
+	while(a->data[a->words - n] == 0u && n >0)
+		n--;
 	
+	while(b->data[b->words - t] == 0u && t >0)
+		t--;
+
+	if(n == 0 || t == 0)
+		return -EINVAL;
+
+	// Initialise q and r
+	struct bigint *q, r*;
+	bi_init(&q, a->words);
+	bi_init(&r, a->words);
+	bi_set(q, 0u);
+
+	struct bigint *x, *y;
+	// We need a few constants throughout the computation
+	struct bigint *b_pow_n_t, *tmp;
+	
+
+	/*	
 	struct bigint *r, *tmp;
 
 	bi_init_like(&r, a);
@@ -209,6 +240,7 @@ enum bi_op_result bi_mod(struct bigint *a, struct bigint *b, struct bigint **res
 	(*res) = r;
 
 	return OKAY;
+	*/
 }
 
 enum bi_op_result bi_eucl_div(struct bigint *a, struct bigint *b,
@@ -499,3 +531,7 @@ enum bi_op_result bi_init_and_copy(struct bigint *src, struct bigint **trgt)
 	return OKAY;
 }
 
+bool bi_even(struct bigint *a)
+{
+	return !(a->data[a->words - 1] & 1u);
+}

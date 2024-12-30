@@ -34,6 +34,9 @@ void test_bigint_math_proper()
 	bi_set(a, 5u);
 	bi_set(b, 2u);
 
+	assert(!bi_even(a), "bi_even for an odd number failing");
+	assert(bi_even(b), "bi_even for an even number failing");
+
 	// addition
 	bi_set(expected_res, 7u);
 	bi_add(a, b, &res);
