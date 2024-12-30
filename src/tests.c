@@ -27,9 +27,9 @@ void test_bigint_math_proper()
 	int words = 1;
 	struct bigint *a, *b, *res, *expected_res;
 
-	bi_init(&a, words);
-	bi_init(&b, words);
-	bi_init(&expected_res, words);
+	a = bi_init(words);
+	b = bi_init(words);
+	expected_res = bi_init(words);
 
 	bi_set(a, 5u);
 	bi_set(b, 2u);
@@ -39,31 +39,31 @@ void test_bigint_math_proper()
 
 	// addition
 	bi_set(expected_res, 7u);
-	bi_add(a, b, &res);
+	res = bi_add(a, b);
 	assert(bi_eq(res, expected_res), "bigint 1-word addition");
 	bi_free(res);
 
 	// subtraction
 	bi_set(expected_res, 3u);
-	bi_sub(a, b, &res);
+	res = bi_sub(a, b);
 	assert(bi_eq(res, expected_res), "bigint 1-word subtraction");
 	bi_free(res);
 	
 	// multiplication
 	bi_set(expected_res, 10u);
-	bi_mul(a, b, &res);
+	res = bi_mul(a, b);
 	assert(bi_eq(res, expected_res), "bigint 1-word multiplication");
 	bi_free(res);
 
 	// integer division
 	bi_set(expected_res, 2u);
-	bi_eucl_div(a, b, &res);
+	res = bi_eucl_div(a, b);
 	assert(bi_eq(res, expected_res), "bigint 1-word euclidian division");
 	bi_free(res);
 
 	// modulo
 	bi_set(expected_res, 1u);
-	bi_mod(a, b, &res);
+	res = bi_mod(a, b);
 	assert(bi_eq(res, expected_res), "bigint 1-word modulo");
 	bi_free(res);
 
@@ -75,11 +75,10 @@ void test_bigint_math_proper()
 
 	// mod exp
 	// (5 ^ 2) % 4 = 1
-	struct bigint *mod;
-	bi_init(&mod, words);
+	struct bigint *mod = bi_init(words);
 	bi_set(mod, 4u);
 	bi_set(expected_res, 1u);
-	bi_mod_exp(a, b, mod, &res);
+	res = bi_mod_exp(a, b, mod);
 	assert(bi_eq(res, expected_res), "bigint 1-word modular exponentiation");
 	bi_free(res);
 	bi_free(mod);
@@ -93,12 +92,8 @@ void test_bigint(){
 
 	// test init and free
 	printf("Testing bi_init\n");
-	enum bi_op_result init_res = bi_init(&x, test_words);
+	x = bi_init(test_words);
 
-	if(init_res != OKAY){
-		printf("Failed to initialise bigint. Got error: %d\n", init_res);
-		exit(1);
-	}
 	bi_printf(x);
 	printf("\n");
 	printf("Testing bi_free\n");
@@ -106,21 +101,15 @@ void test_bigint(){
 
 	// test init_like
 	printf("testing bi_init_like\n");
-	bi_init(&x, test_words);
+	x = bi_init(test_words);
 
-	init_res = bi_init_like(&y, x);
-
-	if(init_res != OKAY){
-		printf("Failed to init_like bigint. Got error: %d", init_res);
-		exit(1);
-	}
-
+	y = bi_init_like(x);
 	bi_free(x);
 	bi_free(y);
 
 	// test set and copy
-	bi_init(&x, test_words);
-	bi_init_like(&y, x);
+	x = bi_init(test_words);
+	y = bi_init_and_copy(x);
 
 	bi_set(x, 0u);
 	bi_set(y, 0u);
@@ -146,14 +135,14 @@ void test_bigint(){
 	bi_printf(y);
 	printf("\n");
 
-	bi_add(x, y, &z);
+	z = bi_add(x, y);
 	printf("x+y=");
 	bi_printf(z);
 	printf("\n");
 	bi_free(z);
 
 
-	bi_sub(y, x, &z);
+	z = bi_sub(y, x);
 	printf("y-x=");
 	bi_printf(z);
 	printf("\n");
@@ -162,7 +151,7 @@ void test_bigint(){
 	bi_set(x, 0xFFFFFFFF);
 	bi_set(y, 0xFFFFFFFF);
 	for(int i = 0; i < 3; i++){
-		bi_mul(x, y, &z);
+		z = bi_mul(x, y);
 		
 		printf("mul step %d. x*y=z, where:\nx: ", i);
 		bi_printf(x);
@@ -179,7 +168,7 @@ void test_bigint(){
 	// only least sig fig example
 	bi_set(x, 5u);
 	bi_set(y, 3u);
-	bi_mod(x, y, &z);
+	z = bi_mod(x, y);
 	printf("x%%y=");
 	bi_printf(z);
 	printf("\n");
@@ -188,7 +177,7 @@ void test_bigint(){
 	// only least sig fig example
 	bi_set(x, 5u);
 	bi_set(y, 3u);
-	bi_eucl_div(x, y, &z);
+	z = bi_eucl_div(x, y);
 	printf("x/y=");
 	bi_printf(z);
 	printf("\n");
@@ -207,7 +196,7 @@ void test_rng(){
 
 	printf("testing will_rng_next\n");
 	for(int i = 0; i < 5; i++){
-		will_rng_next(&res);
+		res = will_rng_next();
 
 		bi_printf(res);
 		bi_free(res);
@@ -218,7 +207,7 @@ void test_rng(){
 	unsigned long counter = 0;
 	clock_t start = clock();
 	while(clock() - start < CLOCKS_PER_SEC){
-		will_rng_next(&res);
+		res = will_rng_next();
 		bi_free(res);
 		counter++;
 	}
@@ -270,8 +259,7 @@ void test_rsa(){
 
 void test_primality()
 {
-	struct bigint *test_prime;
-	will_rng_next(&test_prime);
+	struct bigint *test_prime = will_rng_next();
 
 	miller_rabin(test_prime, 1000);
 }

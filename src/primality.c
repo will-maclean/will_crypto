@@ -3,36 +3,43 @@
 #include "primality.h"
 #include "rng.h"
 
-void miller_rabin_sd(struct bigint *n, struct bigint **s, struct bigint **d)
-{
-	struct bigint *mod_res, *n_tmp, *tmp_two, *tmp_zero;
+struct mr_sd{
+	struct bigint *s;
+	struct bigint *d;
+};
 
-	bi_init_like(s, n);
-	bi_init_like(&tmp_two, n);
+struct mr_sd miller_rabin_sd(struct bigint *n)
+{
+	struct bigint *s = bi_init_like(n);
+	struct bigint *tmp_two = bi_init_like(n);
 	bi_set(tmp_two, 2u);
-	bi_init_like(&tmp_zero, n);
+	struct bigint *tmp_zero = bi_init_like(n);
 	bi_set(tmp_two, 0u);
 
-	bi_init_and_copy(n, &n_tmp);
-    bi_dec(n_tmp);
+	struct bigint *n_tmp = bi_init_and_copy(n);
+	bi_dec(n_tmp);
 	
-	bi_mod(n_tmp, tmp_two, &mod_res);
+	struct bigint *mod_res = bi_mod(n_tmp, tmp_two);
 	while(bi_eq(mod_res, tmp_zero)){
-		struct bigint *tmp;
-		bi_eucl_div(n_tmp, tmp_two, &tmp);
+		struct bigint *tmp = bi_eucl_div(n_tmp, tmp_two);
 		bi_copy(tmp, n_tmp);
 		bi_free(tmp);
 
 		bi_free(mod_res);
-		bi_mod(n_tmp, tmp_two, &mod_res);
+		mod_res = bi_mod(n_tmp, tmp_two);
 
-		bi_inc(*s);
+		bi_inc(s);
 	}
 
-	bi_mul(n_tmp, tmp_two, d);
+	struct bigint *d = bi_mul(n_tmp, tmp_two);
+
+	return (struct mr_sd){
+		.s = s,
+		.d = d,
+	};
 }
 
-void miller_rabin_randn(struct bigint *n, struct bigint **a)
+struct bigint *miller_rabin_randn(struct bigint *n)
 {
 	int rng_words = get_rng_words();
 	
@@ -43,33 +50,34 @@ void miller_rabin_randn(struct bigint *n, struct bigint **a)
 	}
 	int rng_per_n = n->words / rng_words;
 
-	struct bigint *n_minus_two, *tmp_two;
-	bi_init_and_copy(n, &n_minus_two);
+	struct bigint *n_minus_two = bi_init_and_copy(n);
 	bi_dec(n_minus_two);
 	bi_dec(n_minus_two);
 
-	bi_init_like(&tmp_two, n);
+	struct bigint *tmp_two = bi_init_like(n);
 	bi_set(tmp_two, 2u);
 
 	int max_iters = 1000;
-	struct bigint *tmp2, *tmp3;
+	struct bigint *a, *tmp2, *tmp3;
 	for(int i = 0; i < max_iters; i++){	
 		// have to do some funniness to get random numbers of the
 		// correct length
-		will_rng_next(a);
+		a = will_rng_next();
 		for(int j = 0; j < rng_per_n; j++){
-			will_rng_next(&tmp2);
-			bi_init_and_copy(*a, &tmp3);
-			bi_free(*a);
-			bi_concat(tmp3, tmp2, a);
+			tmp2 = will_rng_next();
+			tmp3 = bi_init_and_copy(a);
+			bi_free(a);
+			a = bi_concat(tmp3, tmp2);
 			bi_free(tmp2);
 			bi_free(tmp3);
 		}
 
-		if(bi_gt(*a, tmp_two) && bi_lt(*a, n_minus_two)){
+		if(bi_gt(a, tmp_two) && bi_lt(a, n_minus_two)){
 			break;
 		}
 	}
+
+	return a;
 }
 
 bool miller_rabin(struct bigint *n, int k)
@@ -78,8 +86,7 @@ bool miller_rabin(struct bigint *n, int k)
 	 * 1. n > 2
 	 * 2. n is odd
 	 */
-	struct bigint *tmp1;
-	bi_init_like(&tmp1, n);
+	struct bigint *tmp1 = bi_init_like(n);
 	bi_set(tmp1, 2u);
 
 	if(bi_le(n, tmp1))
@@ -99,25 +106,26 @@ bool miller_rabin(struct bigint *n, int k)
 	// We factor out powers of 2 from n-1 until the
 	// result is no longer divisible by 2
 	struct bigint *s, *d;
-	miller_rabin_sd(n, &s, &d);	
+	struct mr_sd sd = miller_rabin_sd(n);
+	s = sd.s;
+	d = sd.d;
 
-	struct bigint *a, *x, *y, *tmp_one, *tmp_n_minus_one, *tmp_two;
-	bi_init_like(&tmp_two, n);
-	bi_init_like(&tmp_one, n);
-	bi_init_and_copy(n, &tmp_n_minus_one);
+	struct bigint *tmp_two = bi_init_like(n);
+	struct bigint *tmp_one = bi_init_like(n);
+	struct bigint *tmp_n_minus_one = bi_init_and_copy(n);
 	bi_dec(tmp_n_minus_one);
 	bi_set(tmp_one, 1u);
 	bi_set(tmp_two, 2u);
+
 	for(int k_ = 0; k_ < k; k_++){
 		// Sets a with a random number betwee 2 and n-2
-		miller_rabin_randn(n, &a);
-		bi_mod_exp(a, d, n, &x);
+		struct bigint *a = miller_rabin_randn(n);
+		struct bigint *x = bi_mod_exp(a, d, n);
 		
-		struct bigint *s_;
-		bi_init_like(&s_, s);
+		struct bigint *s_ = bi_init_like(s);
 		bi_set(s_, 0u);
 		for(; bi_lt(s_, s); bi_inc(s_)){
-			bi_mod_exp(x, tmp_two, n, &y);
+			struct bigint *y = bi_mod_exp(x, tmp_two, n);
 			
 			if(
 				bi_eq(y, tmp_one) &&

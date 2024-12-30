@@ -18,24 +18,18 @@ struct bigint{
 	unsigned int *data;
 };
 
-enum bi_op_result {
-	OKAY = 0,
-	EBADSHAPE = 1,
-	ENOMEM = 2,
-};
-
 /*
  * Assigns the memory for a bigint. This is the only function
  * that will raw assign memory for a bigint
  */
-enum bi_op_result bi_init(struct bigint **x, int words);
+struct bigint *bi_init(int words);
 
 
 /*
  * Initialises a bigint to have the same size/memory as
  * another bigint
  */
-enum bi_op_result bi_init_like(struct bigint **init, struct bigint *like);
+struct bigint *bi_init_like(struct bigint *like);
 
 /*
  * Clears memory for a bigint. This is the only function that will clear mem
@@ -47,12 +41,12 @@ void bi_free(struct bigint *x);
  * Copies the data from src into trgt. Assumes trgt's memory is already
  * initialised - if it isn't, use bi_init_and_copy instead
  */
-enum bi_op_result bi_copy(struct bigint *src, struct bigint *trgt);
+void bi_copy(struct bigint *src, struct bigint *trgt);
 
 /*
  * Initialises memory for trgt, and copes src into target
  */
-enum bi_op_result bi_init_and_copy(struct bigint *src, struct bigint **trgt);
+struct bigint *bi_init_and_copy(struct bigint *src);
 
 /*
  * Can be used in limited scenarios to set the bigint to a user-defined value
@@ -64,22 +58,22 @@ void bi_set(struct bigint *x, unsigned int val);
 /*
  * All math function assume the result is NOT set
  */
-enum bi_op_result bi_add(struct bigint *a, struct bigint *b, struct bigint **res);
-enum bi_op_result bi_sub(struct bigint *a, struct bigint *b, struct bigint **res);
-enum bi_op_result bi_mul(struct bigint *a, struct bigint *b, struct bigint **res);
+struct bigint *bi_add(struct bigint *a, struct bigint *b);
+struct bigint *bi_sub(struct bigint *a, struct bigint *b);
+struct bigint *bi_mul(struct bigint *a, struct bigint *b);
 void bi_inc(struct bigint *x);
 void bi_dec(struct bigint *x);
-enum bi_op_result bi_mod_exp(struct bigint *x, struct bigint *exp, 
-		struct bigint *mod, struct bigint **res);
+struct bigint *bi_mod_exp(struct bigint *x, struct bigint *exp, 
+		struct bigint *mod);
 /*
  * remainder of a / b
  */
-enum bi_op_result bi_mod(struct bigint *a, struct bigint *b, struct bigint **res);
+struct bigint *bi_mod(struct bigint *a, struct bigint *b);
 
 /*
  * integer division result of a/b
  */
-enum bi_op_result bi_eucl_div(struct bigint *a, struct bigint *b, struct bigint **res);
+struct bigint *bi_eucl_div(struct bigint *a, struct bigint *b);
 
 bool bi_eq(struct bigint *a, struct bigint* b);
 bool bi_eq_val(struct bigint *a, unsigned int b);
@@ -90,14 +84,14 @@ bool bi_le(struct bigint *a, struct bigint *b);
 bool bi_even(struct bigint *a);
 
 // Logical expressions
-enum bi_op_result bi_and(struct bigint *a, struct bigint *b, struct bigint **res);
-enum bi_op_result bi_or(struct bigint *a, struct bigint *b, struct bigint **res);
-enum bi_op_result bi_xor(struct bigint *a, struct bigint *b, struct bigint **res);
-enum bi_op_result bi_not(struct bigint *a, struct bigint **res);
-enum bi_op_result bi_shift_left(struct bigint *a, struct bigint **res);
-enum bi_op_result bi_shift_right(struct bigint *a, struct bigint **res);
+struct bigint *bi_and(struct bigint *a, struct bigint *b);
+struct bigint *bi_or(struct bigint *a, struct bigint *b);
+struct bigint *bi_xor(struct bigint *a, struct bigint *b);
+struct bigint *bi_not(struct bigint *a);
+struct bigint *bi_shift_left(struct bigint *a);
+struct bigint *bi_shift_right(struct bigint *a);
 void bi_printf(struct bigint *x);
 
 // helper functions
-void bi_concat(struct bigint *a, struct bigint *b, struct bigint **res);
+struct bigint *bi_concat(struct bigint *a, struct bigint *b);
 #endif
