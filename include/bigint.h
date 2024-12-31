@@ -3,16 +3,6 @@
 
 #include <stdbool.h>
 
-/*
- * struct bigint
- *
- * Stores some big numbers for us, and lets us do maths on them! We'll need this
- * for our crypto work, where we use e.g. 2048 bit tokens.
- *
- * Making the very brave decision that we're working in 64-bit environment. Not
- * sure if this will cause issues at any point, but I'm sure that's a problem
- * for future Will.
- */
 struct bigint{
 	int words;
 	unsigned int *data;
@@ -96,4 +86,10 @@ void bi_printf(struct bigint *x);
 
 // helper functions
 struct bigint *bi_concat(struct bigint *a, struct bigint *b);
+
+/*
+ * Pads x with 0's
+*/
+struct bigint *pad(struct bigint *x, int n);
+
 #endif

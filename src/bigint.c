@@ -689,3 +689,14 @@ bool bi_even(struct bigint *a)
 {
 	return !(a->data[0] & 1u);
 }
+
+struct bigint *pad(struct bigint *x, int n){
+	struct bigint *res = bi_init(n);
+	res->words = x->words + n;
+	
+	for(int i = 0; i < x->words; i++){
+		res->data[i] = x->data[i];
+	}
+
+	return res;
+}
