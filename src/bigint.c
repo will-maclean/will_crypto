@@ -8,8 +8,16 @@ int assert_same_shape(struct bigint *a, struct bigint *b){
 	return a->words == b->words;
 }
 
-unsigned int min(int a, int b){
+int min(int a, int b){
 	if(a < b) {
+		return a;
+	} else {
+		return b;
+	}
+}
+
+int max(int a, int b){
+	if(a > b) {
 		return a;
 	} else {
 		return b;
@@ -497,6 +505,19 @@ struct bigint *bi_mod_exp(struct bigint *x, struct bigint *exp,
 
 bool bi_lt(struct bigint *a, struct bigint *b)
 {
+	if (a->words > b->words) {
+		for(int i = b->words; i < a->words; i++){
+			if(a->data[i] > 0u){
+				return false;
+			}
+		}
+	} else if(b->words > a->words) {
+		for(int i = a->words; i < b->words; i++){
+			if(b->data[i] > 0u){
+				return true;
+			}
+		}
+	}
 	if(a->words != b->words){
 		// Honestly, not sure what to do here. I think for now I'll
 		// just return false
@@ -517,6 +538,20 @@ bool bi_lt(struct bigint *a, struct bigint *b)
 
 bool bi_le(struct bigint *a, struct bigint *b)
 {
+	if (a->words > b->words) {
+		for(int i = b->words; i < a->words; i++){
+			if(a->data[i] > 0u){
+				return false;
+			}
+		}
+	} else if(b->words > a->words) {
+		for(int i = a->words; i < b->words; i++){
+			if(b->data[i] > 0u){
+				return true;
+			}
+		}
+	}
+
 	if(a->words != b->words){
 		// Honestly, not sure what to do here. I think for now I'll
 		// just return false
@@ -570,6 +605,20 @@ bool bi_eq_val(struct bigint *a, unsigned int b)
 }
 
 bool bi_gt(struct bigint *a, struct bigint *b){
+	if (a->words > b->words) {
+		for(int i = b->words; i < a->words; i++){
+			if(a->data[i] > 0u){
+				return true;
+			}
+		}
+	} else if(b->words > a->words) {
+		for(int i = a->words; i < b->words; i++){
+			if(b->data[i] > 0u){
+				return false;
+			}
+		}
+	}
+
 	if(a->words != b->words){
 		// Honestly, not sure what to do here. I think for now I'll
 		// just return false
@@ -588,10 +637,18 @@ bool bi_gt(struct bigint *a, struct bigint *b){
 	return false;
 }
 bool bi_ge(struct bigint *a, struct bigint *b){
-	if(a->words != b->words){
-		// Honestly, not sure what to do here. I think for now I'll
-		// just return false
-		return false;
+	if (a->words > b->words) {
+		for(int i = b->words; i < a->words; i++){
+			if(a->data[i] > 0u){
+				return true;
+			}
+		}
+	} else if(b->words > a->words) {
+		for(int i = a->words; i < b->words; i++){
+			if(b->data[i] > 0u){
+				return false;
+			}
+		}
 	}
 
 	for(int i = 0; i < a->words; i++){
