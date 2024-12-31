@@ -25,9 +25,10 @@ struct bigint *bi_init_like(struct bigint *like)
 }
 
 void bi_copy(struct bigint *src, struct bigint *target){
-	if (!assert_same_shape(src, target))
+	if (!assert_same_shape(src, target)){
 		printf("WARNING: bi_copy: different shape\n");
 		return;
+	}
 
 	for(int i = 0; i < src->words; i++)
 		target->data[i] = src->data[i];
@@ -89,7 +90,7 @@ struct bigint *bi_sub(struct bigint *a, struct bigint *b)
 	// we're working with unsigned ints, so if b is greater than a, we'll
 	// set the result to 0 and return early
 	if (!bi_ge(a, b)){
-		bi_set(res, 0ul);
+		bi_set(res, 0u);
 		return res;
 	}
 
@@ -118,9 +119,10 @@ struct bigint *bi_sub(struct bigint *a, struct bigint *b)
 			// zeros we find along the way to the max value (we know
 			// they're zeros currently)
 			j++;
-			while(j!=i)
+			while(j!=i){
 				a_copy->data[j] = 0xFFFFFFFF;
 				j++;
+			}
 
 			// we can now compute the subtraction for the ith
 			// place

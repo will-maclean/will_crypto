@@ -1,6 +1,6 @@
 #ifndef __chacha
 #define __chacha
 
-void chacha_block(uint32_t out[16], uint32_t const in[16]);
+void chacha_block(unsigned int out[16], unsigned int const in[16]);
 
 #endif
