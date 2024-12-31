@@ -4,10 +4,17 @@
 #include <string.h>
 #include "bigint.h"
 
-static int assert_same_shape(struct bigint *a, struct bigint *b){
+int assert_same_shape(struct bigint *a, struct bigint *b){
 	return a->words == b->words;
 }
 
+unsigned int min(int a, int b){
+	if(a < b) {
+		return a;
+	} else {
+		return b;
+	}
+}
 
 struct bigint *bi_init(int words)
 {
@@ -41,10 +48,10 @@ void bi_free(struct bigint *x)
 
 void bi_set(struct bigint *a, unsigned int val)
 {
-	for(int i = 0; i < a->words - 1; i++)
+	for(int i = 1; i < a->words - 1; i++)
 		a->data[i] = 0u;
 	
-	a->data[a->words - 1] = val;
+	a->data[0] = val;
 }
 
 struct bigint *bi_add(struct bigint *a, struct bigint *b)
@@ -56,7 +63,7 @@ struct bigint *bi_add(struct bigint *a, struct bigint *b)
 
 	unsigned int carry = 0;
 	unsigned long sum;
-	for(int i = a->words - 1; i >= 0; i--){
+	for(int i = 0; i < res->words; i++){
 		sum = (unsigned long)(a->data[i]) + (unsigned long)b->data[i]
 			       	+ res->data[i] + carry;
 		res->data[i] = (unsigned int)(sum & 0xFFFFFFFF);
@@ -71,7 +78,7 @@ struct bigint *bi_add(struct bigint *a, struct bigint *b)
 		carry = (unsigned int)(sum >> 32);
 
 		if(carry && i > 0){
-			res->data[i - 1] += carry;
+			res->data[i + 1] += carry;
 		}
 	}
 
@@ -98,17 +105,17 @@ struct bigint *bi_sub(struct bigint *a, struct bigint *b)
 	// we'll need to revisit this and make it smarter.
 
 	unsigned long sub_from;
-	for(int i = a->words - 1; i >= 0; i--){
+	for(int i = 0; i < res->words; i++){
 		if(a_copy->data[i] >= b->data[i]){
 			res->data[i] = a_copy->data[i] - b->data[i];
 		} else {
 			// we need to go and get that bump
-			int j = i - 1;
+			int j = i + 1;
 
 			// go to the left until we find something greater than
 			// 0.
 			while(j >= 0 && a_copy->data[j] == 0u)
-				j--;
+				j++;
 
 			// we found something greater then zero. We'll decrement
 			// it and then carry the value back to the right again
@@ -118,10 +125,10 @@ struct bigint *bi_sub(struct bigint *a, struct bigint *b)
 			// now move back to the right again, setting all the
 			// zeros we find along the way to the max value (we know
 			// they're zeros currently)
-			j++;
+			j--;
 			while(j!=i){
 				a_copy->data[j] = 0xFFFFFFFF;
-				j++;
+				j--;
 			}
 
 			// we can now compute the subtraction for the ith
@@ -155,9 +162,9 @@ struct bigint *bi_mul(struct bigint *a, struct bigint *b)
 
 	unsigned int carry;
 	unsigned long prod;
-	for(int i = a->words - 1; i >= 0; i--){
+	for(int i = 0; i < res->words; i++){
 		carry = 0;
-		for(int j = b->words - 1; j >= 0; j--){
+		for(int j = 0; j < res->words; j++){
 			prod = (unsigned long)(a->data[i]) * (unsigned long)b->data[j]
 			       	+ res->data[i+j+1] + carry;
 			// printf("i=%d, j=%d, prod=%lu\n", i, j, prod);
@@ -170,35 +177,138 @@ struct bigint *bi_mul(struct bigint *a, struct bigint *b)
 			carry = (unsigned int)(prod >> 32);
 		}
 
-		if(carry && i > 0){
-			res->data[i-1] += carry;
+		if(carry){
+			res->data[i+1] += carry;
 		}
 	}
 	
-	unsigned int *tmp = malloc(a->words * sizeof(unsigned int));
-	memcpy(tmp, &(res->data[a->words]), a->words * sizeof(unsigned int));
-	free(res->data);
-	res->data = tmp;
+	res->data = realloc(res->data, a->words * sizeof(unsigned int));
 	res->words = a->words;
 	
 	return res;
 }
 
-struct bigint *bi_mod(struct bigint *a, struct bigint *b)
+struct bigint *bi_powi(struct bigint *b, unsigned int p)
 {
-	if (!assert_same_shape(a, b))
+	// Basic exponentiation algorithm, plenty of faster ones 
+	// out there if required. I don't think this can take
+	// more then log2(p) iterations, which is pretty good,
+	// so we should be safe for a while.
+
+	struct bigint *a = bi_init(2 * b->words);
+	bi_set(a, 1u);
+	struct bigint *s = bi_init(2 * b->words);
+
+	for(int i = 0; i < b->words; i++){
+		s->data[i] = b->data[i];
+	}
+
+	while(p != 0u){
+		if(p % 2 == 1){
+			struct bigint *tmp = bi_mul(a, s);
+			bi_copy(tmp, a);
+			bi_free(tmp);
+		}
+
+		p /= 2;
+
+		if(p != 0){
+			struct bigint *tmp = bi_mul(s, s);
+			bi_copy(tmp, s);
+			bi_free(tmp);
+		}
+	}
+
+	bi_free(s);
+
+	return a;
+}
+
+struct bigint *bi_mod(struct bigint *x, struct bigint *y)
+{
+	if (!assert_same_shape(x, y))
 		return NULL;
 
-	struct bigint *r, *tmp;
+	// Implementing the multiple-precision division algorithm from 
+	// https://cacr.uwaterloo.ca/hac/about/chap14.pdf
 
-	r = bi_init_like(a);
-	bi_copy(a, r);
+	int n = x->words - 1;
+	int t = y->words - 1;
 
-	while(bi_ge(r, b)){
-		// r = r - d
-		tmp = bi_sub(r, b);
+	struct bigint *q = bi_init_like(x);
+	bi_set(q, 0u);
+	struct bigint *r = bi_init_and_copy(x);
+
+	// b = base = 2**32
+	struct bigint *b = bi_init_like(x);
+	b->data[2] = 1u;
+
+	struct bigint *b_pow = bi_powi(b, n-t);
+	struct bigint *loop_check = bi_mul(y, b_pow);
+	while(bi_ge(r, loop_check)){
+		q->data[n-t]++;
+
+		struct bigint *tmp = bi_sub(r, loop_check);
 		bi_copy(tmp, r);
 		bi_free(tmp);
+	}
+
+	for(int i = n; i > t; i--){
+		if (r->data[i] == y->data[t]) {
+			q->data[i-t-1] = 0xFFFFFFFFu;
+		} else {
+			int tmp = (0x100000000ul * (unsigned long)(r->data[i]) + (unsigned long)(r->data[i-1])) 
+				/ (unsigned long)(y->data[i]);
+			q->data[i-t-1] = (unsigned int)(tmp);
+		}
+
+		struct bigint *inner_counter = bi_init_like(r);
+		bi_set(inner_counter, 0u);
+		inner_counter->data[0] = r->data[i-2];
+		inner_counter->data[1] = r->data[i-1];
+		inner_counter->data[2] = r->data[i-0];
+
+		struct bigint *loop_tmp = bi_init_like(r);
+		bi_set(loop_tmp, 0u);
+		loop_tmp->data[0] = y->data[t-1];
+		loop_tmp->data[1] = y->data[t-0];
+
+		struct bigint *loop_tmp2 = bi_init_like(r);
+		bi_set(loop_tmp2, 0u);
+		loop_tmp2->data[0] = q->data[i-t-1];
+
+
+		struct bigint *inner_loop_check = bi_mul(loop_tmp, loop_tmp2);
+
+		while(bi_gt(inner_loop_check, inner_counter)){
+			q->data[i-t-1]--;
+
+			loop_tmp2->data[0] = q->data[i-t-1];
+			bi_free(inner_loop_check);
+			inner_loop_check = bi_mul(loop_tmp, loop_tmp2);
+		}
+
+		struct bigint *tmp1 = bi_shift_left(y, i-t-1);
+		struct bigint *tmp2 = bi_mul(loop_tmp2, tmp1);
+		
+		if(bi_gt(tmp2, r)){
+			struct bigint *tmp4 = bi_add(r, tmp1);
+			bi_copy(tmp4, r);
+			bi_free(tmp4);
+
+			q->data[i-t-1]--;
+		}
+
+		struct bigint *tmp3 = bi_sub(r, tmp2);
+		bi_copy(tmp3, r);
+
+		bi_free(inner_counter);
+		bi_free(loop_tmp);
+		bi_free(loop_tmp2);
+		bi_free(inner_loop_check);
+		bi_free(tmp1);
+		bi_free(tmp2);
+		bi_free(tmp3);
 	}
 
 	return r;
@@ -231,67 +341,6 @@ struct bigint *bi_eucl_div(struct bigint *a, struct bigint *b)
 
 	return q;
 }
-
-bool bi_eq(struct bigint *a, struct bigint *b)
-{
-	if(!assert_same_shape(a, b))
-		return false;
-
-	for(int i = 0; i < a->words; i++){
-		if(a->data[i] != b->data[i])
-			return false;
-	}
-
-	return true;
-}
-
-bool bi_eq_val(struct bigint *a, unsigned int b)
-{
-	for(int i = 0; i < a->words - 1; i++){
-		if(a->data[i] != 0u)
-			return false;
-	}
-
-	return a->data[a->words-1] == b;
-}
-
-bool bi_gt(struct bigint *a, struct bigint *b){
-	if(a->words != b->words){
-		// Honestly, not sure what to do here. I think for now I'll
-		// just return false
-		return false;
-	}
-
-	for(int i = 0; i < a->words; i++){
-		if(a->data[i] > b->data[i]){
-			return true;
-		} else if (a->data[i] < b->data[i]){
-			return false;
-		}
-	}
-
-	// a and b are equal
-	return false;
-}
-bool bi_ge(struct bigint *a, struct bigint *b){
-	if(a->words != b->words){
-		// Honestly, not sure what to do here. I think for now I'll
-		// just return false
-		return false;
-	}
-
-	for(int i = 0; i < a->words; i++){
-		if(a->data[i] > b->data[i]){
-			return true;
-		} else if (a->data[i] < b->data[i]){
-			return false;
-		}
-	}
-
-	// a and b are equal
-	return true;
-}
-
 void bi_printf(struct bigint *x){
 	printf("0x");
 	for(int i = 0; i < x->words - 1; i++){
@@ -302,10 +351,10 @@ void bi_printf(struct bigint *x){
 }
 void bi_inc(struct bigint *x)
 {
-	int i = x->words - 1;
+	int i = 0;
 	while(x->data[i] == 0xFFFFFFFF){
 		x->data[i] = 0u;
-		i--;
+		i++;
 	}
 
 	x->data[i]++;
@@ -313,10 +362,10 @@ void bi_inc(struct bigint *x)
 
 void bi_dec(struct bigint *x)
 {
-	int i = x->words - 1;
+	int i = 0;
 	while(x->data[i] == 0u){
 		x->data[i] = 0xFFFFFFFF;
-		i--;
+		i++;
 	}
 
 	x->data[i]--;
@@ -371,16 +420,34 @@ struct bigint *bi_not(struct bigint *a)
 	return res;
 }
 
-struct bigint *bi_shift_left(struct bigint *a)
+struct bigint *bi_shift_left(struct bigint *a, unsigned int n)
 {
-	printf("warning: bi_shift)right is not implemented\n");
-	return NULL;
+	struct bigint *res = bi_init_like(a);
+
+	int offset_words = n / 32 + 1;
+	int offset_mod = n % 32;
+
+	for(int i = offset_words; i < res->words; i++){
+		res->data[i] = a->data[i - offset_words] >> (32 - offset_mod)
+			+ a->data[i - offset_words - 1] << offset_mod;
+	}
+
+	return res;
 }
 
-struct bigint *bi_shift_right(struct bigint *a)
+struct bigint *bi_shift_right(struct bigint *a, unsigned int n)
 {
-	printf("warning: bi_shift)right is not implemented\n");
-	return NULL;
+	struct bigint *res = bi_init_like(a);
+
+	int offset_words = n / 32 + 1;
+	int offset_mod = n % 32;
+
+	for(int i = 0; i < res->words - offset_words; i++){
+		res->data[i] = a->data[i + offset_words - 1] >> offset_mod
+			+ a->data[i+- offset_words] << (32 - offset_mod);
+	}
+
+	return res;
 }
 
 
@@ -436,7 +503,7 @@ bool bi_lt(struct bigint *a, struct bigint *b)
 		return false;
 	}
 
-	for(int i = 0; i < a->words; i++){
+	for(int i = a->words - 1; i >= 0; i--){
 		if(a->data[i] > b->data[i]){
 			return false;
 		} else if (a->data[i] < b->data[i]){
@@ -456,7 +523,7 @@ bool bi_le(struct bigint *a, struct bigint *b)
 		return false;
 	}
 
-	for(int i = 0; i < a->words; i++){
+	for(int i = a->words - 1; i > 0; i--){
 		if(a->data[i] > b->data[i]){
 			return false;
 		} else if (a->data[i] < b->data[i]){
@@ -467,6 +534,78 @@ bool bi_le(struct bigint *a, struct bigint *b)
 	// a and b are equal
 	return true;
 }
+
+bool bi_eq(struct bigint *a, struct bigint *b)
+{
+	for(int i = 0; i < min(a->words, b->words); i++){
+		if(a->data[i] != b->data[i])
+			return false;
+	}
+
+	if(a->words > b->words){
+		for(int i = b->words; i < a->words; i++){
+			if(a->data[i] != 0u){
+				return false;
+			}
+		}
+	} else if (b->words > a->words) {
+		for(int i = a->words; i < b->words; i++){
+			if(b->data[i] != 0u){
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+bool bi_eq_val(struct bigint *a, unsigned int b)
+{
+	for(int i = 1; i < a->words - 1; i++){
+		if(a->data[i] != 0u)
+			return false;
+	}
+
+	return a->data[0] == b;
+}
+
+bool bi_gt(struct bigint *a, struct bigint *b){
+	if(a->words != b->words){
+		// Honestly, not sure what to do here. I think for now I'll
+		// just return false
+		return false;
+	}
+
+	for(int i = 0; i < a->words; i++){
+		if(a->data[i] > b->data[i]){
+			return true;
+		} else if (a->data[i] < b->data[i]){
+			return false;
+		}
+	}
+
+	// a and b are equal
+	return false;
+}
+bool bi_ge(struct bigint *a, struct bigint *b){
+	if(a->words != b->words){
+		// Honestly, not sure what to do here. I think for now I'll
+		// just return false
+		return false;
+	}
+
+	for(int i = 0; i < a->words; i++){
+		if(a->data[i] > b->data[i]){
+			return true;
+		} else if (a->data[i] < b->data[i]){
+			return false;
+		}
+	}
+
+	// a and b are equal
+	return true;
+}
+
 
 struct bigint *bi_concat(struct bigint *a, struct bigint *b)
 {
@@ -491,5 +630,5 @@ struct bigint *bi_init_and_copy(struct bigint *src)
 
 bool bi_even(struct bigint *a)
 {
-	return !(a->data[a->words - 1] & 1u);
+	return !(a->data[0] & 1u);
 }

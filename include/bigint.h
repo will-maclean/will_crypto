@@ -65,6 +65,8 @@ void bi_inc(struct bigint *x);
 void bi_dec(struct bigint *x);
 struct bigint *bi_mod_exp(struct bigint *x, struct bigint *exp, 
 		struct bigint *mod);
+struct bigint *bi_powi(struct bigint *b, unsigned int p);
+
 /*
  * remainder of a / b
  */
@@ -88,8 +90,8 @@ struct bigint *bi_and(struct bigint *a, struct bigint *b);
 struct bigint *bi_or(struct bigint *a, struct bigint *b);
 struct bigint *bi_xor(struct bigint *a, struct bigint *b);
 struct bigint *bi_not(struct bigint *a);
-struct bigint *bi_shift_left(struct bigint *a);
-struct bigint *bi_shift_right(struct bigint *a);
+struct bigint *bi_shift_left(struct bigint *a, unsigned int n);
+struct bigint *bi_shift_right(struct bigint *a, unsigned int n);
 void bi_printf(struct bigint *x);
 
 // helper functions
