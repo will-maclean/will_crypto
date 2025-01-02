@@ -91,5 +91,6 @@ struct bigint *bi_concat(struct bigint *a, struct bigint *b);
  * Pads x with 0's
 */
 struct bigint *pad(struct bigint *x, int n);
+void bi_squeeze(struct bigint *x);
 
 #endif

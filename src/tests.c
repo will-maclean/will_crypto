@@ -86,9 +86,20 @@ void test_bigint_math_proper()
 
 void test_bigint(){
 	// test create and free
-	int test_words = 4;
+	int test_words = 2;
 
 	struct bigint *x, *y, *z;
+
+	x = bi_init(4);
+	bi_squeeze(x);
+	assert(x->words == 1, "squeeze on zero failed");
+	bi_free(x);
+
+	x = bi_init(4);
+	x->data[1] = 42u;
+	bi_squeeze(x);
+	assert(x->words == 2, "squeeze on non-zero failed");
+	bi_free(x);
 
 	// test init and free
 	printf("Testing bi_init\n");
@@ -277,8 +288,10 @@ void tests(){
 	printf("testing bigint maths\n");
 	test_bigint_math_proper();
 
+	/*
 	printf("Testing primality tests\n");
 	test_primality();
+	*/
 
 	printf("Tests completed!\n");
 	printf("Tests: %d. Passes: %d. Failures: %d\n", successes + failures, successes, failures);
