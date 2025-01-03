@@ -41,15 +41,6 @@ struct mr_sd miller_rabin_sd(struct bigint *n)
 
 struct bigint *miller_rabin_randn(struct bigint *n)
 {
-	int rng_words = get_rng_words();
-	
-	if(n->words % rng_words != 0){
-		// ERROR
-		printf("mill_rabin_randn: n->words %% rng_words != 0");
-		exit(1);
-	}
-	int rng_per_n = n->words / rng_words;
-
 	struct bigint *n_minus_two = bi_init_and_copy(n);
 	bi_dec(n_minus_two);
 	bi_dec(n_minus_two);
@@ -62,15 +53,7 @@ struct bigint *miller_rabin_randn(struct bigint *n)
 	for(int i = 0; i < max_iters; i++){	
 		// have to do some funniness to get random numbers of the
 		// correct length
-		a = will_rng_next();
-		for(int j = 0; j < rng_per_n; j++){
-			tmp2 = will_rng_next();
-			tmp3 = bi_init_and_copy(a);
-			bi_free(a);
-			a = bi_concat(tmp3, tmp2);
-			bi_free(tmp2);
-			bi_free(tmp3);
-		}
+		a = will_rng_next(n->words);
 
 		if(bi_gt(a, tmp_two) && bi_lt(a, n_minus_two)){
 			break;

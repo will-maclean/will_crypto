@@ -73,6 +73,24 @@ void test_bigint_math_proper()
 	assert(bi_eq(a, expected_res), "bigint 1-word increment");
 	bi_set(a, 5u);
 
+	// shift left
+	bi_free(b);
+	bi_set(a, 2u);
+	bi_set(expected_res, 8u);
+	b = bi_shift_left(a, 2u);
+	assert(bi_eq(b, expected_res), "bigint 1-word shift left");
+	bi_set(a, 5u);
+	bi_set(b, 3u);
+
+	// shift right
+	bi_free(b);
+	bi_set(a, 5u);
+	bi_set(expected_res, 2u);
+	b = bi_shift_right(a, 1u);
+	assert(bi_eq(b, expected_res), "bigint 1-word shift right");
+	bi_set(a, 5u);
+	bi_set(b, 3u);
+
 	// mod exp
 	// (5 ^ 2) % 4 = 1
 	struct bigint *mod = bi_init(words);
@@ -159,8 +177,6 @@ void test_bigint(){
 	printf("\n");
 	bi_free(z);
 
-	bi_set(x, 0xFFFFFFFF);
-	bi_set(y, 0xFFFFFFFF);
 	for(int i = 0; i < 3; i++){
 		z = bi_mul(x, y);
 		
@@ -180,6 +196,7 @@ void test_bigint(){
 	bi_set(x, 5u);
 	bi_set(y, 3u);
 	z = bi_mod(x, y);
+	printf("x="); bi_printf(x); printf(", y="); bi_printf(y); printf("\n");
 	printf("x%%y=");
 	bi_printf(z);
 	printf("\n");
@@ -207,7 +224,7 @@ void test_rng(){
 
 	printf("testing will_rng_next\n");
 	for(int i = 0; i < 5; i++){
-		res = will_rng_next();
+		res = will_rng_next(words);
 
 		bi_printf(res);
 		bi_free(res);
@@ -218,7 +235,7 @@ void test_rng(){
 	unsigned long counter = 0;
 	clock_t start = clock();
 	while(clock() - start < CLOCKS_PER_SEC){
-		res = will_rng_next();
+		res = will_rng_next(words);
 		bi_free(res);
 		counter++;
 	}
@@ -270,7 +287,8 @@ void test_rsa(){
 
 void test_primality()
 {
-	struct bigint *test_prime = will_rng_next();
+	int words = 16;
+	struct bigint *test_prime = will_rng_next(words);
 
 	miller_rabin(test_prime, 1000);
 }
@@ -288,10 +306,8 @@ void tests(){
 	printf("testing bigint maths\n");
 	test_bigint_math_proper();
 
-	/*
 	printf("Testing primality tests\n");
 	test_primality();
-	*/
 
 	printf("Tests completed!\n");
 	printf("Tests: %d. Passes: %d. Failures: %d\n", successes + failures, successes, failures);

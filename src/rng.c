@@ -1,3 +1,4 @@
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "rng.h"
@@ -5,7 +6,7 @@
 
 struct will_rng_state{
 	struct will_rng_cfg *cfg;
-	struct bigint *prev;
+	unsigned int prev[16];
 };
 
 static struct will_rng_state rng_state;
@@ -21,15 +22,14 @@ void init_will_rng(struct will_rng_cfg *cfg, unsigned int seed)
 	}
 
 	rng_state.cfg = cfg;
-	rng_state.prev = bi_init(cfg->words);
 
 	// Probably not the most secure seeding method...
-	for(int i = 0; i < rng_state.prev->words; i++)
-		rng_state.prev->data[i] = i * seed;
+	for(int i = 0; i < 16; i++)
+		rng_state.prev[i] = i * seed;
 
 }
 
-struct bigint *will_rng_next() 
+struct bigint *will_rng_next(int words) 
 {
 	/*
 	 * Idea is as follows:
@@ -40,17 +40,12 @@ struct bigint *will_rng_next()
 	 * 	3. Set the chacha output to that same 512 bit block in rng_state->prev, as
 	 * 	well as the matching block in *res
 	 */
-	struct bigint *res = bi_init_like(rng_state.prev);
+	struct bigint *res = bi_init(words);
 
 	for(int i = 0; i < res->words; i += 16){
-		chacha_block(&(res->data[i]), &(rng_state.prev->data[i]));
+		chacha_block(&(res->data[i]), rng_state.prev);
+		memcpy(rng_state.prev, &(res->data[i]), 16 * sizeof(unsigned int));
 	}
 
-	bi_copy(res, rng_state.prev);
-
 	return res;
-}
-
-int get_rng_words(){
-	return rng_state.cfg->words;
 }

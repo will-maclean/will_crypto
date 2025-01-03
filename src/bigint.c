@@ -53,10 +53,10 @@ void bi_free(struct bigint *x)
 
 void bi_set(struct bigint *a, unsigned int val)
 {
-	for(int i = 1; i < a->words; i++)
-		a->data[i] = 0u;
-
+	free(a->data);
+	a->data = malloc(sizeof(unsigned int));
 	a->data[0] = val;
+	a->words = 1;
 }
 
 struct bigint *bi_add(struct bigint *a, struct bigint *b)
@@ -177,12 +177,12 @@ struct bigint *bi_mul(struct bigint *a, struct bigint *b)
 	unsigned int carry;
 	unsigned long prod;
 	for(int i = 0; i < a->words; i++){
-		carry = 0;
+		carry = 0u;
 		for(int j = 0; j < b->words; j++){
 			prod = (unsigned long)(a->data[i]) * (unsigned long)b->data[j]
 			       	+ res->data[i+j+1] + carry;
 			// printf("i=%d, j=%d, prod=%lu\n", i, j, prod);
-			res->data[i+j+1] = (unsigned int)(prod & 0xFFFFFFFF);
+			res->data[i+j] = (unsigned int)(prod & 0xFFFFFFFF);
 			/*
 			printf("res=");
 			bi_printf(*res);
@@ -195,9 +195,6 @@ struct bigint *bi_mul(struct bigint *a, struct bigint *b)
 			res->data[i+1] += carry;
 		}
 	}
-
-	res->data = realloc(res->data, a->words * sizeof(unsigned int));
-	res->words = a->words;
 
 	bi_squeeze(res);
 
@@ -248,18 +245,18 @@ struct bigint *bi_mod(struct bigint *x, struct bigint *y)
 	struct bigint *r = bi_init_like(x);
 	bi_set(r, 0u);
 
-	int div_bits = 32 * x->words;
+	int div_bits = 32u * x->words;
 	for(int i = div_bits - 1; i >= 0; i--){
 		// Left-shift R by 1 bit
-		struct bigint *tmp = bi_shift_left(r, 1);
+		struct bigint *tmp = bi_shift_left(r, 1u);
 		bi_copy(tmp, r);
 		bi_free(tmp);
 
 		// Set the least-significant bit of R equal to bit i of the numerator
-		int curr_word = i / 32;
-		int curr_word_pos = i % 32;
-		unsigned int res = x->data[curr_word] & (1 << curr_word_pos);
-		r->data[r->words - 1] |= res >> curr_word_pos;
+		unsigned int curr_word = i / 32u;
+		unsigned int curr_word_pos = i % 32u;
+		unsigned int res = x->data[curr_word] & (1u << curr_word_pos);
+		r->data[0] |= res >> curr_word_pos;
 
 		if(bi_ge(r, y)){
 			// r := r - y
@@ -362,25 +359,24 @@ struct bigint *bi_mod(struct bigint *x, struct bigint *y)
 struct bigint *bi_eucl_div(struct bigint *x, struct bigint *y)
 {
 	//TODO: handle div by zero
-
 	struct bigint *q = bi_init_like(x);
 	struct bigint *r = bi_init_like(x);
 
 	bi_set(q, 0u);
 	bi_set(r, 0u);
 
-	int div_bits = 32 * x->words;
+	int div_bits = 32u * x->words;
 	for(int i = div_bits - 1; i >= 0; i--){
 		// Left-shift R by 1 bit
-		struct bigint *tmp = bi_shift_left(r, 1);
+		struct bigint *tmp = bi_shift_left(r, 1u);
 		bi_copy(tmp, r);
 		bi_free(tmp);
 
 		// Set the least-significant bit of R equal to bit i of the numerator
-		int curr_word = i / 32;
-		int curr_word_pos = i % 32;
-		unsigned int res = x->data[curr_word] & (1 << curr_word_pos);
-		r->data[r->words - 1] |= res >> curr_word_pos;
+		unsigned int curr_word = i / 32u;
+		unsigned int curr_word_pos = i % 32u;
+		unsigned int res = x->data[curr_word] & (1u << curr_word_pos);
+		r->data[0] |= res >> curr_word_pos;
 
 		if(bi_ge(r, y)){
 			// r := r - y
@@ -388,37 +384,13 @@ struct bigint *bi_eucl_div(struct bigint *x, struct bigint *y)
 			bi_copy(tmp, r);
 			bi_free(tmp);
 
-			// x(i) := 1
 			q->data[curr_word] |= 1u << curr_word_pos;
 		}
 	}
-	
-	bi_free(r);
+
+	bi_free(r);	
 	bi_squeeze(q);
 	return q;
-
-/*
-
-	struct bigint *r, *q, *tmp;
-
-	r = bi_init_and_copy(a);
-	q = bi_init_like(a);
-	bi_set(q, 0u);
-
-	while(bi_ge(r, b)){
-		// r = r - d
-		tmp = bi_sub(r, b);
-		bi_copy(tmp, r);
-		bi_free(tmp);
-
-		// q = q + 1
-		bi_inc(q);
-	}
-	bi_free(r);
-
-	bi_squeeze(q);
-	return q;
-*/
 }
 
 void bi_printf(struct bigint *x){
@@ -527,12 +499,14 @@ struct bigint *bi_shift_left(struct bigint *a, unsigned int n)
 {
 	struct bigint *res = bi_init_like(a);
 
-	int offset_words = n / 32 + 1;
+	int offset_words = n / 32;
 	int offset_mod = n % 32;
 
 	for(int i = offset_words; i < res->words; i++){
-		res->data[i] = a->data[i - offset_words] >> (32 - offset_mod)
-			+ a->data[i - offset_words - 1] << offset_mod;
+		res->data[i] = (a->data[i - offset_words] << offset_mod);
+		
+		if(i > 0)
+			res->data[i] |= (a->data[i - offset_words - 1] >> (32u - offset_mod));
 	}
 
 	bi_squeeze(res);
@@ -543,12 +517,14 @@ struct bigint *bi_shift_right(struct bigint *a, unsigned int n)
 {
 	struct bigint *res = bi_init_like(a);
 
-	int offset_words = n / 32 + 1;
+	int offset_words = n / 32;
 	int offset_mod = n % 32;
 
 	for(int i = 0; i < res->words - offset_words; i++){
-		res->data[i] = a->data[i + offset_words - 1] >> offset_mod
-			+ a->data[i+- offset_words] << (32 - offset_mod);
+		res->data[i] = (a->data[i - offset_words] >> offset_mod);
+		
+		if(i < res->words - 1)
+			res->data[i] |= (a->data[i - offset_words + 1] << (32u - offset_mod));
 	}
 
 	bi_squeeze(res);

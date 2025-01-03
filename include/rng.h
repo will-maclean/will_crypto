@@ -8,6 +8,5 @@ struct will_rng_cfg{
 };
 
 void init_will_rng(struct will_rng_cfg *cfg, unsigned int seed);
-struct bigint *will_rng_next();
-int get_rng_words();
+struct bigint *will_rng_next(int words);
 #endif
