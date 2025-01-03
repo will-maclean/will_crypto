@@ -241,7 +241,20 @@ MPI bi_powi(MPI b, unsigned int p)
 MPI bi_mod(MPI x, MPI y)
 {
 	//TODO: handle div by zero
+	if(bi_gt(y, x)){
+		MPI res = bi_init_and_copy(x);
+		return res;
+	}
 
+	int y_orig_words;
+	bool y_was_squeezed = false;
+	if(x->words > y->words){
+		y_was_squeezed = true;
+		y_orig_words = y->words;
+		MPI tmp = pad(y, x->words - y->words);
+		bi_copy(tmp, y);
+		bi_free(tmp);
+	}
 	MPI r = bi_init_like(x);
 	bi_set(r, 0u);
 
@@ -262,6 +275,16 @@ MPI bi_mod(MPI x, MPI y)
 			// r := r - y
 			tmp = bi_sub(r, y);
 			bi_copy(tmp, r);
+			bi_free(tmp);
+		}
+	}
+	
+	if(y_was_squeezed){
+		bi_squeeze(y);
+
+		if(y->words < y_orig_words){
+			MPI tmp = pad(y, y_orig_words - y->words);
+			bi_copy(tmp, y);
 			bi_free(tmp);
 		}
 	}
@@ -359,6 +382,22 @@ MPI bi_mod(MPI x, MPI y)
 MPI bi_eucl_div(MPI x, MPI y)
 {
 	//TODO: handle div by zero
+	if(bi_gt(y, x)){
+		MPI res = bi_init(1);
+		bi_set(res, 0u);
+		return res;
+	}
+
+	int y_orig_words;
+	bool y_was_squeezed = false;
+	if(x->words > y->words){
+		y_was_squeezed = true;
+		y_orig_words = y->words;
+		MPI tmp = pad(y, x->words - y->words);
+		bi_copy(tmp, y);
+		bi_free(tmp);
+	}
+
 	MPI q = bi_init_like(x);
 	MPI r = bi_init_like(x);
 
@@ -385,6 +424,16 @@ MPI bi_eucl_div(MPI x, MPI y)
 			bi_free(tmp);
 
 			q->data[curr_word] |= 1u << curr_word_pos;
+		}
+	}
+
+	if(y_was_squeezed){
+		bi_squeeze(y);
+
+		if(y->words < y_orig_words){
+			MPI tmp = pad(y, y_orig_words - y->words);
+			bi_copy(tmp, y);
+			bi_free(tmp);
 		}
 	}
 

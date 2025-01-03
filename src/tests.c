@@ -291,6 +291,14 @@ void test_primality()
 	MPI test_prime = will_rng_next(words);
 
 	miller_rabin(test_prime, 1000);
+
+	MPI generated_prime = gen_prime(16);
+
+	if(generated_prime){
+		printf("Generated prime:\n");
+		bi_printf(generated_prime);
+		printf("\n");
+	}
 }
 
 void tests(){

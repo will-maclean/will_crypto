@@ -1,1 +1,2 @@
 - Duplicate maths operators to be able to take in normal ints as operands, so that we can do e.g. bi_add_imm(a, 2u, res) instead of needing to create a new bigint to store a each time.
+- need a faster modular exponentiation!

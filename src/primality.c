@@ -14,24 +14,22 @@ struct mr_sd miller_rabin_sd(MPI n)
 	MPI tmp_two = bi_init_like(n);
 	bi_set(tmp_two, 2u);
 	MPI tmp_zero = bi_init_like(n);
-	bi_set(tmp_two, 0u);
+	bi_set(tmp_zero, 0u);
 
-	MPI n_tmp = bi_init_and_copy(n);
-	bi_dec(n_tmp);
-	
-	MPI mod_res = bi_mod(n_tmp, tmp_two);
-	while(bi_eq(mod_res, tmp_zero)){
-		MPI tmp = bi_eucl_div(n_tmp, tmp_two);
-		bi_copy(tmp, n_tmp);
+	MPI d = bi_init_and_copy(n);
+	bi_dec(d);
+
+	while(bi_even(d)){
+		MPI tmp = bi_eucl_div(d, tmp_two);
+		bi_copy(tmp, d);
 		bi_free(tmp);
-
-		bi_free(mod_res);
-		mod_res = bi_mod(n_tmp, tmp_two);
 
 		bi_inc(s);
 	}
 
-	MPI d = bi_mul(n_tmp, tmp_two);
+	//TODO: assert d * 2 ^ s = n - 1
+	bi_squeeze(s);
+	bi_squeeze(d);
 
 	return (struct mr_sd){
 		.s = s,
@@ -132,3 +130,31 @@ bool miller_rabin(MPI n, int k)
 
 	return true;
 }	
+
+MPI gen_prime(int words)
+{
+	int max_tries = 10000;
+	int mr_k = 1000;
+	MPI res;
+	int counter = 0;
+	
+	while(counter < max_tries) {
+		res = will_rng_next(words);
+
+		if(miller_rabin(res, mr_k)){
+			break;
+		} else {
+			bi_free(res);
+		}
+
+		counter ++;
+	}
+
+	if(counter >= max_tries){
+		// error handling
+		printf("gen_prime failed!\n");
+		return NULL;
+	}
+
+	return res;
+}
