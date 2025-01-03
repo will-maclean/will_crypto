@@ -13,8 +13,8 @@ static void load_new_primes(struct rsa_state *new_state, int seed)
 /*
  * Assumes bez_x and bez_y are NOT set
  */
-int lcm_ext_euc(struct bigint *a, struct bigint *b, struct bigint *bez_x,
-		struct bigint *bez_y)
+int lcm_ext_euc(MPI a, MPI b, MPI bez_x,
+		MPI bez_y)
 {
 	/* TODO: verify that we're calculating the correct things for lambda_n
 	 * and d
@@ -66,13 +66,13 @@ int lcm_ext_euc(struct bigint *a, struct bigint *b, struct bigint *bez_x,
 }
 
 
-static int calc_lambda_n_d(struct bigint *p, struct bigint *q,
-			struct bigint *lambda_n, struct bigint* d)
+static int calc_lambda_n_d(MPI p, MPI q,
+			MPI lambda_n, struct bigint* d)
 {
 	lcm_euclidean(bi_sub(p, 1), bi_sub(q, 1), lambda_n, d);
 }
 
-static int gen_e(struct bigint *res)
+static int gen_e(MPI res)
 {
 	// Could flesh this out to be more complicated, but I think there
 	// are going to be bigger problems before I start worrying about
@@ -85,7 +85,7 @@ void gen_pub_priv_keys(long seed, struct rsa_public_token *pub,
 {
 
 	struct rsa_state state;
-	struct bigint *n, *lambda_n, *e, *d;
+	MPI n, *lambda_n, *e, *d;
 
 	load_new_primes(&state, seed);
 
@@ -102,7 +102,7 @@ void gen_pub_priv_keys(long seed, struct rsa_public_token *pub,
 	priv->n = n;
 }
 
-bool primality_test(struct bigint *x)
+bool primality_test(MPI x)
 {
 	//TODO
 	

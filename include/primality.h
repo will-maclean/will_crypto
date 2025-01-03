@@ -7,6 +7,6 @@
 /*
  * Performs the Miller Rabin primality test on x. Completes k trials for primality
  */
-bool miller_rabin(struct bigint *x, int k);
+bool miller_rabin(MPI x, int k);
 
 #endif

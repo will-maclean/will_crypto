@@ -29,7 +29,7 @@ void init_will_rng(struct will_rng_cfg *cfg, unsigned int seed)
 
 }
 
-struct bigint *will_rng_next(int words) 
+MPI will_rng_next(int words) 
 {
 	/*
 	 * Idea is as follows:
@@ -40,7 +40,7 @@ struct bigint *will_rng_next(int words)
 	 * 	3. Set the chacha output to that same 512 bit block in rng_state->prev, as
 	 * 	well as the matching block in *res
 	 */
-	struct bigint *res = bi_init(words);
+	MPI res = bi_init(words);
 
 	for(int i = 0; i < res->words; i += 16){
 		chacha_block(&(res->data[i]), rng_state.prev);

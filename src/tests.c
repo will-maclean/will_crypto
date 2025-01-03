@@ -25,7 +25,7 @@ void test_bigint_math_proper()
 	// start with one word tests
 	
 	int words = 1;
-	struct bigint *a, *b, *res, *expected_res;
+	MPI a, b, res, expected_res;
 
 	a = bi_init(words);
 	b = bi_init(words);
@@ -93,7 +93,7 @@ void test_bigint_math_proper()
 
 	// mod exp
 	// (5 ^ 2) % 4 = 1
-	struct bigint *mod = bi_init(words);
+	MPI mod = bi_init(words);
 	bi_set(mod, 4u);
 	bi_set(expected_res, 1u);
 	res = bi_mod_exp(a, b, mod);
@@ -106,7 +106,7 @@ void test_bigint(){
 	// test create and free
 	int test_words = 2;
 
-	struct bigint *x, *y, *z;
+	MPI x, y, z;
 
 	x = bi_init(4);
 	bi_squeeze(x);
@@ -218,7 +218,7 @@ void test_rng(){
 	int words = 32;
 	cfg.words = words;
 
-	struct bigint *res;
+	MPI res;
 	printf("testing init_will_rng\n");
 	init_will_rng(&cfg, seed);
 
@@ -288,7 +288,7 @@ void test_rsa(){
 void test_primality()
 {
 	int words = 16;
-	struct bigint *test_prime = will_rng_next(words);
+	MPI test_prime = will_rng_next(words);
 
 	miller_rabin(test_prime, 1000);
 }

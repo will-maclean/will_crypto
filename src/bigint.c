@@ -4,7 +4,7 @@
 #include <string.h>
 #include "bigint.h"
 
-int assert_same_shape(struct bigint *a, struct bigint *b){
+int assert_same_shape(MPI a, MPI b){
 	return a->words == b->words;
 }
 
@@ -24,9 +24,9 @@ int max(int a, int b){
 	}
 }
 
-struct bigint *bi_init(int words)
+MPI bi_init(int words)
 {
-	struct bigint *x = malloc(sizeof(struct bigint));
+	MPI x = malloc(sizeof(struct bigint));
 
 	x->words = words;
 	x->data = malloc(words * sizeof(unsigned int));
@@ -34,24 +34,24 @@ struct bigint *bi_init(int words)
 	return x;
 }
 
-struct bigint *bi_init_like(struct bigint *like)
+MPI bi_init_like(MPI like)
 {
 	return bi_init(like->words);
 }
 
-void bi_copy(struct bigint *src, struct bigint *target){
+void bi_copy(MPI src, MPI target){
 	free(target->data);
 	target->data = malloc(src->words * sizeof(unsigned int));
 	memcpy(target->data, src->data, src->words * sizeof(unsigned int));
 }
 
-void bi_free(struct bigint *x)
+void bi_free(MPI x)
 {
 	free(x->data);
 	free(x);
 }
 
-void bi_set(struct bigint *a, unsigned int val)
+void bi_set(MPI a, unsigned int val)
 {
 	free(a->data);
 	a->data = malloc(sizeof(unsigned int));
@@ -59,9 +59,9 @@ void bi_set(struct bigint *a, unsigned int val)
 	a->words = 1;
 }
 
-struct bigint *bi_add(struct bigint *a, struct bigint *b)
+MPI bi_add(MPI a, MPI b)
 {
-	struct bigint *res = bi_init(max(a->words, b->words) + 1);
+	MPI res = bi_init(max(a->words, b->words) + 1);
 
 	unsigned int carry = 0;
 	unsigned long sum;
@@ -102,10 +102,10 @@ struct bigint *bi_add(struct bigint *a, struct bigint *b)
 	return res;
 }
 
-struct bigint *bi_sub(struct bigint *a, struct bigint *b)
+MPI bi_sub(MPI a, MPI b)
 {
-	struct bigint *res = bi_init_like(a);
-	struct bigint *a_copy = bi_init_like(a);
+	MPI res = bi_init_like(a);
+	MPI a_copy = bi_init_like(a);
 	bi_copy(a, a_copy);
 
 	// we're working with unsigned ints, so if b is greater than a, we'll
@@ -170,9 +170,9 @@ struct bigint *bi_sub(struct bigint *a, struct bigint *b)
 	bi_squeeze(res);
 	return res;
 }
-struct bigint *bi_mul(struct bigint *a, struct bigint *b)
+MPI bi_mul(MPI a, MPI b)
 {
-	struct bigint *res = bi_init(2*max(a->words, b->words));
+	MPI res = bi_init(2*max(a->words, b->words));
 
 	unsigned int carry;
 	unsigned long prod;
@@ -201,16 +201,16 @@ struct bigint *bi_mul(struct bigint *a, struct bigint *b)
 	return res;
 }
 
-struct bigint *bi_powi(struct bigint *b, unsigned int p)
+MPI bi_powi(MPI b, unsigned int p)
 {
 	// Basic exponentiation algorithm, plenty of faster ones 
 	// out there if required. I don't think this can take
 	// more then log2(p) iterations, which is pretty good,
 	// so we should be safe for a while.
 
-	struct bigint *a = bi_init(2 * b->words);
+	MPI a = bi_init(2 * b->words);
 	bi_set(a, 1u);
-	struct bigint *s = bi_init(2 * b->words);
+	MPI s = bi_init(2 * b->words);
 
 	for(int i = 0; i < b->words; i++){
 		s->data[i] = b->data[i];
@@ -218,7 +218,7 @@ struct bigint *bi_powi(struct bigint *b, unsigned int p)
 
 	while(p != 0u){
 		if(p % 2 == 1){
-			struct bigint *tmp = bi_mul(a, s);
+			MPI tmp = bi_mul(a, s);
 			bi_copy(tmp, a);
 			bi_free(tmp);
 		}
@@ -226,7 +226,7 @@ struct bigint *bi_powi(struct bigint *b, unsigned int p)
 		p /= 2;
 
 		if(p != 0){
-			struct bigint *tmp = bi_mul(s, s);
+			MPI tmp = bi_mul(s, s);
 			bi_copy(tmp, s);
 			bi_free(tmp);
 		}
@@ -238,17 +238,17 @@ struct bigint *bi_powi(struct bigint *b, unsigned int p)
 }
 
 // x % y
-struct bigint *bi_mod(struct bigint *x, struct bigint *y)
+MPI bi_mod(MPI x, MPI y)
 {
 	//TODO: handle div by zero
 
-	struct bigint *r = bi_init_like(x);
+	MPI r = bi_init_like(x);
 	bi_set(r, 0u);
 
 	int div_bits = 32u * x->words;
 	for(int i = div_bits - 1; i >= 0; i--){
 		// Left-shift R by 1 bit
-		struct bigint *tmp = bi_shift_left(r, 1u);
+		MPI tmp = bi_shift_left(r, 1u);
 		bi_copy(tmp, r);
 		bi_free(tmp);
 
@@ -276,20 +276,20 @@ struct bigint *bi_mod(struct bigint *x, struct bigint *y)
 	int n = x->words - 1;
 	int t = y->words - 1;
 
-	struct bigint *q = bi_init_like(x);
+	MPI q = bi_init_like(x);
 	bi_set(q, 0u);
-	struct bigint *r = bi_init_and_copy(x);
+	MPI r = bi_init_and_copy(x);
 
 	// b = base = 2**32
-	struct bigint *b = bi_init_like(x);
+	MPI b = bi_init_like(x);
 	b->data[2] = 1u;
 
-	struct bigint *b_pow = bi_powi(b, n-t);
-	struct bigint *loop_check = bi_mul(y, b_pow);
+	MPI b_pow = bi_powi(b, n-t);
+	MPI loop_check = bi_mul(y, b_pow);
 	while(bi_ge(r, loop_check)){
 		q->data[n-t]++;
 
-		struct bigint *tmp = bi_sub(r, loop_check);
+		MPI tmp = bi_sub(r, loop_check);
 		bi_copy(tmp, r);
 		bi_free(tmp);
 	}
@@ -303,23 +303,23 @@ struct bigint *bi_mod(struct bigint *x, struct bigint *y)
 			q->data[i-t-1] = (unsigned int)(tmp);
 		}
 
-		struct bigint *inner_counter = bi_init_like(r);
+		MPI inner_counter = bi_init_like(r);
 		bi_set(inner_counter, 0u);
 		inner_counter->data[0] = r->data[i-2];
 		inner_counter->data[1] = r->data[i-1];
 		inner_counter->data[2] = r->data[i-0];
 
-		struct bigint *loop_tmp = bi_init_like(r);
+		MPI loop_tmp = bi_init_like(r);
 		bi_set(loop_tmp, 0u);
 		loop_tmp->data[0] = y->data[t-1];
 		loop_tmp->data[1] = y->data[t-0];
 
-		struct bigint *loop_tmp2 = bi_init_like(r);
+		MPI loop_tmp2 = bi_init_like(r);
 		bi_set(loop_tmp2, 0u);
 		loop_tmp2->data[0] = q->data[i-t-1];
 
 
-		struct bigint *inner_loop_check = bi_mul(loop_tmp, loop_tmp2);
+		MPI inner_loop_check = bi_mul(loop_tmp, loop_tmp2);
 
 		while(bi_gt(inner_loop_check, inner_counter)){
 			q->data[i-t-1]--;
@@ -329,18 +329,18 @@ struct bigint *bi_mod(struct bigint *x, struct bigint *y)
 			inner_loop_check = bi_mul(loop_tmp, loop_tmp2);
 		}
 
-		struct bigint *tmp1 = bi_shift_left(y, i-t-1);
-		struct bigint *tmp2 = bi_mul(loop_tmp2, tmp1);
+		MPI tmp1 = bi_shift_left(y, i-t-1);
+		MPI tmp2 = bi_mul(loop_tmp2, tmp1);
 
 		if(bi_gt(tmp2, r)){
-			struct bigint *tmp4 = bi_add(r, tmp1);
+			MPI tmp4 = bi_add(r, tmp1);
 			bi_copy(tmp4, r);
 			bi_free(tmp4);
 
 			q->data[i-t-1]--;
 		}
 
-		struct bigint *tmp3 = bi_sub(r, tmp2);
+		MPI tmp3 = bi_sub(r, tmp2);
 		bi_copy(tmp3, r);
 
 		bi_free(inner_counter);
@@ -356,11 +356,11 @@ struct bigint *bi_mod(struct bigint *x, struct bigint *y)
 	*/
 }
 
-struct bigint *bi_eucl_div(struct bigint *x, struct bigint *y)
+MPI bi_eucl_div(MPI x, MPI y)
 {
 	//TODO: handle div by zero
-	struct bigint *q = bi_init_like(x);
-	struct bigint *r = bi_init_like(x);
+	MPI q = bi_init_like(x);
+	MPI r = bi_init_like(x);
 
 	bi_set(q, 0u);
 	bi_set(r, 0u);
@@ -368,7 +368,7 @@ struct bigint *bi_eucl_div(struct bigint *x, struct bigint *y)
 	int div_bits = 32u * x->words;
 	for(int i = div_bits - 1; i >= 0; i--){
 		// Left-shift R by 1 bit
-		struct bigint *tmp = bi_shift_left(r, 1u);
+		MPI tmp = bi_shift_left(r, 1u);
 		bi_copy(tmp, r);
 		bi_free(tmp);
 
@@ -393,7 +393,7 @@ struct bigint *bi_eucl_div(struct bigint *x, struct bigint *y)
 	return q;
 }
 
-void bi_printf(struct bigint *x){
+void bi_printf(MPI x){
 	printf("0x");
 	for(int i = x->words - 1; i > 0; i--){
 		printf("%08x_", x->data[i]);
@@ -401,7 +401,7 @@ void bi_printf(struct bigint *x){
 	printf("%08x", x->data[0]);
 
 }
-void bi_inc(struct bigint *x)
+void bi_inc(MPI x)
 {
 	int i = 0;
 	while(x->data[i] == 0xFFFFFFFF){
@@ -414,7 +414,7 @@ void bi_inc(struct bigint *x)
 	bi_squeeze(x);
 }
 
-void bi_dec(struct bigint *x)
+void bi_dec(MPI x)
 {
 	int i = 0;
 	while(x->data[i] == 0u){
@@ -426,9 +426,9 @@ void bi_dec(struct bigint *x)
 
 	bi_squeeze(x);
 }
-struct bigint *bi_and(struct bigint *a, struct bigint *b)
+MPI bi_and(MPI a, MPI b)
 {
-	struct bigint *res = bi_init(max(a->words, b->words));
+	MPI res = bi_init(max(a->words, b->words));
 
 	for(int i = 0; i < min(a->words, b->words); i++){
 		res->data[i] = a->data[i] & b->data[i];
@@ -438,9 +438,9 @@ struct bigint *bi_and(struct bigint *a, struct bigint *b)
 
 	return res;
 }
-struct bigint *bi_or(struct bigint *a, struct bigint *b)
+MPI bi_or(MPI a, MPI b)
 {
-	struct bigint *res = bi_init(max(a->words, b->words));
+	MPI res = bi_init(max(a->words, b->words));
 
 	for(int i = 0; i < min(a->words, b->words); i++){
 		res->data[i] = a->data[i] | b->data[i];
@@ -460,9 +460,9 @@ struct bigint *bi_or(struct bigint *a, struct bigint *b)
 
 	return res;
 }
-struct bigint *bi_xor(struct bigint *a, struct bigint *b)
+MPI bi_xor(MPI a, MPI b)
 {
-	struct bigint *res = bi_init(max(a->words, b->words));
+	MPI res = bi_init(max(a->words, b->words));
 
 	for(int i = 0; i < min(a->words, b->words); i++){
 		res->data[i] = a->data[i] ^ b->data[i];
@@ -482,9 +482,9 @@ struct bigint *bi_xor(struct bigint *a, struct bigint *b)
 
 	return res;
 }
-struct bigint *bi_not(struct bigint *a)
+MPI bi_not(MPI a)
 {
-	struct bigint *res = bi_init_like(a);
+	MPI res = bi_init_like(a);
 
 	for(int i = 0; i < a->words; i++){
 		res->data[i] = ~a->data[i];
@@ -495,9 +495,9 @@ struct bigint *bi_not(struct bigint *a)
 	return res;
 }
 
-struct bigint *bi_shift_left(struct bigint *a, unsigned int n)
+MPI bi_shift_left(MPI a, unsigned int n)
 {
-	struct bigint *res = bi_init_like(a);
+	MPI res = bi_init_like(a);
 
 	int offset_words = n / 32;
 	int offset_mod = n % 32;
@@ -513,9 +513,9 @@ struct bigint *bi_shift_left(struct bigint *a, unsigned int n)
 	return res;
 }
 
-struct bigint *bi_shift_right(struct bigint *a, unsigned int n)
+MPI bi_shift_right(MPI a, unsigned int n)
 {
-	struct bigint *res = bi_init_like(a);
+	MPI res = bi_init_like(a);
 
 	int offset_words = n / 32;
 	int offset_mod = n % 32;
@@ -534,10 +534,10 @@ struct bigint *bi_shift_right(struct bigint *a, unsigned int n)
 
 // This is a very simple modular exponentiation algorithm. There are
 // faster, more efficient algorithms that can be implemented later.
-struct bigint *bi_mod_exp(struct bigint *x, struct bigint *exp,
-		struct bigint *mod)
+MPI bi_mod_exp(MPI x, MPI exp,
+		MPI mod)
 {
-	struct bigint *res = bi_init_like(x);
+	MPI res = bi_init_like(x);
 
 	if(bi_eq_val(mod, 1u)){
 		bi_set(res, 0u);
@@ -549,10 +549,10 @@ struct bigint *bi_mod_exp(struct bigint *x, struct bigint *exp,
 	// both the mod and the exp are bigints, which means
 	// we have to use loop methods that support them
 
-	struct bigint *loop_counter = bi_init_like(x);
+	MPI loop_counter = bi_init_like(x);
 	bi_set(loop_counter, 0u);
 
-	struct bigint *tmp;
+	MPI tmp;
 	while(bi_lt(loop_counter, exp)){
 		// res := (res * base) % mod
 
@@ -570,7 +570,7 @@ struct bigint *bi_mod_exp(struct bigint *x, struct bigint *exp,
 	return res;
 }
 
-bool bi_lt(struct bigint *a, struct bigint *b)
+bool bi_lt(MPI a, MPI b)
 {
 	if (a->words > b->words) {
 		for(int i = b->words; i < a->words; i++){
@@ -603,7 +603,7 @@ bool bi_lt(struct bigint *a, struct bigint *b)
 	return false;
 }
 
-bool bi_le(struct bigint *a, struct bigint *b)
+bool bi_le(MPI a, MPI b)
 {
 	if (a->words > b->words) {
 		for(int i = b->words; i < a->words; i++){
@@ -637,7 +637,7 @@ bool bi_le(struct bigint *a, struct bigint *b)
 	return true;
 }
 
-bool bi_eq(struct bigint *a, struct bigint *b)
+bool bi_eq(MPI a, MPI b)
 {
 	for(int i = 0; i < min(a->words, b->words); i++){
 		if(a->data[i] != b->data[i])
@@ -661,7 +661,7 @@ bool bi_eq(struct bigint *a, struct bigint *b)
 	return true;
 }
 
-bool bi_eq_val(struct bigint *a, unsigned int b)
+bool bi_eq_val(MPI a, unsigned int b)
 {
 	for(int i = 1; i < a->words - 1; i++){
 		if(a->data[i] != 0u)
@@ -671,7 +671,7 @@ bool bi_eq_val(struct bigint *a, unsigned int b)
 	return a->data[0] == b;
 }
 
-bool bi_gt(struct bigint *a, struct bigint *b){
+bool bi_gt(MPI a, MPI b){
 	if (a->words > b->words) {
 		for(int i = b->words; i < a->words; i++){
 			if(a->data[i] > 0u){
@@ -703,7 +703,7 @@ bool bi_gt(struct bigint *a, struct bigint *b){
 	// a and b are equal
 	return false;
 }
-bool bi_ge(struct bigint *a, struct bigint *b){
+bool bi_ge(MPI a, MPI b){
 	if (a->words > b->words) {
 		for(int i = b->words; i < a->words; i++){
 			if(a->data[i] > 0u){
@@ -731,9 +731,9 @@ bool bi_ge(struct bigint *a, struct bigint *b){
 }
 
 
-struct bigint *bi_concat(struct bigint *a, struct bigint *b)
+MPI bi_concat(MPI a, MPI b)
 {
-	struct bigint *res;
+	MPI res;
 	res->words = a->words + b->words;
 
 	res->data = malloc(res->words * sizeof(unsigned int));
@@ -743,22 +743,22 @@ struct bigint *bi_concat(struct bigint *a, struct bigint *b)
 	return res;
 }
 
-struct bigint *bi_init_and_copy(struct bigint *src)
+MPI bi_init_and_copy(MPI src)
 {
-	struct bigint *res= bi_init_like(src);
+	MPI res= bi_init_like(src);
 
 	bi_copy(src, res);
 
 	return res;
 }
 
-bool bi_even(struct bigint *a)
+bool bi_even(MPI a)
 {
 	return !(a->data[0] & 1u);
 }
 
-struct bigint *pad(struct bigint *x, int n){
-	struct bigint *res = bi_init(n);
+MPI pad(MPI x, int n){
+	MPI res = bi_init(n);
 	res->words = x->words + n;
 
 	for(int i = 0; i < x->words; i++){
@@ -768,7 +768,7 @@ struct bigint *pad(struct bigint *x, int n){
 	return res;
 }
 
-void bi_squeeze(struct bigint *x)
+void bi_squeeze(MPI x)
 {
 	int trim_idx = 0;
 	for(int i = x->words - 1; i > 0; i--) {
