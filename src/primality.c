@@ -86,10 +86,9 @@ bool miller_rabin(MPI n, int k)
 	// We need to find s and d s.t. n-1 = 2^s * d
 	// We factor out powers of 2 from n-1 until the
 	// result is no longer divisible by 2
-	MPI s, d;
 	struct mr_sd sd = miller_rabin_sd(n);
-	s = sd.s;
-	d = sd.d;
+	MPI s = sd.s;
+	MPI d = sd.d;
 
 	MPI tmp_two = bi_init_like(n);
 	MPI tmp_one = bi_init_like(n);
@@ -140,6 +139,7 @@ MPI gen_prime(int words)
 	
 	while(counter < max_tries) {
 		res = will_rng_next(words);
+		res->data[0] |= 1u;	// make sure all the generated numbers are odd
 
 		if(miller_rabin(res, mr_k)){
 			break;

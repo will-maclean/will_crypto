@@ -43,6 +43,7 @@ void bi_copy(MPI src, MPI target){
 	free(target->data);
 	target->data = malloc(src->words * sizeof(unsigned int));
 	memcpy(target->data, src->data, src->words * sizeof(unsigned int));
+	target->words = src->words;
 }
 
 void bi_free(MPI x)
@@ -291,92 +292,6 @@ MPI bi_mod(MPI x, MPI y)
 	
 	bi_squeeze(r);
 	return r;
-
-	/*
-	// Implementing the multiple-precision division algorithm from
-	// https://cacr.uwaterloo.ca/hac/about/chap14.pdf
-
-	int n = x->words - 1;
-	int t = y->words - 1;
-
-	MPI q = bi_init_like(x);
-	bi_set(q, 0u);
-	MPI r = bi_init_and_copy(x);
-
-	// b = base = 2**32
-	MPI b = bi_init_like(x);
-	b->data[2] = 1u;
-
-	MPI b_pow = bi_powi(b, n-t);
-	MPI loop_check = bi_mul(y, b_pow);
-	while(bi_ge(r, loop_check)){
-		q->data[n-t]++;
-
-		MPI tmp = bi_sub(r, loop_check);
-		bi_copy(tmp, r);
-		bi_free(tmp);
-	}
-
-	for(int i = n; i > t; i--){
-		if (r->data[i] == y->data[t]) {
-			q->data[i-t-1] = 0xFFFFFFFFu;
-		} else {
-			int tmp = (0x100000000ul * (unsigned long)(r->data[i]) + (unsigned long)(r->data[i-1])) 
-				/ (unsigned long)(y->data[i]);
-			q->data[i-t-1] = (unsigned int)(tmp);
-		}
-
-		MPI inner_counter = bi_init_like(r);
-		bi_set(inner_counter, 0u);
-		inner_counter->data[0] = r->data[i-2];
-		inner_counter->data[1] = r->data[i-1];
-		inner_counter->data[2] = r->data[i-0];
-
-		MPI loop_tmp = bi_init_like(r);
-		bi_set(loop_tmp, 0u);
-		loop_tmp->data[0] = y->data[t-1];
-		loop_tmp->data[1] = y->data[t-0];
-
-		MPI loop_tmp2 = bi_init_like(r);
-		bi_set(loop_tmp2, 0u);
-		loop_tmp2->data[0] = q->data[i-t-1];
-
-
-		MPI inner_loop_check = bi_mul(loop_tmp, loop_tmp2);
-
-		while(bi_gt(inner_loop_check, inner_counter)){
-			q->data[i-t-1]--;
-
-			loop_tmp2->data[0] = q->data[i-t-1];
-			bi_free(inner_loop_check);
-			inner_loop_check = bi_mul(loop_tmp, loop_tmp2);
-		}
-
-		MPI tmp1 = bi_shift_left(y, i-t-1);
-		MPI tmp2 = bi_mul(loop_tmp2, tmp1);
-
-		if(bi_gt(tmp2, r)){
-			MPI tmp4 = bi_add(r, tmp1);
-			bi_copy(tmp4, r);
-			bi_free(tmp4);
-
-			q->data[i-t-1]--;
-		}
-
-		MPI tmp3 = bi_sub(r, tmp2);
-		bi_copy(tmp3, r);
-
-		bi_free(inner_counter);
-		bi_free(loop_tmp);
-		bi_free(loop_tmp2);
-		bi_free(inner_loop_check);
-		bi_free(tmp1);
-		bi_free(tmp2);
-		bi_free(tmp3);
-	}
-
-	return r;
-	*/
 }
 
 MPI bi_eucl_div(MPI x, MPI y)
@@ -453,12 +368,20 @@ void bi_printf(MPI x){
 void bi_inc(MPI x)
 {
 	int i = 0;
-	while(x->data[i] == 0xFFFFFFFF){
+	while(x->data[i] == 0xFFFFFFFF && i < x->words){
 		x->data[i] = 0u;
 		i++;
 	}
 
-	x->data[i]++;
+	if(i == x->words){
+		MPI tmp = pad(x, 1);
+		bi_copy(tmp, x);
+		bi_free(tmp);
+
+		x->data[x->words - 1] = 1u;
+	} else {
+		x->data[i]++;
+	}
 
 	bi_squeeze(x);
 }
@@ -580,43 +503,42 @@ MPI bi_shift_right(MPI a, unsigned int n)
 	return res;
 }
 
-
-// This is a very simple modular exponentiation algorithm. There are
-// faster, more efficient algorithms that can be implemented later.
-MPI bi_mod_exp(MPI x, MPI exp,
-		MPI mod)
+MPI bi_mod_exp(MPI a, MPI b, MPI n)
 {
-	MPI res = bi_init_like(x);
-
-	if(bi_eq_val(mod, 1u)){
-		bi_set(res, 0u);
+	if(bi_eq_val(b, 0u)){
+		MPI res = bi_init(1u);
+		bi_set(res, 1u);
 		return res;
 	}
 
-	bi_set(res, 1u);
+	if(bi_even(b)){
+		MPI tmp_b = bi_shift_right(b, 1u);
+		MPI x = bi_mod_exp(a, tmp_b, n);
+		bi_free(tmp_b);
 
-	// both the mod and the exp are bigints, which means
-	// we have to use loop methods that support them
+		MPI tmp_x = bi_mod(x, n);
+		bi_copy(tmp_x, x);
 
-	MPI loop_counter = bi_init_like(x);
-	bi_set(loop_counter, 0u);
+		tmp_x = bi_mul(x, x);
+		bi_copy(tmp_x, x);
+		bi_free(tmp_x);
 
-	MPI tmp;
-	while(bi_lt(loop_counter, exp)){
-		// res := (res * base) % mod
+		tmp_x = bi_mod(x, n);
+		bi_free(x);
 
-		tmp = bi_mul(res, x);
-		bi_copy(tmp, res);
-		bi_free(tmp);
-
-		tmp = bi_mod(res, mod);
-		bi_copy(tmp, res);
-		bi_free(tmp);
-
-		bi_inc(loop_counter);
+		return tmp_x;
 	}
 
-	return res;
+	bi_dec(b);
+	MPI tmp = bi_mod_exp(a, b, n);
+	MPI tmp2 = bi_mul(a, tmp);
+	MPI tmp3 = bi_mod(tmp2, n);
+
+	bi_free(tmp);
+	bi_free(tmp2);
+
+	bi_inc(b);
+	return tmp3;
 }
 
 bool bi_lt(MPI a, MPI b)
@@ -807,7 +729,7 @@ bool bi_even(MPI a)
 }
 
 MPI pad(MPI x, int n){
-	MPI res = bi_init(n);
+	MPI res = bi_init(x->words + n);
 	res->words = x->words + n;
 
 	for(int i = 0; i < x->words; i++){
