@@ -287,8 +287,13 @@ void test_rsa(){
 
 void test_primality()
 {
+	printf("Starting primality tests\n");
 	int words = 16;
 	MPI test_prime = will_rng_next(words);
+
+	printf("rng'd a big word: ");
+		bi_printf(test_prime);
+	printf("\n");
 
 	miller_rabin(test_prime, 1000);
 

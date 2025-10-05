@@ -10,6 +10,7 @@ struct mr_sd{
 
 struct mr_sd miller_rabin_sd(MPI n)
 {
+	printf("Starting MR SD\n");
 	MPI s = bi_init_like(n);
 	MPI tmp_two = bi_init_like(n);
 	bi_set(tmp_two, 2u);
@@ -19,17 +20,30 @@ struct mr_sd miller_rabin_sd(MPI n)
 	MPI d = bi_init_and_copy(n);
 	bi_dec(d);
 
+	printf("Starting MR SD while loop\n");
 	while(bi_even(d)){
+
+		printf("About to do eucl div. d=\n");
+		bi_printf(d);
+		printf("\ntmp_two=\n");
+		bi_printf(tmp_two);
+
 		MPI tmp = bi_eucl_div(d, tmp_two);
+		printf("\nMR SD while loop 1\n");
+
 		bi_copy(tmp, d);
+		printf("MR SD while loop 1\n");
+
 		bi_free(tmp);
+		printf("MR SD while loop 1\n");
 
 		bi_inc(s);
+		printf("MR SD while loop 1\n");
 	}
 
 	//TODO: assert d * 2 ^ s = n - 1
-	bi_squeeze(s);
-	bi_squeeze(d);
+	// bi_squeeze(s);
+	// bi_squeeze(d);
 
 	return (struct mr_sd){
 		.s = s,
@@ -67,6 +81,7 @@ bool miller_rabin(MPI n, int k)
 	 * 1. n > 2
 	 * 2. n is odd
 	 */
+	printf("Starting Miller Rabin\n");
 	MPI tmp1 = bi_init_like(n);
 	bi_set(tmp1, 2u);
 
@@ -80,6 +95,8 @@ bool miller_rabin(MPI n, int k)
 
 	bi_free(tmp1);
 
+	printf("MR: initial assertions passed\n");
+
 	// Assertions have passed, so we can now start
 	// the primality test
 	
@@ -89,6 +106,12 @@ bool miller_rabin(MPI n, int k)
 	struct mr_sd sd = miller_rabin_sd(n);
 	MPI s = sd.s;
 	MPI d = sd.d;
+	
+	printf("MR: generated s, d. s=\n");
+	bi_printf(s);
+	printf("\nd=\n");
+	bi_printf(d);
+	printf("\n");
 
 	MPI tmp_two = bi_init_like(n);
 	MPI tmp_one = bi_init_like(n);
