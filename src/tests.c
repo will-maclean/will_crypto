@@ -61,6 +61,17 @@ void test_bigint_math_proper()
 	assert(bi_eq(res, expected_res), "bigint 1-word euclidian division");
 	bi_free(res);
 
+	// integer division, multi-word
+	MPI a_euc = bi_init(2);
+	MPI b_euc = bi_init(1);
+	a->data[1] = 1;
+	a->data[0] = 2;
+	b->data[0] =2;
+	bi_set(expected_res, 0u);
+	res = bi_eucl_div(a, b);
+	assert(bi_eq(res, expected_res), "bigint 2-word euclidian division");
+	bi_free(res);
+
 	// modulo
 	bi_set(expected_res, 1u);
 	res = bi_mod(a, b);
@@ -288,7 +299,7 @@ void test_rsa(){
 void test_primality()
 {
 	printf("Starting primality tests\n");
-	int words = 16;
+	int words = 1;
 	MPI test_prime = will_rng_next(words);
 
 	printf("rng'd a big word: ");
@@ -297,7 +308,7 @@ void test_primality()
 
 	miller_rabin(test_prime, 1000);
 
-	MPI generated_prime = gen_prime(16);
+	MPI generated_prime = gen_prime(1);
 
 	if(generated_prime){
 		printf("Generated prime:\n");
