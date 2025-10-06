@@ -52,10 +52,11 @@ void bi_set(MPI x, uint32_t val);
 MPI bi_add(MPI a, MPI b);
 MPI bi_sub(MPI a, MPI b);
 MPI bi_mul(MPI a, MPI b);
+MPI bi_mul_imm(MPI a, uint32_t x);
 void bi_inc(MPI x);
 void bi_dec(MPI x);
 MPI bi_mod_exp(MPI x, MPI exp, MPI mod);
-MPI bi_powi(MPI b, uint32_t p);
+MPI bi_pow_imm(MPI b, uint32_t p);
 
 /*
  * remainder of a / b

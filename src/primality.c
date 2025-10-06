@@ -8,40 +8,40 @@ struct mr_sd {
 };
 
 struct mr_sd miller_rabin_sd(MPI n) {
-    printf("Starting MR SD\n");
+    // printf("Starting MR SD\n");
     MPI s = bi_init_like(n);
     MPI tmp_two = bi_init_like(n);
-    printf("\ntmp_two=\n");
-    bi_printf(tmp_two);
+    // printf("\ntmp_two=\n");
+    // bi_printf(tmp_two);
     bi_set(tmp_two, 2u);
-    printf("\ntmp_two=\n");
-    bi_printf(tmp_two);
+    // printf("\ntmp_two=\n");
+    // bi_printf(tmp_two);
     MPI tmp_zero = bi_init_like(n);
     bi_set(tmp_zero, 0u);
 
     MPI d = bi_init_and_copy(n);
     bi_dec(d);
 
-    printf("Starting MR SD while loop\n");
+    // printf("Starting MR SD while loop\n");
     while (bi_even(d)) {
 
-        printf("About to do eucl div. d=\n");
-        bi_printf(d);
-        printf("\ntmp_two=\n");
-        bi_printf(tmp_two);
+        // printf("About to do eucl div. d=\n");
+        // bi_printf(d);
+        // printf("\ntmp_two=\n");
+        // bi_printf(tmp_two);
 
-        printf("\nstarting euc div\n");
+        // printf("\nstarting euc div\n");
         MPI tmp = bi_eucl_div(d, tmp_two);
-        printf("\nMR SD while loop 1\n");
+        // printf("\nMR SD while loop 1\n");
 
         bi_copy(tmp, d);
-        printf("MR SD while loop 1\n");
+        // printf("MR SD while loop 1\n");
 
         bi_free(tmp);
-        printf("MR SD while loop 1\n");
+        // printf("MR SD while loop 1\n");
 
         bi_inc(s);
-        printf("MR SD while loop 1\n");
+        // printf("MR SD while loop 1\n");
     }
 
     // TODO: assert d * 2 ^ s = n - 1
@@ -72,6 +72,8 @@ MPI miller_rabin_randn(MPI n) {
         if (bi_gt(a, tmp_two) && bi_lt(a, n_minus_two)) {
             break;
         }
+
+        bi_free(a);
     }
 
     return a;
@@ -82,7 +84,7 @@ bool miller_rabin(MPI n, int k) {
      * 1. n > 2
      * 2. n is odd
      */
-    printf("Starting Miller Rabin\n");
+    // printf("Starting Miller Rabin\n");
     MPI tmp1 = bi_init_like(n);
     bi_set(tmp1, 2u);
 
@@ -96,7 +98,7 @@ bool miller_rabin(MPI n, int k) {
 
     bi_free(tmp1);
 
-    printf("MR: initial assertions passed\n");
+    // printf("MR: initial assertions passed\n");
 
     // Assertions have passed, so we can now start
     // the primality test
@@ -108,11 +110,11 @@ bool miller_rabin(MPI n, int k) {
     MPI s = sd.s;
     MPI d = sd.d;
 
-    printf("MR: generated s, d. s=\n");
-    bi_printf(s);
-    printf("\nd=\n");
-    bi_printf(d);
-    printf("\n");
+    // printf("MR: generated s, d. s=\n");
+    // bi_printf(s);
+    // printf("\nd=\n");
+    // bi_printf(d);
+    // printf("\n");
 
     MPI tmp_two = bi_init_like(n);
     MPI tmp_one = bi_init_like(n);
@@ -146,6 +148,7 @@ bool miller_rabin(MPI n, int k) {
 
         bi_free(x);
         bi_free(a);
+        bi_free(s_);
     }
 
     return true;
@@ -172,7 +175,7 @@ MPI gen_prime(int words) {
 
     if (counter >= max_tries) {
         // error handling
-        printf("gen_prime failed!\n");
+        // printf("gen_prime failed!\n");
         return NULL;
     }
 

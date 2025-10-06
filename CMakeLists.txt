@@ -28,6 +28,9 @@ add_executable(tests
     ${PROJECT_SOURCE_DIR}/src/tests.c
 )
 
+set (CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
+set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
+
 # (Optional) Set output directories
 set_target_properties(main tests
     PROPERTIES

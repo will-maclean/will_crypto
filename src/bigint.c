@@ -33,7 +33,7 @@ MPI bi_init(int words) {
     }
 
     x->words = words;
-    x->data = malloc(words * sizeof(uint32_t));
+    x->data = calloc(words, sizeof(uint32_t));
 
     return x;
 }
@@ -101,6 +101,42 @@ MPI bi_add(MPI a, MPI b) {
 }
 
 MPI bi_sub(MPI a, MPI b) {
+
+    // we're working with uint32_ts, so if b is greater than a, we'll
+    // set the result to 0 and return early
+    if (!bi_ge(a, b)) {
+        MPI res = bi_init_like(a);
+        bi_set(res, 0u);
+        return res;
+    }
+
+    // There may be scenarios where, even though a >= b,
+    // b.words > a.words. So, to catch this, we'll pad
+    // a to the size of b
+    MPI tmp = bi_init_and_copy(a);
+    MPI a_copy = pad(tmp, b->words > a->words ? b->words - a->words : 0);
+    MPI res = bi_init_like(a_copy);
+
+    // invariant: a >= b
+
+    int n = b->words;
+
+    uint64_t base = 1LL << 32;
+    uint64_t carry = base;
+    for (int i = 0; i < n; i++) {
+
+        carry = base - 1 + a_copy->data[i] - b->data[i] + carry / base;
+
+        res->data[i] = carry % base;
+    }
+
+    bi_free(tmp);
+    bi_free(a_copy);
+
+    return res;
+}
+
+MPI _bi_sub(MPI a, MPI b) {
     MPI res = bi_init_like(a);
     MPI a_copy = bi_init_like(a);
     bi_copy(a, a_copy);
@@ -123,7 +159,7 @@ MPI bi_sub(MPI a, MPI b) {
     // TODO: future Will -> this can't be the best way to do this. Surely
     // we'll need to revisit this and make it smarter.
 
-    unsigned long sub_from;
+    uint64_t sub_from;
     for (int i = 0; i < b->words; i++) {
         if (a_copy->data[i] >= b->data[i]) {
             res->data[i] = a_copy->data[i] - b->data[i];
@@ -170,19 +206,35 @@ MPI bi_sub(MPI a, MPI b) {
         res->data[i] = a->data[i];
     }
 
+    bi_free(a_copy);
+
     bi_squeeze(res);
     return res;
 }
+
+MPI bi_mul_imm(MPI a, uint32_t x) {
+    MPI res = bi_init(2 * a->words);
+    uint64_t base = 1LL << 32;
+    uint64_t carry = 0;
+
+    for (int i = 0; i < a->words; i++) {
+        res->data[i] = (a->data[i] * x + carry) % base;
+        carry = (a->data[i] * x + carry) / base;
+    }
+
+    return res;
+}
+
 MPI bi_mul(MPI a, MPI b) {
     MPI res = bi_init(2 * max(a->words, b->words));
 
-    uint32_t carry;
-    unsigned long prod;
+    uint64_t carry;
+    uint64_t prod;
     for (int i = 0; i < a->words; i++) {
-        carry = 0u;
+        carry = 0;
         for (int j = 0; j < b->words; j++) {
-            prod = (unsigned long)(a->data[i]) * (unsigned long)b->data[j] +
-                   res->data[i + j + 1] + carry;
+            prod = (uint64_t)(a->data[i]) * (uint64_t)b->data[j] +
+                   res->data[i + j] + carry;
             // printf("i=%d, j=%d, prod=%lu\n", i, j, prod);
             res->data[i + j] = (uint32_t)(prod & 0xFFFFFFFF);
             /*
@@ -203,7 +255,7 @@ MPI bi_mul(MPI a, MPI b) {
     return res;
 }
 
-MPI bi_powi(MPI b, uint32_t p) {
+MPI bi_pow_imm(MPI b, uint32_t p) {
     // Basic exponentiation algorithm, plenty of faster ones
     // out there if required. I don't think this can take
     // more then log2(p) iterations, which is pretty good,
@@ -597,6 +649,9 @@ bool bi_le(MPI a, MPI b) {
 }
 
 bool bi_eq(MPI a, MPI b) {
+    // TODO: a and b can be numerically equicalent, but
+    //  different word sizes, and fail this equality test.
+    //  This probably isn't what we want??
     for (int i = 0; i < min(a->words, b->words); i++) {
         if (a->data[i] != b->data[i])
             return false;
@@ -719,21 +774,18 @@ MPI pad(MPI x, int n) {
 }
 
 void bi_squeeze(MPI x) {
+    int squeeze_idx = 0;
     bool squeeze_needed = false;
-    int trim_idx = 0;
     for (int i = x->words - 1; i > 0; i--) {
-        if (x->data[i] > 0u) {
-            trim_idx = i;
+        if (x->data[i] == 0u) {
             squeeze_needed = true;
-            break;
+        }
+        if (x->data[i] != 0 && squeeze_needed) {
+            squeeze_idx = i;
         }
     }
 
-    if (!squeeze_needed) {
-        return;
-    }
-
-    int squeezed_words = trim_idx + 1;
+    int squeezed_words = squeeze_idx + 1;
     if (squeezed_words < x->words) {
         x->data = realloc(x->data, squeezed_words * sizeof(uint32_t));
         x->words = squeezed_words;

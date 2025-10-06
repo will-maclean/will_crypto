@@ -39,6 +39,12 @@ MPI will_rng_next(int words) {
      * 	3. Set the chacha output to that same 512 bit block in rng_state->prev,
      * as well as the matching block in *res
      */
+    if (words % 16 != 0) {
+        printf("Can only generate numbers that are multiples of 512 bits (or "
+               "16 words) long\n");
+        exit(1);
+    }
+
     MPI res = bi_init(words);
 
     for (int i = 0; i < res->words; i += 16) {

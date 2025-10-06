@@ -51,7 +51,17 @@ void test_bigint_math_proper(void) {
     // multiplication
     bi_set(expected_res, 10u);
     res = bi_mul(a, b);
-    assert(bi_eq(res, expected_res), "bigint 1-word multiplication");
+    bool passed = bi_eq(res, expected_res);
+    assert(passed, "bigint 1-word multiplication");
+    if (!passed) {
+        printf("a, b, res:\n");
+        bi_printf(a);
+        printf("\n");
+        bi_printf(b);
+        printf("\n");
+        bi_printf(res);
+        printf("\n");
+    }
     bi_free(res);
 
     // integer division
@@ -66,9 +76,20 @@ void test_bigint_math_proper(void) {
     a_euc->data[1] = 1;
     a_euc->data[0] = 2;
     b_euc->data[0] = 2;
-    bi_set(expected_res, 0u);
+    bi_set(expected_res, 0x80000001);
     res = bi_eucl_div(a_euc, b_euc);
-    assert(bi_eq(res, expected_res), "bigint 2-word euclidian division");
+        passed = bi_eq(res, expected_res);
+
+    assert(passed, "bigint 2-word euclidian division");
+    if (!passed) {
+        printf("a, b, res:\n");
+        bi_printf(a_euc);
+        printf("\n");
+        bi_printf(b_euc);
+        printf("\n");
+        bi_printf(res);
+        printf("\n");
+    }
     bi_free(res);
 
     // modulo
@@ -302,7 +323,7 @@ void test_rsa(){
 
 void test_primality(void) {
     printf("Starting primality tests\n");
-    int words = 1;
+    int words = 16;
     MPI test_prime = will_rng_next(words);
 
     printf("rng'd a big word: ");
@@ -311,13 +332,30 @@ void test_primality(void) {
 
     miller_rabin(test_prime, 1000);
 
-    MPI generated_prime = gen_prime(1);
+    MPI generated_prime = gen_prime(words);
 
     if (generated_prime) {
         printf("Generated prime:\n");
         bi_printf(generated_prime);
         printf("\n");
     }
+}
+
+void KISS(void) {
+
+    // integer division, multi-word
+    MPI a_euc = bi_init(2);
+    MPI b_euc = bi_init(1);
+    MPI expected_res = bi_init(1);
+    a_euc->data[1] = 1;
+    a_euc->data[0] = 2;
+    b_euc->data[0] = 2;
+    bi_set(expected_res, 0u);
+    MPI res = bi_eucl_div(a_euc, b_euc);
+    assert(bi_eq(res, expected_res), "bigint 2-word euclidian division");
+    printf("Res: ");
+    bi_printf(res);
+    bi_free(res);
 }
 
 void tests(void) {
