@@ -13,6 +13,7 @@ file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/*.c)
 list(REMOVE_ITEM SRC_FILES
     ${PROJECT_SOURCE_DIR}/src/main.c
     ${PROJECT_SOURCE_DIR}/src/tests.c
+    ${PROJECT_SOURCE_DIR}/src/rsa.c
 )
 
 # Create main executable
@@ -31,5 +32,6 @@ add_executable(tests
 set_target_properties(main tests
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin
+    COMPILE_FLAGS "-g -Wall -Wextra -pedantic"
 )
 
