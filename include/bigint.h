@@ -12,23 +12,10 @@ struct bigint
 
 typedef struct bigint *MPI;
 
-typedef enum
-{
-    BI_OK,
-    BI_MEM_ERR,
-    BI_DIV_ZERO,
-} bi_result_code_t;
-
-typedef struct
-{
-    MPI x;
-    bi_result_code_t code;
-} bi_result_t;
 /*
  * Assigns the memory for a bigint. This is the only function
  * that will raw assign memory for a bigint
  */
-bi_result_t __bi_init(int words);
 MPI bi_init(int words);
 
 /*
@@ -47,13 +34,11 @@ void bi_free(MPI x);
  * Copies the data from src into trgt. Assumes trgt's memory is already
  * initialised - if it isn't, use bi_init_and_copy instead
  */
-bi_result_code_t __bi_copy(MPI src, MPI trgt);
 void bi_copy(MPI src, MPI trgt);
 
 /*
  * Initialises memory for trgt, and copes src into target
  */
-bi_result_t __bi_init_and_copy(MPI src);
 MPI bi_init_and_copy(MPI src);
 
 /*
@@ -61,7 +46,6 @@ MPI bi_init_and_copy(MPI src);
  * which can be stored in the int type for the sytem (again, assuming a 64-bit
  * arch.
  */
-bi_result_code_t __bi_set(MPI x, uint32_t val);
 void bi_set(MPI x, uint32_t val);
 
 /*

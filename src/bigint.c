@@ -5,13 +5,26 @@
 #include <stdlib.h>
 #include <string.h>
 
-static inline bi_result_t bi_result_make(MPI x, bi_result_code_t code)
+typedef enum
 {
-    bi_result_t res = {x, code};
+    BI_OK,
+    BI_MEM_ERR,
+    BI_DIV_ZERO,
+} __bi_result_code_t;
+
+typedef struct
+{
+    MPI x;
+    __bi_result_code_t code;
+} __bi_result_t;
+
+static inline __bi_result_t bi_result_make(MPI x, __bi_result_code_t code)
+{
+    __bi_result_t res = {x, code};
     return res;
 }
 
-static inline bi_result_t bi_result_error(bi_result_code_t code)
+static inline __bi_result_t bi_result_error(__bi_result_code_t code)
 {
     return bi_result_make(NULL, code);
 }
@@ -34,7 +47,7 @@ int max(int a, int b) {
     }
 }
 
-bi_result_t __bi_init(int words)
+__bi_result_t __bi_init(int words)
 {
     MPI x = malloc(sizeof(struct bigint));
 
@@ -62,7 +75,7 @@ bi_result_t __bi_init(int words)
 }
 
 MPI bi_init(int words){
-    bi_result_t res = __bi_init(words);
+    __bi_result_t res = __bi_init(words);
     if (res.code != BI_OK) {
         bi_free(res.x);
         return NULL;
@@ -75,7 +88,7 @@ MPI bi_init_like(MPI like)
     return bi_init(like->words);
 }
 
-bi_result_code_t __bi_copy(MPI src, MPI target)
+__bi_result_code_t __bi_copy(MPI src, MPI target)
 {
     if (src == target) {
         return BI_OK;
@@ -101,7 +114,7 @@ bi_result_code_t __bi_copy(MPI src, MPI target)
 
 void bi_copy(MPI src, MPI target)
 {
-    bi_result_code_t code = __bi_copy(src, target);
+    __bi_result_code_t code = __bi_copy(src, target);
     if (code != BI_OK) {
         fprintf(stderr, "FATAL: bi_copy failed with code %d\n", code);
         exit(1);
@@ -114,7 +127,7 @@ void bi_free(MPI x)
     free(x);
 }
 
-bi_result_code_t __bi_set(MPI a, uint32_t val)
+__bi_result_code_t __bi_set(MPI a, uint32_t val)
 {
     uint32_t *data = realloc(a->data, sizeof(uint32_t));
 
