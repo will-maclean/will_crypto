@@ -447,9 +447,6 @@ __bi_result_t __bi_eucl_div(MPI x, MPI y) {
     MPI q = bi_init_like(x);
     MPI r = bi_init_like(x);
 
-    bi_set(q, 0u);
-    bi_set(r, 0u);
-
     int div_bits = 32u * x->words;
     for (int i = div_bits - 1; i >= 0; i--) {
         // Left-shift R by 1 bit
@@ -503,7 +500,7 @@ MPI bi_eucl_div(MPI a, MPI b) {
 void bi_printf(MPI x) {
     printf("0x");
     for (int i = x->words - 1; i > 0; i--) {
-        printf("%08x_", x->data[i]);
+        printf("%08x", x->data[i]);
     }
     printf("%08x", x->data[0]);
 }

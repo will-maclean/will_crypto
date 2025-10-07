@@ -4,11 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-struct mr_sd {
-    MPI s;
-    MPI d;
-};
-
 struct mr_sd miller_rabin_sd(MPI n) {
     // printf("Starting MR SD\n");
     MPI s = bi_init_like(n);
@@ -67,21 +62,13 @@ MPI miller_rabin_randn(MPI n) {
     MPI tmp_two = bi_init_like(n);
     bi_set(tmp_two, 2u);
 
-    int max_iters = 10;
+    int max_iters = 100000;
     MPI a;
-
-    printf("Starting MR RNG. n: \n");
-    bi_printf(n);
-    printf("\n");
 
     for (int i = 0; i < max_iters; i++) {
         // have to do some funniness to get random numbers of the
         // correct length
         a = will_rng_next(n->words);
-
-        printf("MR RNG loop %d. Testing: \n", i);
-        bi_printf(a);
-        printf("\n\n");
 
         if (bi_gt(a, tmp_two) && bi_lt(a, n_minus_two)) {
             bi_free(n_minus_two);
@@ -91,6 +78,10 @@ MPI miller_rabin_randn(MPI n) {
 
         bi_free(a);
     }
+
+    printf("WARNING: miller_rabin_randn failed to find a suitable rand for n:\n");
+    bi_printf(n);
+    printf("\n");
 
     bi_free(n_minus_two);
     bi_free(tmp_two);
@@ -153,7 +144,7 @@ bool miller_rabin(MPI n, int k) {
             bi_free(tmp_one);
             bi_free(tmp_n_minus_one);
 
-            printf("ERROR: Miller-Rabin RNG failed\n");
+            printf("ERROR: Miller-Rabin RNG failed (trial %d/%d)\n", k_, k);
             exit(1);
         }
         MPI x = bi_mod_exp(a, d, n);
@@ -192,7 +183,7 @@ bool miller_rabin(MPI n, int k) {
 
 MPI gen_prime(int words) {
     int max_tries = 10000;
-    int mr_k = 1000;
+    int mr_k = 20;
     MPI res;
     int counter = 0;
 
@@ -209,8 +200,6 @@ MPI gen_prime(int words) {
     }
 
     if (counter >= max_tries) {
-        // error handling
-        // printf("gen_prime failed!\n");
         return NULL;
     }
 

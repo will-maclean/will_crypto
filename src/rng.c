@@ -13,15 +13,6 @@ struct will_rng_state {
 static struct will_rng_state rng_state;
 
 void init_will_rng(struct will_rng_cfg *cfg, uint32_t seed) {
-    // We use chacha for rng. chacha generates 512bit numbers.
-    // We can therefore generate numbers which are multiples of
-    // 512 bits - or 16 words.
-    if (cfg->words % 16 != 0) {
-        printf("Can only generate numbers that are multiples of 512 bits (or "
-               "16 words) long\n");
-        exit(1);
-    }
-
     rng_state.cfg = cfg;
 
     // Probably not the most secure seeding method...
@@ -39,18 +30,28 @@ MPI will_rng_next(int words) {
      * 	3. Set the chacha output to that same 512 bit block in rng_state->prev,
      * as well as the matching block in *res
      */
-    if (words % 16 != 0) {
-        printf("Can only generate numbers that are multiples of 512 bits (or "
-               "16 words) long\n");
-        exit(1);
-    }
 
     MPI res = bi_init(words);
+
+    if (words < 16) {
+        uint32_t tmp[16] = {0};
+        chacha_block(tmp, rng_state.prev);
+        memcpy(rng_state.prev, tmp, 16 * sizeof(uint32_t));
+        memcpy(res->data, tmp, words * sizeof(uint32_t));
+        return res;
+    }
 
     for (int i = 0; i < res->words; i += 16) {
         chacha_block(&(res->data[i]), rng_state.prev);
         memcpy(rng_state.prev, &(res->data[i]), 16 * sizeof(uint32_t));
     }
+
+    if (words % 16 != 0) {
+        uint32_t tmp[16] = {0};
+        chacha_block(tmp, rng_state.prev);
+        memcpy(rng_state.prev, tmp, 16 * sizeof(uint32_t));
+        memcpy(&(res->data[words - (words % 16)]), tmp,
+               (words % 16) * sizeof(uint32_t));}
 
     return res;
 }

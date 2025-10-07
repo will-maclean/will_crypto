@@ -394,6 +394,49 @@ void test_rsa(){
 
 void test_primality(void) {
     printf("Starting primality tests\n");
+
+    MPI a = bi_init(1);
+
+    bi_set(a, 23u);
+    struct mr_sd sd = miller_rabin_sd(a);
+    assert(bi_eq_val(sd.s, 1u), "Miller-Rabin s value (a=23)");
+    assert(bi_eq_val(sd.d, 11u), "Miller-Rabin d (a=23)");
+    bi_free(sd.s);
+    bi_free(sd.d);
+
+    bi_set(a, 97u);
+    sd = miller_rabin_sd(a);
+    assert(bi_eq_val(sd.s, 5u), "Miller-Rabin s value (a=97)");
+    assert(bi_eq_val(sd.d, 3u), "Miller-Rabin d (a=97)");
+    bi_free(sd.s);
+    bi_free(sd.d);
+
+    bi_set(a, 341u);
+    sd = miller_rabin_sd(a);
+    assert(bi_eq_val(sd.s, 2u), "Miller-Rabin s value (a=341)");
+    assert(bi_eq_val(sd.d, 85u), "Miller-Rabin d (a=341)");
+    bi_free(sd.s);
+    bi_free(sd.d);
+
+    bi_free(a);
+    a = bi_init(2);
+    a->data[1] = 1;
+    a->data[0] = 1;
+    sd = miller_rabin_sd(a);
+    assert(bi_eq_val(sd.s, 32u), "Miller-Rabin s value (a=0x10001)");
+    assert(bi_eq_val(sd.d, 1), "Miller-Rabin d (a=0x10001)");
+    bi_free(sd.s);
+    bi_free(sd.d);
+
+    bi_free(a);
+    a = bi_init(1);
+    bi_set(a, 0xFFFFFFFB); // obviously prime
+    assert(miller_rabin(a, 5), "Miller-Rabin primality test (prime a=0xFFFFFFFB)");
+    bi_free(a);
+    bi_set(a, 0xFFFFFFF0); // ob
+    assert(!miller_rabin(a, 5), "Miller-Rabin primality test (composite a=0xFFFFFFF0)");
+    bi_free(a);
+
     int words = 16;
     MPI test_prime = will_rng_next(words);
 
@@ -401,14 +444,26 @@ void test_primality(void) {
     bi_printf(test_prime);
     printf("\n");
 
-    miller_rabin(test_prime, 1000);
+    bool is_prime = miller_rabin(test_prime, 1000);
 
-    MPI generated_prime = gen_prime(words);
+    if (is_prime) {
+        printf("The number is probably prime\n\ns");
+    } else {
+        printf("The number is composite\n\n");
+    }
 
-    if (generated_prime) {
-        printf("Generated prime:\n");
-        bi_printf(generated_prime);
-        printf("\n");
+    // this one takes a while, so if we've had errors elsewhere, don't run it
+    if (failures == 0) {
+        MPI generated_prime = gen_prime(words);
+        if (generated_prime) {
+            printf("Generated prime:\n");
+            printf("\n");
+            bi_printf(generated_prime);
+        } else {
+            printf("Failed to generate prime\n");
+        }
+    } else {
+        printf("Skipping gen_prime test due to earlier failures\n");
     }
 }
 
