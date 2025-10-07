@@ -275,7 +275,7 @@ void test_rng(void) {
         counter++;
     }
 
-    printf("In one sec, for %d-word numbers, generated %lu nums\n", words,
+    printf("In one sec, for %d-word numbers, generated %llu nums\n", words,
            counter);
 }
 

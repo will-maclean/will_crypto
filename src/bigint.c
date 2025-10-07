@@ -5,6 +5,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+static inline bi_result_t bi_result_make(MPI x, bi_result_code_t code)
+{
+    bi_result_t res = {x, code};
+    return res;
+}
+
+static inline bi_result_t bi_result_error(bi_result_code_t code)
+{
+    return bi_result_make(NULL, code);
+}
+
 int assert_same_shape(MPI a, MPI b) { return a->words == b->words; }
 
 int min(int a, int b) {
@@ -23,33 +34,99 @@ int max(int a, int b) {
     }
 }
 
-MPI bi_init(int words) {
+bi_result_t __bi_init(int words)
+{
     MPI x = malloc(sizeof(struct bigint));
+
+    if (x == NULL) {
+        return bi_result_error(BI_MEM_ERR);
+    }
 
     if (words == 0) {
         printf("WARNING: bi_init called with words=0. You probably don't want "
-               "to do "
-               "this...");
+               "to do this...");
     }
 
     x->words = words;
-    x->data = calloc(words, sizeof(uint32_t));
+    x->data = NULL;
 
-    return x;
+    if (words > 0) {
+        x->data = calloc((size_t)words, sizeof(uint32_t));
+        if (x->data == NULL) {
+            free(x);
+            return bi_result_error(BI_MEM_ERR);
+        }
+    }
+
+    return bi_result_make(x, BI_OK);
 }
 
-MPI bi_init_like(MPI like) { return bi_init(like->words); }
+MPI bi_init(int words){
+    bi_result_t res = __bi_init(words);
+    if (res.code != BI_OK) {
+        bi_free(res.x);
+        return NULL;
+    }
+    return res.x;
+}
 
-void bi_copy(MPI src, MPI target) {
+MPI bi_init_like(MPI like)
+{
+    return bi_init(like->words);
+}
+
+bi_result_code_t __bi_copy(MPI src, MPI target)
+{
+    if (src == target) {
+        return BI_OK;
+    }
+
+    uint32_t *new_data = NULL;
+
+    if (src->words > 0) {
+        size_t bytes = (size_t)src->words * sizeof(uint32_t);
+        new_data = malloc(bytes);
+        if (new_data == NULL) {
+            return BI_MEM_ERR;
+        }
+        memcpy(new_data, src->data, bytes);
+    }
+
     free(target->data);
-    target->data = malloc(src->words * sizeof(uint32_t));
-    memcpy(target->data, src->data, src->words * sizeof(uint32_t));
+    target->data = new_data;
     target->words = src->words;
+
+    return BI_OK;
 }
 
-void bi_free(MPI x) {
+void bi_copy(MPI src, MPI target)
+{
+    bi_result_code_t code = __bi_copy(src, target);
+    if (code != BI_OK) {
+        fprintf(stderr, "FATAL: bi_copy failed with code %d\n", code);
+        exit(1);
+    }
+}
+
+void bi_free(MPI x)
+{
     free(x->data);
     free(x);
+}
+
+bi_result_code_t __bi_set(MPI a, uint32_t val)
+{
+    uint32_t *data = realloc(a->data, sizeof(uint32_t));
+
+    if (data == NULL) {
+        return BI_MEM_ERR;
+    }
+
+    a->data = data;
+    a->data[0] = val;
+    a->words = 1;
+
+    return BI_OK;
 }
 
 void bi_set(MPI a, uint32_t val) {
@@ -560,6 +637,7 @@ MPI bi_mod_exp(MPI a, MPI b, MPI n) {
 
         MPI tmp_x = bi_mod(x, n);
         bi_copy(tmp_x, x);
+        bi_free(tmp_x);
 
         tmp_x = bi_mul(x, x);
         bi_copy(tmp_x, x);

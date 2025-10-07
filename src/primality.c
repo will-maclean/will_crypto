@@ -48,6 +48,9 @@ struct mr_sd miller_rabin_sd(MPI n) {
     //  bi_squeeze(s);
     //  bi_squeeze(d);
 
+    bi_free(tmp_two);
+    bi_free(tmp_zero);
+
     return (struct mr_sd){
         .s = s,
         .d = d,
@@ -75,6 +78,9 @@ MPI miller_rabin_randn(MPI n) {
 
         bi_free(a);
     }
+
+    bi_free(n_minus_two);
+    bi_free(tmp_two);
 
     return a;
 }
@@ -151,6 +157,12 @@ bool miller_rabin(MPI n, int k) {
         bi_free(s_);
     }
 
+    bi_free(s);
+    bi_free(d);
+    bi_free(tmp_two);
+    bi_free(tmp_one);
+    bi_free(tmp_n_minus_one);
+
     return true;
 }
 
@@ -166,10 +178,9 @@ MPI gen_prime(int words) {
 
         if (miller_rabin(res, mr_k)) {
             break;
-        } else {
-            bi_free(res);
         }
-
+        
+        bi_free(res);
         counter++;
     }
 
