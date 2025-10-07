@@ -5,27 +5,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef enum
-{
+typedef enum {
     BI_OK,
     BI_MEM_ERR,
     BI_DIV_ZERO,
 } __bi_result_code_t;
 
-typedef struct
-{
+typedef struct {
     MPI x;
     __bi_result_code_t code;
 } __bi_result_t;
 
-static inline __bi_result_t bi_result_make(MPI x, __bi_result_code_t code)
-{
+static inline __bi_result_t bi_result_make(MPI x, __bi_result_code_t code) {
     __bi_result_t res = {x, code};
     return res;
 }
 
-static inline __bi_result_t bi_result_error(__bi_result_code_t code)
-{
+static inline __bi_result_t bi_result_error(__bi_result_code_t code) {
     return bi_result_make(NULL, code);
 }
 
@@ -47,8 +43,7 @@ int max(int a, int b) {
     }
 }
 
-__bi_result_t __bi_init(int words)
-{
+__bi_result_t __bi_init(int words) {
     MPI x = malloc(sizeof(struct bigint));
 
     if (x == NULL) {
@@ -74,7 +69,7 @@ __bi_result_t __bi_init(int words)
     return bi_result_make(x, BI_OK);
 }
 
-MPI bi_init(int words){
+MPI bi_init(int words) {
     __bi_result_t res = __bi_init(words);
     if (res.code != BI_OK) {
         bi_free(res.x);
@@ -83,13 +78,9 @@ MPI bi_init(int words){
     return res.x;
 }
 
-MPI bi_init_like(MPI like)
-{
-    return bi_init(like->words);
-}
+MPI bi_init_like(MPI like) { return bi_init(like->words); }
 
-__bi_result_code_t __bi_copy(MPI src, MPI target)
-{
+__bi_result_code_t __bi_copy(MPI src, MPI target) {
     if (src == target) {
         return BI_OK;
     }
@@ -112,8 +103,7 @@ __bi_result_code_t __bi_copy(MPI src, MPI target)
     return BI_OK;
 }
 
-void bi_copy(MPI src, MPI target)
-{
+void bi_copy(MPI src, MPI target) {
     __bi_result_code_t code = __bi_copy(src, target);
     if (code != BI_OK) {
         fprintf(stderr, "FATAL: bi_copy failed with code %d\n", code);
@@ -121,14 +111,12 @@ void bi_copy(MPI src, MPI target)
     }
 }
 
-void bi_free(MPI x)
-{
+void bi_free(MPI x) {
     free(x->data);
     free(x);
 }
 
-__bi_result_code_t __bi_set(MPI a, uint32_t val)
-{
+__bi_result_code_t __bi_set(MPI a, uint32_t val) {
     uint32_t *data = realloc(a->data, sizeof(uint32_t));
 
     if (data == NULL) {
@@ -435,12 +423,15 @@ MPI bi_mod(MPI x, MPI y) {
     return r;
 }
 
-MPI bi_eucl_div(MPI x, MPI y) {
-    // TODO: handle div by zero
+__bi_result_t __bi_eucl_div(MPI x, MPI y) {
+    if (bi_eq_val(y, 0)) {
+        return bi_result_error(BI_DIV_ZERO);
+    }
+
     if (bi_gt(y, x)) {
         MPI res = bi_init(1);
         bi_set(res, 0u);
-        return res;
+        return bi_result_make(res, BI_OK);
     }
 
     int y_orig_words;
@@ -464,7 +455,6 @@ MPI bi_eucl_div(MPI x, MPI y) {
         // Left-shift R by 1 bit
         MPI tmp = bi_shift_left(r, 1u);
         bi_copy(tmp, r);
-        bi_free(tmp);
 
         // Set the least-significant bit of R equal to bit i of the numerator
         uint32_t curr_word = i / 32u;
@@ -494,7 +484,20 @@ MPI bi_eucl_div(MPI x, MPI y) {
 
     bi_free(r);
     bi_squeeze(q);
-    return q;
+    return bi_result_make(q, BI_OK);
+    ;
+}
+
+MPI bi_eucl_div(MPI a, MPI b) {
+    __bi_result_t res = __bi_eucl_div(a, b);
+
+    if (res.code != BI_OK) {
+        bi_free(res.x);
+        printf("bi_eucl_div failed with error code: %d", res.code);
+        exit(1);
+    }
+
+    return res.x;
 }
 
 void bi_printf(MPI x) {
@@ -527,12 +530,14 @@ void bi_inc(MPI x) {
 
 void bi_dec(MPI x) {
     int i = 0;
-    while (x->data[i] == 0u) {
+    while (x->data[i] == 0u && i < x->words) {
         x->data[i] = 0xFFFFFFFF;
         i++;
     }
 
-    x->data[i]--;
+    if (x->data[i] != 0) {
+        x->data[i]--;
+    }
 
     bi_squeeze(x);
 }
@@ -727,7 +732,7 @@ bool bi_le(MPI a, MPI b) {
         return false;
     }
 
-    for (int i = a->words - 1; i > 0; i--) {
+    for (int i = a->words - 1; i >= 0; i--) {
         if (a->data[i] > b->data[i]) {
             return false;
         } else if (a->data[i] < b->data[i]) {
@@ -874,6 +879,10 @@ void bi_squeeze(MPI x) {
         if (x->data[i] != 0 && squeeze_needed) {
             squeeze_idx = i;
         }
+    }
+
+    if (!squeeze_needed) {
+        return;
     }
 
     int squeezed_words = squeeze_idx + 1;

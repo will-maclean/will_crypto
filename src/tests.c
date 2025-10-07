@@ -36,6 +36,43 @@ void test_bigint_math_proper(void) {
     assert(!bi_even(a), "bi_even for an odd number failing");
     assert(bi_even(b), "bi_even for an even number failing");
 
+    // comparisons
+    printf("Testing comparisons...\n");
+    assert(bi_gt(a, b), "a>b (true) failing, single-word");
+    assert(!bi_gt(b, a), "b>a (false) failing, single-word");
+    assert(!bi_lt(a, b), "a<b (false) failing, single-word");
+    assert(bi_lt(b, a), "b<a (true) failing, single-word");
+    assert(bi_ge(a, b), "a>=b (true) failing, single-word");
+    assert(!bi_ge(b, a), "b>=a (false) failing, single-word");
+    assert(!bi_le(a, b), "a<=b (false) failing, single-word");
+    assert(bi_le(b, a), "b<=a (true) failing, single-word");
+
+    bi_free(a);
+    bi_free(b);
+    a = bi_init(2);
+    b = bi_init(2);
+    a->data[1] = 1;
+    a->data[0] = 5;
+    b->data[1] = 1;
+    b->data[0] = 2;
+
+    assert(bi_gt(a, b), "a>b (true) failing, multi-word");
+    assert(!bi_gt(b, a), "b>a (false) failing, multi-word");
+    assert(!bi_lt(a, b), "a<b (false) failing, multi-word");
+    assert(bi_lt(b, a), "b<a (true) failing, multi-word");
+    assert(bi_ge(a, b), "a>=b (true) failing, nulti-word");
+    assert(!bi_ge(b, a), "b>=a (false) failing, multi-word");
+    assert(!bi_le(a, b), "a<=b (false) failing, multi-word");
+    assert(bi_le(b, a), "b<=a (true) failing, multi-word");
+
+    bi_free(a);
+    bi_free(b);
+    a = bi_init(1);
+    b = bi_init(1);
+    bi_set(a, 5u);
+    bi_set(b, 2u);
+
+    printf("Testing arithmetic...\n");
     // addition
     bi_set(expected_res, 7u);
     res = bi_add(a, b);
@@ -78,7 +115,7 @@ void test_bigint_math_proper(void) {
     b_euc->data[0] = 2;
     bi_set(expected_res, 0x80000001);
     res = bi_eucl_div(a_euc, b_euc);
-        passed = bi_eq(res, expected_res);
+    passed = bi_eq(res, expected_res);
 
     assert(passed, "bigint 2-word euclidian division");
     if (!passed) {
@@ -103,6 +140,40 @@ void test_bigint_math_proper(void) {
     bi_set(a, 5u);
     bi_inc(a);
     assert(bi_eq(a, expected_res), "bigint 1-word increment");
+    bi_set(a, 5u);
+
+    // dec
+    bi_set(expected_res, 4u);
+    bi_set(a, 5u);
+    bi_dec(a);
+    assert(bi_eq(a, expected_res), "bigint 1-word decrement");
+    bi_set(a, 5u);
+
+    bi_free(expected_res);
+    res = bi_init(2);
+    bi_free(a);
+    a = bi_init(2);
+    a->data[1] = 5;
+    a->data[0] = 5;
+    expected_res = bi_init(2);
+    expected_res->data[1] = 5;
+    expected_res->data[0] = 4;
+    bi_dec(a);
+    passed = bi_eq(a, expected_res);
+    assert(passed, "bigint 2-word decrement");
+    if (!passed) {
+        printf("a, expected_res:\n");
+        bi_printf(a);
+        printf("\n");
+        bi_printf(expected_res);
+        printf("\n");
+    }
+
+    bi_free(a);
+    bi_free(expected_res);
+
+    a = bi_init(1);
+    expected_res = bi_init(1);
     bi_set(a, 5u);
 
     // shift left
@@ -275,7 +346,7 @@ void test_rng(void) {
         counter++;
     }
 
-    printf("In one sec, for %d-word numbers, generated %llu nums\n", words,
+    printf("In one sec, for %d-word numbers, generated %lu nums\n", words,
            counter);
 }
 

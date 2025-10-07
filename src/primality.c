@@ -1,6 +1,8 @@
 #include "primality.h"
+#include "bigint.h"
 #include "rng.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 struct mr_sd {
     MPI s;
@@ -65,15 +67,26 @@ MPI miller_rabin_randn(MPI n) {
     MPI tmp_two = bi_init_like(n);
     bi_set(tmp_two, 2u);
 
-    int max_iters = 1000;
+    int max_iters = 10;
     MPI a;
+
+    printf("Starting MR RNG. n: \n");
+    bi_printf(n);
+    printf("\n");
+
     for (int i = 0; i < max_iters; i++) {
         // have to do some funniness to get random numbers of the
         // correct length
         a = will_rng_next(n->words);
 
+        printf("MR RNG loop %d. Testing: \n", i);
+        bi_printf(a);
+        printf("\n\n");
+
         if (bi_gt(a, tmp_two) && bi_lt(a, n_minus_two)) {
-            break;
+            bi_free(n_minus_two);
+            bi_free(tmp_two);
+            return a;
         }
 
         bi_free(a);
@@ -82,7 +95,7 @@ MPI miller_rabin_randn(MPI n) {
     bi_free(n_minus_two);
     bi_free(tmp_two);
 
-    return a;
+    return NULL;
 }
 
 bool miller_rabin(MPI n, int k) {
@@ -132,6 +145,17 @@ bool miller_rabin(MPI n, int k) {
     for (int k_ = 0; k_ < k; k_++) {
         // Sets a with a random number betwee 2 and n-2
         MPI a = miller_rabin_randn(n);
+
+        if (a == NULL) {
+            bi_free(s);
+            bi_free(d);
+            bi_free(tmp_two);
+            bi_free(tmp_one);
+            bi_free(tmp_n_minus_one);
+
+            printf("ERROR: Miller-Rabin RNG failed\n");
+            exit(1);
+        }
         MPI x = bi_mod_exp(a, d, n);
 
         MPI s_ = bi_init_like(s);
@@ -179,7 +203,7 @@ MPI gen_prime(int words) {
         if (miller_rabin(res, mr_k)) {
             break;
         }
-        
+
         bi_free(res);
         counter++;
     }
