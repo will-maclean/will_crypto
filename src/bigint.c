@@ -1088,9 +1088,13 @@ __bi_result_code_t __bi_add_to_range(MPI src, MPI target,
 
     uint64_t carry = 0;
     for (int i = 0; i < range_words; i++) {
-        // TODO: implement carry
         target->data[target_start_idx + i] += src->data[src_start_idx + i];
+        uint64_t res = (uint64_t)target->data[target_start_idx + i] + (uint64_t)src->data[target_start_idx + i] + carry;
+        target->data[target_start_idx + i] = (uint32_t)res;
+        carry = res >> 32u;
     }
+
+    //TODO: what happens if carry != 0 here??
 
     return BI_OK;
 }
