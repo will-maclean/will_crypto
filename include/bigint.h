@@ -89,11 +89,14 @@ void bi_printf(MPI x);
 
 // helper functions
 MPI bi_concat(MPI a, MPI b);
+MPI bi_slice(MPI a, uint32_t start, uint32_t end);
+void bi_copy_word_range(MPI src, MPI target, uint32_t src_start_idx, uint32_t target_start_idx, uint32_t copy_words);
 
 /*
  * Pads x with 0's
  */
-MPI pad(MPI x, int n);
+MPI bi_pad_words(MPI x, int n);
+MPI bi_pad_words_from_bottom(MPI x, int n);
 void bi_squeeze(MPI x);
 
 #endif

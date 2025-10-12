@@ -9,6 +9,7 @@ typedef enum {
     BI_OK,
     BI_MEM_ERR,
     BI_DIV_ZERO,
+    BI_BAD_OPERANDS,
 } __bi_result_code_t;
 
 typedef struct {
@@ -192,7 +193,8 @@ MPI bi_sub(MPI a, MPI b) {
     // b.words > a.words. So, to catch this, we'll pad
     // a to the size of b
     MPI tmp = bi_init_and_copy(a);
-    MPI a_copy = pad(tmp, b->words > a->words ? b->words - a->words : 0);
+    MPI a_copy =
+        bi_pad_words(tmp, b->words > a->words ? b->words - a->words : 0);
     MPI res = bi_init_like(a_copy);
 
     // invariant: a >= b
@@ -381,7 +383,7 @@ MPI bi_mod(MPI x, MPI y) {
     if (x->words > y->words) {
         y_was_squeezed = true;
         y_orig_words = y->words;
-        MPI tmp = pad(y, x->words - y->words);
+        MPI tmp = bi_pad_words(y, x->words - y->words);
         bi_copy(tmp, y);
         bi_free(tmp);
     }
@@ -413,7 +415,7 @@ MPI bi_mod(MPI x, MPI y) {
         bi_squeeze(y);
 
         if (y->words < y_orig_words) {
-            MPI tmp = pad(y, y_orig_words - y->words);
+            MPI tmp = bi_pad_words(y, y_orig_words - y->words);
             bi_copy(tmp, y);
             bi_free(tmp);
         }
@@ -421,6 +423,123 @@ MPI bi_mod(MPI x, MPI y) {
 
     bi_squeeze(r);
     return r;
+}
+
+uint32_t leading_zeros(uint32_t x) {
+    // gcc has a builtin helper for this
+    return __builtin_clz(x);
+}
+
+// u / v
+__bi_result_t __knuth_d(MPI u, MPI v, bool return_quotient) {
+
+    // Best attempt at implementing Knuth's
+    // Algorithm D from
+    // https://www.hvks.com/Numerical/Downloads/HVE%20The%20Math%20behind%20arbitrary%20precision.pdfj
+
+    // number of leading zeros is important, so make
+    // sure we squeeze off any zeros
+    bi_squeeze(u);
+    bi_squeeze(v);
+
+    if (bi_eq_val(v, 0)) {
+        return bi_result_error(BI_DIV_ZERO);
+    }
+
+    if (bi_eq(u, v)) {
+        if (return_quotient) {
+            MPI res = bi_init(1);
+            bi_set(res, 1);
+            return bi_result_make(res, BI_OK);
+        } else {
+            MPI res = bi_init(1);
+            bi_set(res, 0);
+            return bi_result_make(res, BI_OK);
+        }
+    }
+
+    if (bi_gt(v, u)) {
+        if (return_quotient) {
+            MPI res = bi_init(1);
+            bi_set(res, 0);
+            return bi_result_make(res, BI_OK);
+        } else {
+            MPI res = bi_init_and_copy(u);
+            return bi_result_make(res, BI_OK);
+        }
+    }
+
+    // invariant: u > v
+
+    int n = u->words;
+    int m = v->words;
+
+    int d = leading_zeros(v->data[m - 1]);
+
+    MPI Utmp = bi_init_and_copy(u);
+    MPI Vtmp = bi_init_and_copy(v);
+
+    MPI U = bi_shift_left(Utmp, d);
+    MPI V = bi_shift_left(Vtmp, d);
+    bi_pad_words(U, 1);
+    U->data[n] = 0;
+
+    MPI Q = bi_init(n - m);
+
+    uint64_t B = 1ull << 32;
+    for (uint32_t j = n - m; j >= 0; j--) {
+        uint64_t num = U->data[j + m] * B + U->data[j + m - 1];
+        uint64_t denom = V->data[m - 1];
+        uint64_t q_hat = num / denom;
+        uint64_t r_hat = num % denom;
+
+        while (q_hat * V->data[m - 2] > r_hat * B + U->data[j + m - 2]) {
+            q_hat--;
+            r_hat += v->data[m - 1];
+
+            if (r_hat >= B) {
+                break;
+            }
+        }
+
+        MPI qV = bi_mul_imm(V, q_hat);
+        MPI tmpU = bi_init_like(U);
+        for (uint32_t i = j; i <= j + m; i++) {
+            tmpU->data[i] = U->data[i];
+        }
+
+        // subtract q̂*V from U[j..j+m]
+        // if a borrow occurred:
+        // q̂ ← q̂ - 1
+        // add V to U[j..j+m]
+        // Q[j] ← q̂
+
+        bi_free(qV);
+        bi_free(tmpU);
+    }
+
+    MPI R_tmp = bi_init(m - 1);
+    for (int i = 0; i < m - 1; i++) {
+        R_tmp->data[i] = U->data[i];
+    }
+    MPI R = bi_shift_right(R, d);
+
+    bi_free(U);
+    bi_free(Utmp);
+    bi_free(V);
+    bi_free(Vtmp);
+    bi_free(R_tmp);
+
+    bi_squeeze(R);
+    bi_squeeze(Q);
+
+    if (return_quotient) {
+        bi_free(R);
+        bi_result_make(Q, BI_OK);
+    } else {
+        bi_free(Q);
+        bi_result_make(R, BI_OK);
+    }
 }
 
 __bi_result_t __bi_eucl_div(MPI x, MPI y) {
@@ -439,7 +558,7 @@ __bi_result_t __bi_eucl_div(MPI x, MPI y) {
     if (x->words > y->words) {
         y_was_squeezed = true;
         y_orig_words = y->words;
-        MPI tmp = pad(y, x->words - y->words);
+        MPI tmp = bi_pad_words(y, x->words - y->words);
         bi_copy(tmp, y);
         bi_free(tmp);
     }
@@ -473,7 +592,7 @@ __bi_result_t __bi_eucl_div(MPI x, MPI y) {
         bi_squeeze(y);
 
         if (y->words < y_orig_words) {
-            MPI tmp = pad(y, y_orig_words - y->words);
+            MPI tmp = bi_pad_words(y, y_orig_words - y->words);
             bi_copy(tmp, y);
             bi_free(tmp);
         }
@@ -513,7 +632,7 @@ void bi_inc(MPI x) {
     }
 
     if (i == x->words) {
-        MPI tmp = pad(x, 1);
+        MPI tmp = bi_pad_words(x, 1);
         bi_copy(tmp, x);
         bi_free(tmp);
 
@@ -855,12 +974,23 @@ MPI bi_init_and_copy(MPI src) {
 
 bool bi_even(MPI a) { return !(a->data[0] & 1u); }
 
-MPI pad(MPI x, int n) {
+MPI bi_pad_words(MPI x, int n) {
     MPI res = bi_init(x->words + n);
     res->words = x->words + n;
 
     for (int i = 0; i < x->words; i++) {
         res->data[i] = x->data[i];
+    }
+
+    return res;
+}
+
+MPI bi_pad_words_from_bottom(MPI x, int n) {
+
+    MPI res = bi_init(x->words + n);
+
+    for (int i = 0; i < x->words; i++) {
+        res->data[i + n] = x->data[i];
     }
 
     return res;
@@ -888,3 +1018,59 @@ void bi_squeeze(MPI x) {
         x->words = squeezed_words;
     }
 }
+
+// slices a from start to end, exclusive at both ends
+__bi_result_t __bi_slice(MPI a, uint32_t start, uint32_t end) {
+    if (end <= start || start >= a->words * 32u) {
+        return bi_result_error(BI_BAD_OPERANDS);
+    }
+
+    MPI res = bi_init(end - start + 1);
+
+    for (int i = start; i <= end; i++) {
+        res->data[i] = a->data[i + start];
+    }
+
+    return bi_result_make(res, BI_OK);
+}
+
+MPI bi_slice(MPI a, uint32_t start, uint32_t end) {
+
+    __bi_result_t res = __bi_slice(a, start, end);
+
+    if (res.code != BI_OK) {
+        printf("Error in bi_slice. Error code: %d\n", res.code);
+        exit(1);
+    }
+
+    return res.x;
+}
+
+__bi_result_code_t __bi_copy_word_range(MPI src, MPI target,
+                                        uint32_t src_start_idx,
+                                        uint32_t target_start_idx,
+                                        uint32_t copy_words) {
+    if (src_start_idx + copy_words >= src->words ||
+        target_start_idx + copy_words >= target->words) {
+        return BI_BAD_OPERANDS;
+    }
+
+    for (int i = 0; i < copy_words; i++){
+
+        target->data[target_start_idx + i] = src->data[src_start_idx + i];
+    }
+
+    return BI_OK;
+}
+
+void bi_copy_word_range(MPI src, MPI target,
+                                        uint32_t src_start_idx,
+                                        uint32_t target_start_idx,
+                                        uint32_t copy_words) {
+    __bi_result_code_t res_code = __bi_copy_word_range(src, target, src_start_idx, target_start_idx, copy_words);
+
+    if (res_code != BI_OK){
+                printf("Error in bi_copy_word_range. Error code: %d\n", res_code);
+        exit(1);
+    }
+                                        }
