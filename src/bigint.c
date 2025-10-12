@@ -513,6 +513,9 @@ __bi_result_t __knuth_d(MPI u, MPI v, bool return_quotient) {
         // q̂ ← q̂ - 1
         // add V to U[j..j+m]
         // Q[j] ← q̂
+        if (__knuth_d_subtract_reporting_borrow()) {
+            q_hat--;
+        }
 
         bi_free(qV);
         bi_free(tmpU);
@@ -1055,7 +1058,7 @@ __bi_result_code_t __bi_copy_word_range(MPI src, MPI target,
         return BI_BAD_OPERANDS;
     }
 
-    for (int i = 0; i < copy_words; i++){
+    for (int i = 0; i < copy_words; i++) {
 
         target->data[target_start_idx + i] = src->data[src_start_idx + i];
     }
@@ -1063,14 +1066,42 @@ __bi_result_code_t __bi_copy_word_range(MPI src, MPI target,
     return BI_OK;
 }
 
-void bi_copy_word_range(MPI src, MPI target,
-                                        uint32_t src_start_idx,
-                                        uint32_t target_start_idx,
-                                        uint32_t copy_words) {
-    __bi_result_code_t res_code = __bi_copy_word_range(src, target, src_start_idx, target_start_idx, copy_words);
+void bi_copy_word_range(MPI src, MPI target, uint32_t src_start_idx,
+                        uint32_t target_start_idx, uint32_t copy_words) {
+    __bi_result_code_t res_code = __bi_copy_word_range(
+        src, target, src_start_idx, target_start_idx, copy_words);
 
-    if (res_code != BI_OK){
-                printf("Error in bi_copy_word_range. Error code: %d\n", res_code);
+    if (res_code != BI_OK) {
+        printf("Error in bi_copy_word_range. Error code: %d\n", res_code);
         exit(1);
     }
-                                        }
+}
+
+__bi_result_code_t __bi_add_to_range(MPI src, MPI target,
+                                     uint32_t src_start_idx,
+                                     uint32_t target_start_idx,
+                                     uint32_t range_words) {
+    if (src_start_idx + range_words >= src->words ||
+        target_start_idx + range_words >= target->words) {
+        return BI_BAD_OPERANDS;
+    }
+
+    uint64_t carry = 0;
+    for (int i = 0; i < range_words; i++) {
+        // TODO: implement carry
+        target->data[target_start_idx + i] += src->data[src_start_idx + i];
+    }
+
+    return BI_OK;
+}
+
+void bi_add_to_range(MPI src, MPI target, uint32_t src_start_idx,
+                     uint32_t target_start_idx, uint32_t range_words) {
+    __bi_result_code_t res_code = __bi_add_to_range(
+        src, target, src_start_idx, target_start_idx, range_words);
+
+    if (res_code != BI_OK) {
+        printf("Error in bi_copy_word_range. Error code: %d\n", res_code);
+        exit(1);
+    }
+}

@@ -91,6 +91,7 @@ void bi_printf(MPI x);
 MPI bi_concat(MPI a, MPI b);
 MPI bi_slice(MPI a, uint32_t start, uint32_t end);
 void bi_copy_word_range(MPI src, MPI target, uint32_t src_start_idx, uint32_t target_start_idx, uint32_t copy_words);
+void bi_add_to_range(MPI src, MPI target, uint32_t src_start_idx, uint32_t target_start_idx, uint32_t range_words);
 
 /*
  * Pads x with 0's
