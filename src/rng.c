@@ -1,8 +1,6 @@
 #include "rng.h"
 #include "chacha.h"
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 struct will_rng_state {
@@ -41,7 +39,7 @@ MPI will_rng_next(int words) {
         return res;
     }
 
-    for (int i = 0; i < res->words; i += 16) {
+    for (uint32_t i = 0; i < res->words; i += 16) {
         chacha_block(&(res->data[i]), rng_state.prev);
         memcpy(rng_state.prev, &(res->data[i]), 16 * sizeof(uint32_t));
     }
@@ -51,7 +49,8 @@ MPI will_rng_next(int words) {
         chacha_block(tmp, rng_state.prev);
         memcpy(rng_state.prev, tmp, 16 * sizeof(uint32_t));
         memcpy(&(res->data[words - (words % 16)]), tmp,
-               (words % 16) * sizeof(uint32_t));}
+               (words % 16) * sizeof(uint32_t));
+    }
 
     return res;
 }

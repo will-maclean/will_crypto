@@ -11,6 +11,8 @@ struct mr_sd {
 
 struct mr_sd miller_rabin_sd(MPI n);
 
+bool __miller_rabin_inner_check(MPI n, MPI a, struct mr_sd sd);
+
 /*
  * Performs the Miller Rabin primality test on x. Completes k trials for
  * primality

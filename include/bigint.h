@@ -4,9 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-struct bigint
-{
-    int words;
+struct bigint {
+    uint32_t words;
     uint32_t *data;
 };
 
@@ -16,7 +15,7 @@ typedef struct bigint *MPI;
  * Assigns the memory for a bigint. This is the only function
  * that will raw assign memory for a bigint
  */
-MPI bi_init(int words);
+MPI bi_init(uint32_t words);
 
 /*
  * Initialises a bigint to have the same size/memory as
@@ -90,14 +89,16 @@ void bi_printf(MPI x);
 // helper functions
 MPI bi_concat(MPI a, MPI b);
 MPI bi_slice(MPI a, uint32_t start, uint32_t end);
-void bi_copy_word_range(MPI src, MPI target, uint32_t src_start_idx, uint32_t target_start_idx, uint32_t copy_words);
-void bi_add_to_range(MPI src, MPI target, uint32_t src_start_idx, uint32_t target_start_idx, uint32_t range_words);
+void bi_copy_word_range(MPI src, MPI target, uint32_t src_start_idx,
+                        uint32_t target_start_idx, uint32_t copy_words);
+void bi_add_to_range(MPI src, MPI target, uint32_t src_start_idx,
+                     uint32_t target_start_idx, uint32_t range_words);
 
 /*
  * Pads x with 0's
  */
-MPI bi_pad_words(MPI x, int n);
-MPI bi_pad_words_from_bottom(MPI x, int n);
+MPI bi_pad_words(MPI x, uint32_t n);
+MPI bi_pad_words_from_bottom(MPI x, uint32_t n);
 void bi_squeeze(MPI x);
 
 #endif

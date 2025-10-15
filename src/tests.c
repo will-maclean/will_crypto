@@ -315,6 +315,9 @@ void test_bigint(void) {
     printf("x/y=");
     bi_printf(z);
     printf("\n");
+
+    bi_free(x);
+    bi_free(y);
     bi_free(z);
 }
 
@@ -327,15 +330,6 @@ void test_rng(void) {
     MPI res;
     printf("testing init_will_rng\n");
     init_will_rng(&cfg, seed);
-
-    printf("testing will_rng_next\n");
-    for (int i = 0; i < 5; i++) {
-        res = will_rng_next(words);
-
-        bi_printf(res);
-        bi_free(res);
-        printf("\n");
-    }
 
     // See how many rng gens we can get done in a second
     uint64_t counter = 0;
@@ -431,11 +425,26 @@ void test_primality(void) {
     bi_free(a);
     a = bi_init(1);
     bi_set(a, 0xFFFFFFFB); // obviously prime
-    assert(miller_rabin(a, 5), "Miller-Rabin primality test (prime a=0xFFFFFFFB)");
-    bi_free(a);
+    assert(miller_rabin(a, 5),
+           "Miller-Rabin primality test (prime a=0xFFFFFFFB)");
     bi_set(a, 0xFFFFFFF0); // ob
-    assert(!miller_rabin(a, 5), "Miller-Rabin primality test (composite a=0xFFFFFFF0)");
+    assert(!miller_rabin(a, 5),
+           "Miller-Rabin primality test (composite a=0xFFFFFFF0)");
     bi_free(a);
+
+    // simple check for miller rabin inner loop check - if this is false
+    // for a prime number, then the whole thing is broken
+    a = bi_init(1);
+    bi_set(a, 15u);
+    MPI n = bi_init(1);
+    bi_set(n, 23u);
+    sd = miller_rabin_sd(n);
+    assert(__miller_rabin_inner_check(n, a, sd),
+           "miller-rabin inner loop check failed for n=23, a=15");
+    bi_free(a);
+    bi_free(n);
+    bi_free(sd.s);
+    bi_free(sd.d);
 
     int words = 16;
     MPI test_prime = will_rng_next(words);
@@ -462,6 +471,8 @@ void test_primality(void) {
         } else {
             printf("Failed to generate prime\n");
         }
+
+        bi_free(generated_prime);
     } else {
         printf("Skipping gen_prime test due to earlier failures\n");
     }
@@ -481,6 +492,9 @@ void KISS(void) {
     assert(bi_eq(res, expected_res), "bigint 2-word euclidian division");
     printf("Res: ");
     bi_printf(res);
+
+    bi_free(a_euc);
+    bi_free(b_euc);
     bi_free(res);
 }
 

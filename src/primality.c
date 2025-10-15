@@ -79,7 +79,8 @@ MPI miller_rabin_randn(MPI n) {
         bi_free(a);
     }
 
-    printf("WARNING: miller_rabin_randn failed to find a suitable rand for n:\n");
+    printf(
+        "WARNING: miller_rabin_randn failed to find a suitable rand for n:\n");
     bi_printf(n);
     printf("\n");
 
@@ -89,24 +90,56 @@ MPI miller_rabin_randn(MPI n) {
     return NULL;
 }
 
+bool __miller_rabin_inner_check(MPI n, MPI a, struct mr_sd sd) {
+    MPI tmp_two = bi_init_like(n);
+    bi_set(tmp_two, 2u);
+
+    MPI tmp_n_minus_one = bi_init_and_copy(n);
+    bi_dec(tmp_n_minus_one);
+
+    MPI x = bi_mod_exp(a, sd.d, n);
+
+    MPI s_ = bi_init_like(sd.d);
+    bi_set(s_, 0u);
+    for (; bi_lt(s_, sd.s); bi_inc(s_)) {
+        MPI y = bi_mod_exp(x, tmp_two, n);
+
+        if (bi_eq_val(y, 1u) && !bi_eq_val(x, 1u) &&
+            !bi_eq(x, tmp_n_minus_one)) {
+            // nontrivial square root of 1 modulo n
+            bi_free(tmp_two);
+            bi_free(tmp_n_minus_one);
+            bi_free(x);
+            bi_free(s_);
+            return false;
+        }
+
+        bi_copy(y, x);
+        bi_free(y);
+    }
+
+    bi_free(tmp_two);
+    bi_free(tmp_n_minus_one);
+    bi_free(s_);
+    bool res = bi_eq_val(x, 1);
+    bi_free(x);
+    return res;
+}
+
 bool miller_rabin(MPI n, int k) {
     /* Before starting the test, we must assert:
      * 1. n > 2
      * 2. n is odd
      */
     // printf("Starting Miller Rabin\n");
-    MPI tmp1 = bi_init_like(n);
-    bi_set(tmp1, 2u);
 
-    if (bi_le(n, tmp1))
+    if (bi_eq_val(n, 1u) || bi_eq_val(n, 2u))
         // 1 and 2 are prime
         return true;
 
     if (bi_even(n))
         // x is even, so therefore is not prime
         return false;
-
-    bi_free(tmp1);
 
     // printf("MR: initial assertions passed\n");
 
@@ -117,8 +150,6 @@ bool miller_rabin(MPI n, int k) {
     // We factor out powers of 2 from n-1 until the
     // result is no longer divisible by 2
     struct mr_sd sd = miller_rabin_sd(n);
-    MPI s = sd.s;
-    MPI d = sd.d;
 
     // printf("MR: generated s, d. s=\n");
     // bi_printf(s);
@@ -126,58 +157,30 @@ bool miller_rabin(MPI n, int k) {
     // bi_printf(d);
     // printf("\n");
 
-    MPI tmp_two = bi_init_like(n);
-    MPI tmp_one = bi_init_like(n);
-    MPI tmp_n_minus_one = bi_init_and_copy(n);
-    bi_dec(tmp_n_minus_one);
-    bi_set(tmp_one, 1u);
-    bi_set(tmp_two, 2u);
-
     for (int k_ = 0; k_ < k; k_++) {
         // Sets a with a random number betwee 2 and n-2
         MPI a = miller_rabin_randn(n);
 
         if (a == NULL) {
-            bi_free(s);
-            bi_free(d);
-            bi_free(tmp_two);
-            bi_free(tmp_one);
-            bi_free(tmp_n_minus_one);
+            bi_free(sd.s);
+            bi_free(sd.d);
 
             printf("ERROR: Miller-Rabin RNG failed (trial %d/%d)\n", k_, k);
             exit(1);
         }
-        MPI x = bi_mod_exp(a, d, n);
 
-        MPI s_ = bi_init_like(s);
-        bi_set(s_, 0u);
-        for (; bi_lt(s_, s); bi_inc(s_)) {
-            MPI y = bi_mod_exp(x, tmp_two, n);
-
-            if (bi_eq(y, tmp_one) && !bi_eq(x, tmp_one) &&
-                !bi_eq(x, tmp_n_minus_one)) {
-                // nontrivial square root of 1 modulo n
-                return false;
-            }
-
-            bi_copy(y, x);
-            bi_free(y);
+        if (!__miller_rabin_inner_check(n, a, sd)) {
+            bi_free(sd.s);
+            bi_free(sd.d);
+            bi_free(a);
+            return false;
         }
 
-        if (!bi_eq(x, tmp_one))
-            return false;
-
-        bi_free(x);
         bi_free(a);
-        bi_free(s_);
     }
 
-    bi_free(s);
-    bi_free(d);
-    bi_free(tmp_two);
-    bi_free(tmp_one);
-    bi_free(tmp_n_minus_one);
-
+    bi_free(sd.s);
+    bi_free(sd.d);
     return true;
 }
 
