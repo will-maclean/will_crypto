@@ -20,6 +20,83 @@ void assert(bool result, char *failure_msg) {
     }
 }
 
+void test_bi_pow(void) {
+    // single word first
+    MPI a = bi_init(1);
+    MPI expected_res = bi_init(1);
+    bi_set(a, 3);
+    bi_set(expected_res, 9);
+    MPI res = bi_pow_imm(a, 2);
+    assert(bi_eq(res, expected_res), "single word squaring failed");
+
+    bi_free(a);
+    bi_free(res);
+    bi_free(expected_res);
+
+    // clang-format off
+    uint32_t tests[] = {
+        // a words, ... a data, b, out words, ...out data
+        // single word a
+        1, 3, 2, 1, 9,
+        1, 0x0, 0, 1, 1,
+        1, 0, 5, 1, 0,
+        1, 1, 123456789, 1, 1,
+        1, 2, 32, 2, 0, 1,
+        1, 0xFFFFFFFF, 2, 2, 1, 0xFFFFFFFE,
+        // multi-word a
+        2, 0, 0, 0, 1, 1,
+        2, 5, 0, 3, 1, 0xd,
+        2, 0, 1, 2, 3, 0, 0, 1,
+        2, 0, 2, 5, 6, 0, 0, 0, 0, 0, 0x20,
+        2, 0xffffffff, 0xffffffff, 2, 1, 0, 0xfffffffe, 0xffffffff,
+    };
+    // clang-format on
+    uint32_t n_tests = 6;
+    uint32_t curr_pos = 0;
+
+    for (uint32_t i = 0; i < n_tests; i++) {
+        uint32_t a_words = tests[curr_pos];
+        MPI a = bi_init(a_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < a_words; j++) {
+            a->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        uint32_t b = tests[curr_pos];
+        curr_pos++;
+
+        MPI res = bi_pow_imm(a, b);
+
+        uint32_t expected_res_words = tests[curr_pos];
+        MPI expected_res = bi_init(expected_res_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < expected_res_words; j++) {
+            expected_res->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        bool pass = bi_eq(res, expected_res);
+
+        assert(pass, "bi_pow_imm failed case");
+        if (!pass) {
+            printf("a=");
+            bi_printf(a);
+            printf("\nb=%d\ncalculated a^b=", b);
+            bi_printf(res);
+            printf("\nexptected res=");
+            bi_printf(expected_res);
+            printf("\n");
+        }
+
+        bi_free(a);
+        bi_free(res);
+        bi_free(expected_res);
+    }
+}
+
 void test_bigint_math_proper(void) {
     // start with one word tests
 
@@ -185,6 +262,19 @@ void test_bigint_math_proper(void) {
     bi_set(a, 5u);
     bi_set(b, 3u);
 
+    bi_free(a);
+    bi_free(b);
+    a = bi_init(2);
+    a->data[0] = (1ull << 31);
+    bi_free(expected_res);
+    expected_res = bi_init(2);
+    expected_res->data[1] = 1u;
+    b = bi_shift_left(a, 1);
+    assert(bi_eq(b, expected_res), "bigint 2-word shift left");
+    bi_free(a);
+    a = bi_init(1);
+    bi_set(a, 5u);
+
     // shift right
     bi_free(b);
     bi_set(a, 5u);
@@ -194,15 +284,108 @@ void test_bigint_math_proper(void) {
     bi_set(a, 5u);
     bi_set(b, 3u);
 
+    bi_free(a);
+    a = bi_init(2);
+    a->data[1] = 1u;
+    bi_free(expected_res);
+    expected_res = bi_init(1);
+    expected_res->data[0] = (1ull << 31);
+    bi_free(b);
+    b = bi_shift_right(a, 1);
+    assert(bi_eq(b, expected_res), "bigint 2-word shift right");
+    bi_printf(a);
+    printf("\n");
+    bi_printf(b);
+    printf("\n");
+    bi_printf(expected_res);
+    printf("\n");
+    bi_free(a);
+    a = bi_init(1);
+    bi_set(a, 5u);
+
     // mod exp
     // (5 ^ 2) % 4 = 1
     MPI mod = bi_init(words);
     bi_set(mod, 4u);
     bi_set(expected_res, 1u);
     res = bi_mod_exp(a, b, mod);
-    assert(bi_eq(res, expected_res), "bigint 1-word modular exponentiation");
+    assert(bi_eq(res, expected_res),
+           "bigint 1-word modular exponentiation: (5 ^ 2) % 4 = 1");
     bi_free(res);
     bi_free(mod);
+
+    // (7 ^ 13) % 11 = 2
+    bi_set(a, 7u);
+    bi_set(b, 13u);
+    bi_set(expected_res, 2u);
+    mod = bi_init(words);
+    bi_set(mod, 11u);
+    res = bi_mod_exp(a, b, mod);
+    assert(bi_eq(res, expected_res), "bigint 1-word modular exponentiation, "
+                                     "odd exponent: (7 ^ 13) % 11 = 2");
+    bi_free(res);
+    bi_free(mod);
+
+    // (9 ^ 9) % 13 = 1
+    bi_set(a, 9u);
+    bi_set(b, 9u);
+    bi_set(expected_res, 1u);
+    mod = bi_init(words);
+    bi_set(mod, 13u);
+    res = bi_mod_exp(a, b, mod);
+    assert(bi_eq(res, expected_res), "bigint 1-word modular exponentiation, "
+                                     "repeated squaring: (9 ^ 9) % 13 = 1");
+    bi_free(res);
+    bi_free(mod);
+
+    // multi-word modular exponentiation: (2^32 ^ 3) % (2^32 + 1) = 2^32
+    MPI base_multi = bi_init(2);
+    MPI exp_multi = bi_init(1);
+    MPI mod_multi = bi_init(2);
+    MPI expected_multi = bi_init(2);
+
+    base_multi->data[0] = 0u;
+    base_multi->data[1] = 1u;
+
+    bi_set(exp_multi, 3u);
+
+    mod_multi->data[0] = 1u;
+    mod_multi->data[1] = 1u;
+
+    expected_multi->data[0] = 0u;
+    expected_multi->data[1] = 1u;
+
+    res = bi_mod_exp(base_multi, exp_multi, mod_multi);
+    assert(bi_eq(res, expected_multi),
+           "bigint multi-word modular exponentiation (base/mod multi-word): "
+           "(2^32 ^ 3) % (2^32 + 1) = 2^32");
+    bi_free(res);
+
+    // multi-word exponent: (2^32 ^ 2^32) % (2^32 + 4) = 2^32
+    bi_free(exp_multi);
+    exp_multi = bi_init(2);
+    exp_multi->data[0] = 0u;
+    exp_multi->data[1] = 1u;
+
+    mod_multi->data[0] = 4u;
+    mod_multi->data[1] = 1u;
+
+    res = bi_mod_exp(base_multi, exp_multi, mod_multi);
+    assert(bi_eq(res, expected_multi),
+           "bigint multi-word modular exponentiation (multi-word exponent): "
+           "(2^32 ^ 2^32) % (2^32 + 4) = 2^32");
+    bi_free(res);
+
+    bi_free(base_multi);
+    bi_free(exp_multi);
+    bi_free(mod_multi);
+    bi_free(expected_multi);
+
+    bi_free(a);
+    bi_free(b);
+    bi_free(expected_res);
+
+    test_bi_pow();
 }
 
 void test_bigint(void) {
@@ -434,13 +617,16 @@ void test_primality(void) {
 
     // simple check for miller rabin inner loop check - if this is false
     // for a prime number, then the whole thing is broken
-    a = bi_init(1);
-    bi_set(a, 15u);
     MPI n = bi_init(1);
     bi_set(n, 23u);
     sd = miller_rabin_sd(n);
-    assert(__miller_rabin_inner_check(n, a, sd),
-           "miller-rabin inner loop check failed for n=23, a=15");
+    a = bi_init(1);
+
+    for (uint32_t i = 2; i < 21; i++) {
+        bi_set(a, i);
+        assert(__miller_rabin_inner_check(n, a, sd),
+               "miller-rabin inner loop check failed for n=23, a=%d");
+    }
     bi_free(a);
     bi_free(n);
     bi_free(sd.s);

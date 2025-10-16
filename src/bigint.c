@@ -301,8 +301,6 @@ MPI bi_mul_imm(MPI a, uint32_t x) {
         res->data[i] = (a->data[i] * x + carry) % base;
         carry = (a->data[i] * x + carry) / base;
     }
-
-    return res;
 }
 
 MPI bi_mul(MPI a, MPI b) {
@@ -762,7 +760,60 @@ MPI bi_shift_right(MPI a, uint32_t n) {
     return res;
 }
 
+// a^b % n
 MPI bi_mod_exp(MPI a, MPI b, MPI n) {
+    if (bi_eq_val(n, 1u)) {
+        MPI res = bi_init(1u);
+        return res;
+    }
+
+    if (bi_eq_val(b, 0u)) {
+        MPI res = bi_init(1u);
+        bi_set(res, 1u);
+        return res;
+    }
+
+    MPI res = bi_init(1u);
+    bi_set(res, 1u);
+    MPI base_tmp = bi_mod(a, n);
+    MPI b_copy = bi_init_and_copy(b);
+
+    while (bi_eq_val(b_copy, 0u)) {
+        if (!bi_even(b_copy)) {
+            // res = (res * a) % n
+            MPI res_base = bi_mul(res, base_tmp);
+            MPI res_tmp = bi_mod(res_base, n);
+            bi_copy(res_tmp, res);
+
+            bi_free(res_base);
+            bi_free(res_tmp);
+        }
+
+        // b >>= 1
+        MPI b_tmp = bi_shift_right(b_copy, 1u);
+        bi_copy(b_tmp, b_copy);
+        bi_free(b_tmp);
+
+        // a = a^2 % n
+        MPI a_squared = bi_pow_imm(base_tmp, 2);
+        MPI base_tmp_tmp = bi_mod(a_squared, n);
+        bi_copy(base_tmp_tmp, base_tmp);
+        bi_free(a_squared);
+        bi_free(base_tmp_tmp);
+    }
+
+    bi_free(base_tmp);
+    bi_free(b_copy);
+
+    return res;
+}
+
+MPI _bi_mod_exp(MPI a, MPI b, MPI n) {
+    if (bi_eq_val(n, 1u)) {
+        MPI res = bi_init(1u);
+        return res;
+    }
+
     if (bi_eq_val(b, 0u)) {
         MPI res = bi_init(1u);
         bi_set(res, 1u);
