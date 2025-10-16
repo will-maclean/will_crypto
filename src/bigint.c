@@ -345,60 +345,32 @@ MPI bi_mul(MPI a, MPI b) {
     MPI res = bi_init(n + m);
 
     for (uint32_t i = 0; i < m; i++) {
-        uint32_t carry;
+        uint64_t carry = 0;
         for (uint32_t j = 0; j < n; j++) {
             uint64_t tmp = (uint64_t)a->data[j] * (uint64_t)b->data[i];
             uint32_t tmp_low = (uint32_t)tmp;
             uint32_t tmp_hi = (uint32_t)(tmp >> 32);
             uint32_t s1 = tmp_low + res->data[i + j];
             uint32_t c1 = s1 < tmp_low;
-            uint32_t s2 = s1 + carry;
-            uint32_t c2 = s2 < carry;
+            uint32_t carry_low = (uint32_t)carry;
+            uint32_t s2 = s1 + carry_low;
+            uint32_t c2 = s2 < carry_low;
             res->data[i + j] = s2;
-            carry = tmp_hi + c1 + c2;
+            carry = (uint64_t)tmp_hi + c1 + c2 + (carry >> 32);
         }
+
         uint32_t k = i + n;
         while (carry) {
+            uint32_t carry_low = (uint32_t)carry;
             uint32_t old = res->data[k];
-            res->data[k] += carry;
-            carry = (res->data[k] < old);
+            res->data[k] += carry_low;
+            uint32_t spill = res->data[k] < old;
+            carry = (carry >> 32) + spill;
             k++;
         }
     }
 
     bi_squeeze(res);
-
-    return res;
-}
-
-MPI _bi_mul(MPI a, MPI b) {
-    // can't remember where i found this one
-    MPI res = bi_init(2 * max(a->words, b->words));
-
-    uint64_t carry;
-    uint64_t prod;
-    for (int32_t i = 0; i < a->words; i++) {
-        carry = 0;
-        for (int32_t j = 0; j < b->words; j++) {
-            prod = (uint64_t)(a->data[i]) * (uint64_t)b->data[j] +
-                   res->data[i + j] + carry;
-            // printf("i=%d, j=%d, prod=%lu\n", i, j, prod);
-            res->data[i + j] = (uint32_t)(prod & 0xFFFFFFFF);
-            /*
-            printf("res=");
-            bi_printf(*res);
-            printf("\n");
-            */
-            carry = (uint32_t)(prod >> 32);
-        }
-
-        if (carry) {
-            res->data[i + 1] += carry;
-        }
-    }
-
-    bi_squeeze(res);
-
     return res;
 }
 
