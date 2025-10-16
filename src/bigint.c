@@ -179,6 +179,27 @@ MPI bi_add(MPI a, MPI b) {
     return res;
 }
 
+void bi_add_in_place(MPI a, MPI b) {
+    bi_squeeze(a);
+    uint32_t carry = 0;
+    unsigned long sum;
+    for (int i = 0; i < min(a->words, b->words); i++) {
+        sum = (unsigned long)(a->data[i]) + (unsigned long)b->data[i] + carry;
+        a->data[i] = (uint32_t)(sum & 0xFFFFFFFF);
+
+        carry = (uint32_t)(sum >> 32);
+
+        if (carry && i > 0) {
+            a->data[i + 1] += carry;
+        }
+    }
+
+    if (carry) {
+        bi_pad_words(a, 1);
+        a->data[a->words - 1] = carry;
+    }
+}
+
 MPI bi_sub(MPI a, MPI b) {
 
     // we're working with uint32_ts, so if b is greater than a, we'll
@@ -214,6 +235,15 @@ MPI bi_sub(MPI a, MPI b) {
     bi_free(a_copy);
 
     return res;
+}
+
+// a -= b
+void bi_sub_in_place(MPI a, MPI b) {
+    // TODO: actually implement an in place subtraction
+    MPI res = bi_sub(a, b);
+    bi_free(a);
+    a->data = res->data;
+    a->words = res->words;
 }
 
 MPI _bi_sub(MPI a, MPI b) {
@@ -297,13 +327,52 @@ MPI bi_mul_imm(MPI a, uint32_t x) {
     uint64_t base = 1LL << 32;
     uint64_t carry = 0;
 
-    for (int32_t i = 0; i < a->words; i++) {
+    for (uint32_t i = 0; i < a->words; i++) {
         res->data[i] = (a->data[i] * x + carry) % base;
         carry = (a->data[i] * x + carry) / base;
     }
+
+    return res;
 }
 
 MPI bi_mul(MPI a, MPI b) {
+    // linear convolution
+    // https://www.hvks.com/Numerical/Downloads/HVE%20The%20Math%20behind%20arbitrary%20precision.pdf
+    // page 11/12
+
+    uint32_t n = a->words;
+    uint32_t m = b->words;
+    MPI res = bi_init(n + m);
+
+    for (uint32_t i = 0; i < m; i++) {
+        uint32_t carry;
+        for (uint32_t j = 0; j < n; j++) {
+            uint64_t tmp = (uint64_t)a->data[j] * (uint64_t)b->data[i];
+            uint32_t tmp_low = (uint32_t)tmp;
+            uint32_t tmp_hi = (uint32_t)(tmp >> 32);
+            uint32_t s1 = tmp_low + res->data[i + j];
+            uint32_t c1 = s1 < tmp_low;
+            uint32_t s2 = s1 + carry;
+            uint32_t c2 = s2 < carry;
+            res->data[i + j] = s2;
+            carry = tmp_hi + c1 + c2;
+        }
+        uint32_t k = i + n;
+        while (carry) {
+            uint32_t old = res->data[k];
+            res->data[k] += carry;
+            carry = (res->data[k] < old);
+            k++;
+        }
+    }
+
+    bi_squeeze(res);
+
+    return res;
+}
+
+MPI _bi_mul(MPI a, MPI b) {
+    // can't remember where i found this one
     MPI res = bi_init(2 * max(a->words, b->words));
 
     uint64_t carry;
@@ -428,6 +497,144 @@ uint32_t leading_zeros(uint32_t x) {
     return __builtin_clz(x);
 }
 
+// subtract q̂*V from U[j..j+m]
+// returns whether a borrow was reported
+bool __knuth_d_subtract_reporting_borrow(MPI U, MPI qV, uint32_t j,
+                                         uint32_t m) {
+    uint32_t start_idx = j;
+    uint32_t end_idx = j + m;
+
+    if (start_idx >= U->words || end_idx >= U->words) {
+        printf("Error in __knuth_d_subtract_reporting_borrow. code: %d",
+               BI_BAD_OPERANDS);
+        exit(1);
+    }
+
+    uint64_t borrow = 0;
+    for (uint32_t offset = 0; offset <= m; offset++) {
+        uint32_t u_idx = start_idx + offset;
+        uint64_t u = (uint64_t)U->data[u_idx];
+        uint64_t v = (offset < qV->words) ? (uint64_t)qV->data[offset] : 0;
+        uint64_t sub = v + borrow;
+
+        if (u < sub) {
+            U->data[u_idx] = (uint32_t)((1ULL << 32) + u - sub);
+            borrow = 1;
+        } else {
+            U->data[u_idx] = (uint32_t)(u - sub);
+            borrow = 0;
+        }
+    }
+
+    return borrow != 0;
+}
+
+// /* q[0], r[0], u[0], and v[0] contain the LEAST significant words.
+// (The sequence is in little-endian order).
+// This is a fairly precise implementation of Knuth's Algorithm D, for a
+// binary computer with base b = 2**32. The caller supplies:
+//    1. Space q for the quotient, m - n + 1 words (at least one).
+//    2. Space r for the remainder (optional), n words.
+//    3. The dividend u, m words, m >= 1.
+//    4. The divisor v, n words, n >= 2.
+// The most significant digit of the divisor, v[n-1], must be nonzero.  The
+// dividend u may have leading zeros; this just makes the algorithm take
+// longer and makes the quotient contain more leading zeros.  A value of
+// NULL may be given for the address of the remainder to signify that the
+// caller does not want the remainder.
+//    The program does not alter the input parameters u and v.
+//    The quotient and remainder returned may have leading zeros.  The
+// function itself returns a value of 0 for success and 1 for invalid
+// parameters (e.g., division by 0).
+//    For now, we must have m >= n.  Knuth's Algorithm D also requires
+// that the dividend be at least as long as the divisor.  (In his terms,
+// m >= 0 (unstated).  Therefore m+n >= n.) */
+
+// int divmnu(unsigned q[], unsigned r[],
+//      const unsigned u[], const unsigned v[],
+//      int m, int n) {
+
+//    const unsigned long long b = 4294967296LL; // Number base (2**32).
+//    unsigned *un, *vn;                         // Normalized form of u, v.
+//    unsigned long long qhat;                   // Estimated quotient digit.
+//    unsigned long long rhat;                   // A remainder.
+//    unsigned long long p;                      // Product of two digits.
+//    long long t, k;
+//    int s, i, j;
+
+//    if (m < n || n <= 0 || v[n-1] == 0)
+//       return 1;                         // Return if invalid param.
+
+//    if (n == 1) {                        // Take care of
+//       k = 0;                            // the case of a
+//       for (j = m - 1; j >= 0; j--) {    // single-digit
+//          q[j] = (k*b + u[j])/v[0];      // divisor here.
+//          k = (k*b + u[j]) - q[j]*v[0];
+//       }
+//       if (r != NULL) r[0] = k;
+//       return 0;
+//    }
+
+//    /* Normalize by shifting v left just enough so that its high-order
+//    bit is on, and shift u left the same amount. We may have to append a
+//    high-order digit on the dividend; we do that unconditionally. */
+
+//    s = nlz(v[n-1]);             // 0 <= s <= 31.
+//    vn = (unsigned *)alloca(4*n);
+//    for (i = n - 1; i > 0; i--)
+//       vn[i] = (v[i] << s) | ((unsigned long long)v[i-1] >> (32-s));
+//    vn[0] = v[0] << s;
+
+//    un = (unsigned *)alloca(4*(m + 1));
+//    un[m] = (unsigned long long)u[m-1] >> (32-s);
+//    for (i = m - 1; i > 0; i--)
+//       un[i] = (u[i] << s) | ((unsigned long long)u[i-1] >> (32-s));
+//    un[0] = u[0] << s;
+
+//    for (j = m - n; j >= 0; j--) {       // Main loop.
+//       // Compute estimate qhat of q[j].
+//       qhat = (un[j+n]*b + un[j+n-1])/vn[n-1];
+//       rhat = (un[j+n]*b + un[j+n-1]) - qhat*vn[n-1];
+// again:
+//       if (qhat >= b || qhat*vn[n-2] > b*rhat + un[j+n-2])
+//       { qhat = qhat - 1;
+//         rhat = rhat + vn[n-1];
+//         if (rhat < b) goto again;
+//       }
+
+//       // Multiply and subtract.
+//       k = 0;
+//       for (i = 0; i < n; i++) {
+//          p = qhat*vn[i];
+//          t = un[i+j] - k - (p & 0xFFFFFFFFLL);
+//          un[i+j] = t;
+//          k = (p >> 32) - (t >> 32);
+//       }
+//       t = un[j+n] - k;
+//       un[j+n] = t;
+
+//       q[j] = qhat;              // Store quotient digit.
+//       if (t < 0) {              // If we subtracted too
+//          q[j] = q[j] - 1;       // much, add back.
+//          k = 0;
+//          for (i = 0; i < n; i++) {
+//             t = (unsigned long long)un[i+j] + vn[i] + k;
+//             un[i+j] = t;
+//             k = t >> 32;
+//          }
+//          un[j+n] = un[j+n] + k;
+//       }
+//    } // End j.
+//    // If the caller wants the remainder, unnormalize
+//    // it and pass it back.
+//    if (r != NULL) {
+//       for (i = 0; i < n-1; i++)
+//          r[i] = (un[i] >> s) | ((unsigned long long)un[i+1] << (32-s));
+//       r[n-1] = un[n-1] >> s;
+//    }
+//    return 0;
+// }
+
 // u / v
 // __bi_result_t __knuth_d(MPI u, MPI v, bool return_quotient) {
 //
@@ -542,6 +749,129 @@ uint32_t leading_zeros(uint32_t x) {
 //         bi_free(Q);
 //         bi_result_make(R, BI_OK);
 //     }
+// }
+// __bi_result_t __knuth_d(MPI u, MPI v, bool return_quotient) {
+//
+//     // Best attempt at implementing Knuth's
+//     // Algorithm D from
+//     //
+//     https://www.hvks.com/Numerical/Downloads/HVE%20The%20Math%20behind%20arbitrary%20precision.pdfj
+//
+//     // number of leading zeros is important, so make
+//     // sure we squeeze off any zeros
+//     bi_squeeze(u);
+//     bi_squeeze(v);
+//
+//     if (bi_eq_val(v, 0)) {
+//         return bi_result_error(BI_DIV_ZERO);
+//     }
+//
+//     if (bi_eq(u, v)) {
+//         if (return_quotient) {
+//             MPI res = bi_init(1);
+//             bi_set(res, 1);
+//             return bi_result_make(res, BI_OK);
+//         } else {
+//             MPI res = bi_init(1);
+//             bi_set(res, 0);
+//             return bi_result_make(res, BI_OK);
+//         }
+//     }
+//
+//     if (bi_gt(v, u)) {
+//         if (return_quotient) {
+//             MPI res = bi_init(1);
+//             bi_set(res, 0);
+//             return bi_result_make(res, BI_OK);
+//         } else {
+//             MPI res = bi_init_and_copy(u);
+//             return bi_result_make(res, BI_OK);
+//         }
+//     }
+//
+//     // invariant: u > v
+//
+//     int n = u->words;
+//     int m = v->words;
+//
+//     int d = leading_zeros(v->data[m - 1]);
+//
+//     MPI Utmp = bi_init_and_copy(u);
+//     MPI Vtmp = bi_init_and_copy(v);
+//
+//     MPI Utmp2 = bi_shift_left(Utmp, d);
+//     MPI V = bi_shift_left(Vtmp, d);
+//     MPI U = bi_pad_words(Utmp2, 1);
+//     U->data[n] = 0;
+//
+//     MPI Q = bi_init(n - m + 1);
+//
+//     uint64_t B = 1ull << 32;
+//     for (int32_t j = n - m; j >= 0; j--) {
+//         uint64_t num = U->data[j + m] * B + U->data[j + m - 1];
+//         uint64_t denom = V->data[m - 1];
+//         uint64_t q_hat = num / denom;
+//         uint64_t r_hat = num % denom;
+//
+//         while (q_hat * V->data[m - 2] > r_hat * B + U->data[j + m - 2]) {
+//             q_hat--;
+//             r_hat += V->data[m - 1];
+//
+//             if (r_hat >= B) {
+//                 break;
+//             }
+//         }
+//
+//         MPI qV = bi_mul_imm(V, q_hat);
+//         MPI tmpU = bi_init_like(U);
+//         for (uint32_t i = j; i <= j + m; i++) {
+//             tmpU->data[i] = U->data[i];
+//         }
+//
+//         if (__knuth_d_subtract_reporting_borrow(U, qV, j, m)) {
+//             q_hat--;
+//             bi_add_to_range(V, U, 0, j, m);
+//         }
+//         Q->data[j] = q_hat;
+//
+//         bi_free(qV);
+//         bi_free(tmpU);
+//     }
+//
+//     MPI R_tmp = bi_init(m - 1);
+//     for (int i = 0; i < m - 1; i++) {
+//         R_tmp->data[i] = U->data[i];
+//     }
+//     MPI R = bi_shift_right(R, d);
+//
+//     bi_free(U);
+//     bi_free(Utmp);
+//     bi_free(Utmp2);
+//     bi_free(V);
+//     bi_free(Vtmp);
+//     bi_free(R_tmp);
+//
+//     bi_squeeze(R);
+//     bi_squeeze(Q);
+//
+//     if (return_quotient) {
+//         bi_free(R);
+//         return bi_result_make(Q, BI_OK);
+//     } else {
+//         bi_free(Q);
+//         return bi_result_make(R, BI_OK);
+//     }
+// }
+// MPI knuth_d(MPI u, MPI v, bool return_quotient) {
+//
+//     __bi_result_t res = __knuth_d(u, v, return_quotient);
+//
+//     if (res.code != BI_OK) {
+//         printf("ERROR in knuth_d, code: %d", res.code);
+//         exit(1);
+//     }
+//
+//     return res.x;
 // }
 
 __bi_result_t __bi_eucl_div(MPI x, MPI y) {

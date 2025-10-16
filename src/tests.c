@@ -20,7 +20,155 @@ void assert(bool result, char *failure_msg) {
     }
 }
 
+void test_bi_mod(void) {
+    printf("testing bi_mod\n");
+    // clang-format off
+    uint32_t tests[] = {
+        // a words, ... a data, b words, ...b data, out words, ...out data
+        // single word a and b
+        1, 0, 1, 0xffffffff, 1, 0,
+        1, 0xffffffff, 1, 1, 1, 0,
+        1, 0xa, 1, 0x10, 1, 0xa,
+        1, 12345678, 1, 12345678, 1, 0,
+        1, 0xffffffff, 1, 0x12345678, 1, 0x12345687,
+        // multi-word a and b
+        2, 0, 1, 2, 3, 0, 1, 1,
+        2, 0xffffffff, 0xffffffff, 2, 0, 1, 1, 0xffffffff,
+        2, 0x9ABCDEF0, 0x12345678, 2, 0x00010000, 0x00000000, 1, 0x0000DEF0,
+        2, 0x10, 0x0, 2, 0x20, 0x0, 1, 0x10,
+        2, 0x12345678, 0x8765431, 2, 0x12345678, 0x87654321, 1, 0x0,
+    };
+    // clang-format on
+    uint32_t n_tests = 10;
+    uint32_t curr_pos = 0;
+
+    for (uint32_t i = 0; i < n_tests; i++) {
+        uint32_t a_words = tests[curr_pos];
+        MPI a = bi_init(a_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < a_words; j++) {
+            a->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        uint32_t b_words = tests[curr_pos];
+        MPI b = bi_init(b_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < b_words; j++) {
+            b->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        MPI res = bi_mod(a, b);
+
+        uint32_t expected_res_words = tests[curr_pos];
+        MPI expected_res = bi_init(expected_res_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < expected_res_words; j++) {
+            expected_res->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        bool pass = bi_eq(res, expected_res);
+
+        assert(pass, "bi_mod failed case");
+        if (!pass) {
+            printf("a=");
+            bi_printf(a);
+            printf("\nb=");
+            bi_printf(b);
+            printf("\ncalculated a%%b=");
+            bi_printf(res);
+            printf("\nexpected res=");
+            bi_printf(expected_res);
+            printf("\n");
+        }
+
+        bi_free(a);
+        bi_free(b);
+        bi_free(res);
+        bi_free(expected_res);
+    }
+}
+void test_bi_mul(void) {
+    printf("testing bi_mul\n");
+    // clang-format off
+    uint32_t tests[] = {
+        // a words, ... a data, b words, ...b data, out words, ...out data
+        // single word a and b
+        1, 2, 1, 3, 1, 6,
+        1, 0, 1, 0x12345678, 1, 0,
+        1, 1, 1, 0xffffffff, 1, 0xffffffff,
+        1, 0xffffffff, 1, 0xffffffff, 2, 0x1, 0xfffffffe,
+        1, 0x80000000, 1, 0x2, 2, 0, 1,
+        1, 0x89ABCDEF, 1, 0x01234567, 2, 0xC94E4629, 0x009CA39D,
+        // multi-word a and b
+        2, 0, 1, 2, 0, 1, 3, 0, 0, 1,
+        2, 1, 0, 2, 2, 0, 1, 2,
+        2, 0xffffffff, 0xffffffff, 2, 2, 0, 3, 0xfffffffe, 0xffffffff, 1,
+        2, 0x9ABCDEF0, 0x12345678, 2, 0x87654321, 0x0FEDCBA9, 4, 0xE5618CF0, 0x2236D88F, 0xAD77D742, 0x0121FA00,
+        2, 0, 0, 2, 0x12345678, 0x87654321, 1, 0,
+    };
+    // clang-format on
+    uint32_t n_tests = 11;
+    uint32_t curr_pos = 0;
+
+    for (uint32_t i = 0; i < n_tests; i++) {
+        uint32_t a_words = tests[curr_pos];
+        MPI a = bi_init(a_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < a_words; j++) {
+            a->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        uint32_t b_words = tests[curr_pos];
+        MPI b = bi_init(b_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < b_words; j++) {
+            b->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        MPI res = bi_mul(a, b);
+
+        uint32_t expected_res_words = tests[curr_pos];
+        MPI expected_res = bi_init(expected_res_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < expected_res_words; j++) {
+            expected_res->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        bool pass = bi_eq(res, expected_res);
+
+        assert(pass, "bi_mul failed case");
+        if (!pass) {
+            printf("a=");
+            bi_printf(a);
+            printf("\nb=");
+            bi_printf(b);
+            printf("\ncalculated a*b=");
+            bi_printf(res);
+            printf("\nexpected res=");
+            bi_printf(expected_res);
+            printf("\n");
+        }
+
+        bi_free(a);
+        bi_free(b);
+        bi_free(res);
+        bi_free(expected_res);
+    }
+}
 void test_bi_pow(void) {
+    printf("testing bi_pow_imm\n");
     // single word first
     MPI a = bi_init(1);
     MPI expected_res = bi_init(1);
@@ -51,7 +199,7 @@ void test_bi_pow(void) {
         2, 0xffffffff, 0xffffffff, 2, 1, 0, 0xfffffffe, 0xffffffff,
     };
     // clang-format on
-    uint32_t n_tests = 6;
+    uint32_t n_tests = 11;
     uint32_t curr_pos = 0;
 
     for (uint32_t i = 0; i < n_tests; i++) {
@@ -293,12 +441,6 @@ void test_bigint_math_proper(void) {
     bi_free(b);
     b = bi_shift_right(a, 1);
     assert(bi_eq(b, expected_res), "bigint 2-word shift right");
-    bi_printf(a);
-    printf("\n");
-    bi_printf(b);
-    printf("\n");
-    bi_printf(expected_res);
-    printf("\n");
     bi_free(a);
     a = bi_init(1);
     bi_set(a, 5u);
@@ -385,7 +527,9 @@ void test_bigint_math_proper(void) {
     bi_free(b);
     bi_free(expected_res);
 
+    test_bi_mul();
     test_bi_pow();
+    test_bi_mod();
 }
 
 void test_bigint(void) {
@@ -409,8 +553,6 @@ void test_bigint(void) {
     printf("Testing bi_init\n");
     x = bi_init(test_words);
 
-    bi_printf(x);
-    printf("\n");
     printf("Testing bi_free\n");
     bi_free(x);
 
@@ -444,35 +586,14 @@ void test_bigint(void) {
     // we'll veryify all these things manually just to be sure
     bi_set(x, 2u);
 
-    printf("testing math functions. starting values are x=");
-    bi_printf(x);
-    printf(", y=");
-    bi_printf(y);
-    printf("\n");
-
     z = bi_add(x, y);
-    printf("x+y=");
-    bi_printf(z);
-    printf("\n");
     bi_free(z);
 
     z = bi_sub(y, x);
-    printf("y-x=");
-    bi_printf(z);
-    printf("\n");
     bi_free(z);
 
     for (int i = 0; i < 3; i++) {
         z = bi_mul(x, y);
-
-        printf("mul step %d. x*y=z, where:\nx: ", i);
-        bi_printf(x);
-        printf("\ny: ");
-        bi_printf(y);
-        printf("\nz: ");
-        bi_printf(z);
-        printf("\n");
-
         bi_copy(z, y);
         bi_free(z);
     }
@@ -480,24 +601,7 @@ void test_bigint(void) {
     // only least sig fig example
     bi_set(x, 5u);
     bi_set(y, 3u);
-    z = bi_mod(x, y);
-    printf("x=");
-    bi_printf(x);
-    printf(", y=");
-    bi_printf(y);
-    printf("\n");
-    printf("x%%y=");
-    bi_printf(z);
-    printf("\n");
-    bi_free(z);
-
-    // only least sig fig example
-    bi_set(x, 5u);
-    bi_set(y, 3u);
     z = bi_eucl_div(x, y);
-    printf("x/y=");
-    bi_printf(z);
-    printf("\n");
 
     bi_free(x);
     bi_free(y);
@@ -507,7 +611,7 @@ void test_bigint(void) {
 void test_rng(void) {
     struct will_rng_cfg cfg;
     uint32_t seed = 12345678u;
-    int words = 32;
+    uint32_t words = 32;
     cfg.words = words;
 
     MPI res;
@@ -543,12 +647,6 @@ void test_chacha(void) {
         }
 
         chacha_block(b, a);
-
-        printf("iter %d\n", i);
-        for (int j = 0; j < 16; j++) {
-            printf("%u", b[j]);
-        }
-        printf("\n");
 
         free(a);
         a = b;
@@ -634,18 +732,7 @@ void test_primality(void) {
 
     int words = 16;
     MPI test_prime = will_rng_next(words);
-
-    printf("rng'd a big word: ");
-    bi_printf(test_prime);
-    printf("\n");
-
-    bool is_prime = miller_rabin(test_prime, 1000);
-
-    if (is_prime) {
-        printf("The number is probably prime\n\ns");
-    } else {
-        printf("The number is composite\n\n");
-    }
+    miller_rabin(test_prime, 1000);
 
     // this one takes a while, so if we've had errors elsewhere, don't run it
     if (failures == 0) {
@@ -676,12 +763,154 @@ void KISS(void) {
     bi_set(expected_res, 0u);
     MPI res = bi_eucl_div(a_euc, b_euc);
     assert(bi_eq(res, expected_res), "bigint 2-word euclidian division");
-    printf("Res: ");
-    bi_printf(res);
 
     bi_free(a_euc);
     bi_free(b_euc);
     bi_free(res);
+}
+
+void division_tests(void) {
+
+    // clang-format off
+    static unsigned test[] = {
+        // m, n, u...,          v...,          cq...,  cr....
+        1,          1,          3,
+        0,          1,          1, // Error, divide by 0.
+        1,          2,          7,
+        1,          3,          0,
+        7,          0, // Error, n > m.
+        2,          2,          0,
+        0,          1,          0,
+        0,          0,          0, // Error, incorrect remainder cr.
+        1,          1,          3,
+        2,          1,          1,
+        1,          1,          3,
+        3,          1,          0,
+        1,          1,          3,
+        4,          0,          3,
+        1,          1,          0,
+        0xffffffff, 0,          0,
+        1,          1,          0xffffffff,
+        1,          0xffffffff, 0,
+        1,          1,          0xffffffff,
+        0xffffffff, 1,          0,
+        1,          1,          0xffffffff,
+        3,          0x55555555, 0,
+        2,          1,          0xffffffff,
+        0xffffffff, 1,          0xffffffff,
+        0xffffffff, 0,          2,
+        1,          0xffffffff, 0xffffffff,
+        0xffffffff, 1,          1,
+        0,          2,          1,
+        0xffffffff, 0xfffffffe, 0xffffffff,
+        0xffffffff, 0,          0xfffffffe,
+        2,          1,          0x00005678,
+        0x00001234, 0x00009abc, 0x1e1dba76,
+        0,          0x6bd0,     2,
+        2,          0,          0,
+        0,          1,          0,
+        0,          0,          2,
+        2,          0,          7,
+        0,          3,          2,
+        0,          1,          2,
+        2,          5,          7,
+        0,          3,          2,
+        5,          1,          2,
+        2,          0,          6,
+        0,          2,          3,
+        0,          0,          1,
+        1,          0x80000000, 0x40000001,
+        0x00000001, 0x3fffffff, 2,
+        1,          0x00000000, 0x80000000,
+        0x40000001, 0xfffffff8, 0x00000001,
+        0x00000008, 2,          2,
+        0x00000000, 0x80000000, 0x00000001,
+        0x40000000, 0x00000001, 0xffffffff,
+        0x3fffffff, 2,          2,
+        0x0000789a, 0x0000bcde, 0x0000789a,
+        0x0000bcde, 1,          0,
+        0,          2,          2,
+        0x0000789b, 0x0000bcde, 0x0000789a,
+        0x0000bcde, 1,          1,
+        0,          2,          2,
+        0x00007899, 0x0000bcde, 0x0000789a,
+        0x0000bcde, 0,          0x00007899,
+        0x0000bcde, 2,          2,
+        0x0000ffff, 0x0000ffff, 0x0000ffff,
+        0x0000ffff, 1,          0,
+        0,          2,          2,
+        0x0000ffff, 0x0000ffff, 0x00000000,
+        0x00000001, 0x0000ffff, 0x0000ffff,
+        0,          3,          2,
+        0x000089ab, 0x00004567, 0x00000123,
+        0x00000000, 0x00000001, 0x00004567,
+        0x00000123, 0x000089ab, 0,
+        3,          2,          0x00000000,
+        0x0000fffe, 0x00008000, 0x0000ffff,
+        0x00008000, 0xffffffff, 0x00000000,
+        0x0000ffff, 0x00007fff, // Shows that first qhat can = b + 1.
+        3,          3,          0x00000003,
+        0x00000000, 0x80000000, 0x00000001,
+        0x00000000, 0x20000000, 0x00000003,
+        0,          0,          0x20000000, // Adding back step req'd.
+        3,          3,          0x00000003,
+        0x00000000, 0x00008000, 0x00000001,
+        0x00000000, 0x00002000, 0x00000003,
+        0,          0,          0x00002000, // Adding back step req'd.
+        4,          3,          0,
+        0,          0x00008000, 0x00007fff,
+        1,          0,          0x00008000,
+        0xfffe0000, 0,          0x00020000,
+        0xffffffff, 0x00007fff, // Add back req'd.
+        4,          3,          0,
+        0x0000fffe, 0,          0x00008000,
+        0x0000ffff, 0,          0x00008000,
+        0xffffffff, 0,          0x0000ffff,
+        0xffffffff, 0x00007fff, // Shows that mult-sub quantity cannot be
+                                // treated as signed.
+        4,          3,          0,
+        0xfffffffe, 0,          0x80000000,
+        0x0000ffff, 0,          0x80000000,
+        0x00000000, 1,          0x00000000,
+        0xfffeffff, 0x00000000, // Shows that mult-sub quantity cannot be
+                                // treated as signed.
+        4,          3,          0,
+        0xfffffffe, 0,          0x80000000,
+        0xffffffff, 0,          0x80000000,
+        0xffffffff, 0,          0xffffffff,
+        0xffffffff, 0x7fffffff, // Shows that mult-sub quantity cannot be
+                                // treated as signed.
+    };
+    // clang-format on
+
+    //    int i, n, m, ncases, f;
+    //    unsigned q[10], r[10];
+    //    unsigned *u, *v, *cq, *cr;
+
+    //    printf("divmnu:\n");
+    //    i = 0;
+    //    ncases = 0;
+    //    while (i < sizeof(test)/4) {
+    //       m = test[i];
+    //       n = test[i+1];
+    //       u = &test[i+2];
+    //       v = &test[i+2+m];
+    //       cq = &test[i+2+m+n];
+    //       cr = &test[i+2+m+n+max(m-n+1, 1)];
+
+    //       f = divmnu(q, r, u, v, m, n);
+    //       if (f) {
+    //          dumpit("Error return code for dividend u =", m, u);
+    //          dumpit("                      divisor  v =", n, v);
+    //          errors = errors + 1;
+    //       }
+    //       else
+    //          check(q, r, u, v, m, n, cq, cr);
+    //       i = i + 2 + m + n + max(m-n+1, 1) + n;
+    //       ncases = ncases + 1;
+    //    }
+    //       printf("%d errors out of %d cases; there should be 3.\n", errors,
+    //       ncases);
 }
 
 void tests(void) {

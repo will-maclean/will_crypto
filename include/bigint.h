@@ -50,8 +50,17 @@ void bi_set(MPI x, uint32_t val);
 /*
  * All math function assume the result is NOT set
  */
+
 MPI bi_add(MPI a, MPI b);
+
+// a += b
+void add_in_place(MPI a, MPI b);
+
 MPI bi_sub(MPI a, MPI b);
+
+// a -= b
+void bi_sub_in_place(MPI a, MPI b);
+
 MPI bi_mul(MPI a, MPI b);
 MPI bi_mul_imm(MPI a, uint32_t x);
 void bi_inc(MPI x);
@@ -69,7 +78,7 @@ MPI bi_mod(MPI a, MPI b);
  */
 MPI bi_eucl_div(MPI a, MPI b);
 
-bool bi_eq(MPI a, struct bigint *b);
+bool bi_eq(MPI a, MPI b);
 bool bi_eq_val(MPI a, uint32_t b);
 bool bi_gt(MPI a, MPI b);
 bool bi_ge(MPI a, MPI b);
