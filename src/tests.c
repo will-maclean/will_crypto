@@ -105,6 +105,77 @@ void test_bi_mod_exp(void) {
     }
 }
 
+void test_knuth_d_remainder(void) {
+    // clang-format off
+    uint32_t tests[] = {
+        // a words, ... a data, b words, ...b data, out words, ...out data
+        // single word a and b
+        1, 0, 1, 0xffffffff, 1, 0,
+        1, 0xffffffff, 1, 1, 1, 0,
+        1, 0xa, 1, 0x10, 1, 0xa,
+        1, 12345678, 1, 12345678, 1, 0,
+        1, 0xffffffff, 1, 0x12345678, 1, 0x12345687,
+        // multi-word a and b
+        2, 0, 1, 2, 3, 0, 1, 1,
+        2, 0xffffffff, 0xffffffff, 2, 0, 1, 1, 0xffffffff,
+        2, 0x9ABCDEF0, 0x12345678, 2, 0x00010000, 0x00000000, 1, 0x0000DEF0,
+        2, 0x10, 0x0, 2, 0x20, 0x0, 1, 0x10,
+        2, 0x12345678, 0x8765431, 2, 0x12345678, 0x87654321, 1, 0x0,
+    };
+    // clang-format on
+    uint32_t curr_pos = 0;
+
+    while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
+        uint32_t a_words = tests[curr_pos];
+        MPI a = bi_init(a_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < a_words; j++) {
+            a->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        uint32_t b_words = tests[curr_pos];
+        MPI b = bi_init(b_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < b_words; j++) {
+            b->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        MPI res = knuth_d(a, b, false);
+
+        uint32_t expected_res_words = tests[curr_pos];
+        MPI expected_res = bi_init(expected_res_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < expected_res_words; j++) {
+            expected_res->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        bool pass = bi_eq(res, expected_res);
+
+        assert(pass, "knuth_d failed case (remainder)");
+        if (!pass) {
+            printf("a=");
+            bi_printf(a);
+            printf("\nb=");
+            bi_printf(b);
+            printf("\ncalculated a%%b=");
+            bi_printf(res);
+            printf("\nexpected res   =");
+            bi_printf(expected_res);
+            printf("\n\n");
+        }
+
+        bi_free(a);
+        bi_free(b);
+        bi_free(res);
+        bi_free(expected_res);
+    }
+}
 void test_bi_mod(void) {
     // clang-format off
     uint32_t tests[] = {
@@ -535,6 +606,7 @@ void test_bigint_math_proper(void) {
     test_bi_pow();
     test_bi_mod();
     test_bi_mod_exp();
+    test_knuth_d_remainder();
 }
 
 void test_bigint(void) {

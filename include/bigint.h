@@ -73,6 +73,7 @@ MPI bi_pow_imm(MPI b, uint32_t p);
  */
 MPI bi_mod(MPI a, MPI b);
 
+MPI knuth_d(MPI u, MPI v, bool return_quotient);
 /*
  * integer division result of a/b
  */

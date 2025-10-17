@@ -183,7 +183,7 @@ void bi_add_in_place(MPI a, MPI b) {
     bi_squeeze(a);
     uint32_t carry = 0;
     unsigned long sum;
-    for (uint i = 0; i < min(a->words, b->words); i++) {
+    for (uint32_t i = 0; i < min(a->words, b->words); i++) {
         sum = (unsigned long)(a->data[i]) + (unsigned long)b->data[i] + carry;
         a->data[i] = (uint32_t)(sum & 0xFFFFFFFF);
 
@@ -607,243 +607,133 @@ bool __knuth_d_subtract_reporting_borrow(MPI U, MPI qV, uint32_t j,
 // }
 
 // u / v
-// __bi_result_t __knuth_d(MPI u, MPI v, bool return_quotient) {
-//
-//     // Best attempt at implementing Knuth's
-//     // Algorithm D from
-//     //
-//     https://www.hvks.com/Numerical/Downloads/HVE%20The%20Math%20behind%20arbitrary%20precision.pdfj
-//
-//     // number of leading zeros is important, so make
-//     // sure we squeeze off any zeros
-//     bi_squeeze(u);
-//     bi_squeeze(v);
-//
-//     if (bi_eq_val(v, 0)) {
-//         return bi_result_error(BI_DIV_ZERO);
-//     }
-//
-//     if (bi_eq(u, v)) {
-//         if (return_quotient) {
-//             MPI res = bi_init(1);
-//             bi_set(res, 1);
-//             return bi_result_make(res, BI_OK);
-//         } else {
-//             MPI res = bi_init(1);
-//             bi_set(res, 0);
-//             return bi_result_make(res, BI_OK);
-//         }
-//     }
-//
-//     if (bi_gt(v, u)) {
-//         if (return_quotient) {
-//             MPI res = bi_init(1);
-//             bi_set(res, 0);
-//             return bi_result_make(res, BI_OK);
-//         } else {
-//             MPI res = bi_init_and_copy(u);
-//             return bi_result_make(res, BI_OK);
-//         }
-//     }
-//
-//     // invariant: u > v
-//
-//     int n = u->words;
-//     int m = v->words;
-//
-//     int d = leading_zeros(v->data[m - 1]);
-//
-//     MPI Utmp = bi_init_and_copy(u);
-//     MPI Vtmp = bi_init_and_copy(v);
-//
-//     MPI U = bi_shift_left(Utmp, d);
-//     MPI V = bi_shift_left(Vtmp, d);
-//     bi_pad_words(U, 1);
-//     U->data[n] = 0;
-//
-//     MPI Q = bi_init(n - m);
-//
-//     uint64_t B = 1ull << 32;
-//     for (int32_t j = n - m; j >= 0; j--) {
-//         uint64_t num = U->data[j + m] * B + U->data[j + m - 1];
-//         uint64_t denom = V->data[m - 1];
-//         uint64_t q_hat = num / denom;
-//         uint64_t r_hat = num % denom;
-//
-//         while (q_hat * V->data[m - 2] > r_hat * B + U->data[j + m - 2]) {
-//             q_hat--;
-//             r_hat += v->data[m - 1];
-//
-//             if (r_hat >= B) {
-//                 break;
-//             }
-//         }
-//
-//         MPI qV = bi_mul_imm(V, q_hat);
-//         MPI tmpU = bi_init_like(U);
-//         for (int32_t i = j; i <= j + m; i++) {
-//             tmpU->data[i] = U->data[i];
-//         }
-//
-//         // subtract q̂*V from U[j..j+m]
-//         // if a borrow occurred:
-//         // q̂ ← q̂ - 1
-//         // add V to U[j..j+m]
-//         // Q[j] ← q̂
-//         if (__knuth_d_subtract_reporting_borrow()) {
-//             q_hat--;
-//         }
-//
-//         bi_free(qV);
-//         bi_free(tmpU);
-//     }
-//
-//     MPI R_tmp = bi_init(m - 1);
-//     for (int i = 0; i < m - 1; i++) {
-//         R_tmp->data[i] = U->data[i];
-//     }
-//     MPI R = bi_shift_right(R, d);
-//
-//     bi_free(U);
-//     bi_free(Utmp);
-//     bi_free(V);
-//     bi_free(Vtmp);
-//     bi_free(R_tmp);
-//
-//     bi_squeeze(R);
-//     bi_squeeze(Q);
-//
-//     if (return_quotient) {
-//         bi_free(R);
-//         bi_result_make(Q, BI_OK);
-//     } else {
-//         bi_free(Q);
-//         bi_result_make(R, BI_OK);
-//     }
-// }
-// __bi_result_t __knuth_d(MPI u, MPI v, bool return_quotient) {
-//
-//     // Best attempt at implementing Knuth's
-//     // Algorithm D from
-//     //
-//     https://www.hvks.com/Numerical/Downloads/HVE%20The%20Math%20behind%20arbitrary%20precision.pdfj
-//
-//     // number of leading zeros is important, so make
-//     // sure we squeeze off any zeros
-//     bi_squeeze(u);
-//     bi_squeeze(v);
-//
-//     if (bi_eq_val(v, 0)) {
-//         return bi_result_error(BI_DIV_ZERO);
-//     }
-//
-//     if (bi_eq(u, v)) {
-//         if (return_quotient) {
-//             MPI res = bi_init(1);
-//             bi_set(res, 1);
-//             return bi_result_make(res, BI_OK);
-//         } else {
-//             MPI res = bi_init(1);
-//             bi_set(res, 0);
-//             return bi_result_make(res, BI_OK);
-//         }
-//     }
-//
-//     if (bi_gt(v, u)) {
-//         if (return_quotient) {
-//             MPI res = bi_init(1);
-//             bi_set(res, 0);
-//             return bi_result_make(res, BI_OK);
-//         } else {
-//             MPI res = bi_init_and_copy(u);
-//             return bi_result_make(res, BI_OK);
-//         }
-//     }
-//
-//     // invariant: u > v
-//
-//     int n = u->words;
-//     int m = v->words;
-//
-//     int d = leading_zeros(v->data[m - 1]);
-//
-//     MPI Utmp = bi_init_and_copy(u);
-//     MPI Vtmp = bi_init_and_copy(v);
-//
-//     MPI Utmp2 = bi_shift_left(Utmp, d);
-//     MPI V = bi_shift_left(Vtmp, d);
-//     MPI U = bi_pad_words(Utmp2, 1);
-//     U->data[n] = 0;
-//
-//     MPI Q = bi_init(n - m + 1);
-//
-//     uint64_t B = 1ull << 32;
-//     for (int32_t j = n - m; j >= 0; j--) {
-//         uint64_t num = U->data[j + m] * B + U->data[j + m - 1];
-//         uint64_t denom = V->data[m - 1];
-//         uint64_t q_hat = num / denom;
-//         uint64_t r_hat = num % denom;
-//
-//         while (q_hat * V->data[m - 2] > r_hat * B + U->data[j + m - 2]) {
-//             q_hat--;
-//             r_hat += V->data[m - 1];
-//
-//             if (r_hat >= B) {
-//                 break;
-//             }
-//         }
-//
-//         MPI qV = bi_mul_imm(V, q_hat);
-//         MPI tmpU = bi_init_like(U);
-//         for (uint32_t i = j; i <= j + m; i++) {
-//             tmpU->data[i] = U->data[i];
-//         }
-//
-//         if (__knuth_d_subtract_reporting_borrow(U, qV, j, m)) {
-//             q_hat--;
-//             bi_add_to_range(V, U, 0, j, m);
-//         }
-//         Q->data[j] = q_hat;
-//
-//         bi_free(qV);
-//         bi_free(tmpU);
-//     }
-//
-//     MPI R_tmp = bi_init(m - 1);
-//     for (int i = 0; i < m - 1; i++) {
-//         R_tmp->data[i] = U->data[i];
-//     }
-//     MPI R = bi_shift_right(R, d);
-//
-//     bi_free(U);
-//     bi_free(Utmp);
-//     bi_free(Utmp2);
-//     bi_free(V);
-//     bi_free(Vtmp);
-//     bi_free(R_tmp);
-//
-//     bi_squeeze(R);
-//     bi_squeeze(Q);
-//
-//     if (return_quotient) {
-//         bi_free(R);
-//         return bi_result_make(Q, BI_OK);
-//     } else {
-//         bi_free(Q);
-//         return bi_result_make(R, BI_OK);
-//     }
-// }
-// MPI knuth_d(MPI u, MPI v, bool return_quotient) {
-//
-//     __bi_result_t res = __knuth_d(u, v, return_quotient);
-//
-//     if (res.code != BI_OK) {
-//         printf("ERROR in knuth_d, code: %d", res.code);
-//         exit(1);
-//     }
-//
-//     return res.x;
-// }
+__bi_result_t __knuth_d(MPI u, MPI v, bool return_quotient) {
+
+    // Best attempt at implementing Knuth's
+    // Algorithm D from
+    //
+    // https: //
+    // www.hvks.com/Numerical/Downloads/HVE%20The%20Math%20behind%20arbitrary%20precision.pdfj
+
+    // number of leading zeros is important, so make
+    // sure we squeeze off any zeros
+    bi_squeeze(u);
+    bi_squeeze(v);
+
+    if (bi_eq_val(v, 0)) {
+        return bi_result_error(BI_DIV_ZERO);
+    }
+
+    if (bi_eq(u, v)) {
+        if (return_quotient) {
+            MPI res = bi_init(1);
+            bi_set(res, 1);
+            return bi_result_make(res, BI_OK);
+        } else {
+            MPI res = bi_init(1);
+            bi_set(res, 0);
+            return bi_result_make(res, BI_OK);
+        }
+    }
+
+    if (bi_gt(v, u)) {
+        if (return_quotient) {
+            MPI res = bi_init(1);
+            bi_set(res, 0);
+            return bi_result_make(res, BI_OK);
+        } else {
+            MPI res = bi_init_and_copy(u);
+            return bi_result_make(res, BI_OK);
+        }
+    }
+
+    // invariant: u > v
+
+    int n = u->words;
+    int m = v->words;
+
+    int d = leading_zeros(v->data[m - 1]);
+
+    MPI Utmp = bi_init_and_copy(u);
+    MPI Vtmp = bi_init_and_copy(v);
+
+    MPI Utmp2 = bi_shift_left(Utmp, d);
+    MPI V = bi_shift_left(Vtmp, d);
+    MPI U = bi_pad_words(Utmp2, 1);
+    U->data[n] = 0;
+
+    MPI Q = bi_init(n - m + 1);
+
+    uint64_t B = 1ull << 32;
+    for (int32_t _j = n - m; _j >= 0; _j--) {
+        uint32_t j = (uint32_t)_j;
+
+        uint64_t num = U->data[j + m] * B + U->data[j + m - 1];
+        uint64_t denom = V->data[m - 1];
+        uint64_t q_hat = num / denom;
+        uint64_t r_hat = num % denom;
+
+        while (q_hat * V->data[m - 2] > r_hat * B + U->data[j + m - 2]) {
+            q_hat--;
+            r_hat += V->data[m - 1];
+
+            if (r_hat >= B) {
+                break;
+            }
+        }
+
+        MPI qV = bi_mul_imm(V, q_hat);
+        MPI tmpU = bi_init_like(U);
+        for (uint32_t i = j; i <= j + m; i++) {
+            tmpU->data[i] = U->data[i];
+        }
+
+        if (__knuth_d_subtract_reporting_borrow(U, qV, j, m)) {
+            q_hat--;
+            bi_add_to_range(V, U, 0, j, m);
+        }
+        Q->data[j] = q_hat;
+
+        bi_free(qV);
+        bi_free(tmpU);
+    }
+
+    MPI R_tmp = bi_init(m - 1);
+    for (int i = 0; i < m - 1; i++) {
+        R_tmp->data[i] = U->data[i];
+    }
+    MPI R = bi_shift_right(R_tmp, d);
+
+    bi_free(U);
+    bi_free(Utmp);
+    bi_free(Utmp2);
+    bi_free(V);
+    bi_free(Vtmp);
+    bi_free(R_tmp);
+
+    bi_squeeze(R);
+    bi_squeeze(Q);
+
+    if (return_quotient) {
+        bi_free(R);
+        return bi_result_make(Q, BI_OK);
+    } else {
+        bi_free(Q);
+        return bi_result_make(R, BI_OK);
+    }
+}
+
+MPI knuth_d(MPI u, MPI v, bool return_quotient) {
+
+    __bi_result_t res = __knuth_d(u, v, return_quotient);
+
+    if (res.code != BI_OK) {
+        printf("ERROR in knuth_d, code: %d", res.code);
+        exit(1);
+    }
+
+    return res.x;
+}
 
 __bi_result_t __bi_eucl_div(MPI x, MPI y) {
     if (bi_eq_val(y, 0)) {
