@@ -379,6 +379,9 @@ MPI bi_pow_imm(MPI b, uint32_t p) {
     // out there if required. I don't think this can take
     // more then log2(p) iterations, which is pretty good,
     // so we should be safe for a while.
+    //
+    // https://www.hvks.com/Numerical/Downloads/HVE%20The%20Math%20behind%20arbitrary%20precision.pdf
+    // page 30
 
     MPI r = bi_init(2 * b->words);
     r->data[0] = 1;
