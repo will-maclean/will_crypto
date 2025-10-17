@@ -380,33 +380,29 @@ MPI bi_pow_imm(MPI b, uint32_t p) {
     // more then log2(p) iterations, which is pretty good,
     // so we should be safe for a while.
 
-    MPI a = bi_init(2 * b->words);
-    bi_set(a, 1u);
-    MPI s = bi_init(2 * b->words);
+    MPI r = bi_init(2 * b->words);
+    r->data[0] = 1;
 
-    for (uint32_t i = 0; i < b->words; i++) {
-        s->data[i] = b->data[i];
-    }
+    MPI b_copy = bi_init_and_copy(b);
 
     while (p != 0u) {
         if (p % 2 == 1) {
-            MPI tmp = bi_mul(a, s);
-            bi_copy(tmp, a);
+            MPI tmp = bi_mul(r, b_copy);
+            bi_copy(tmp, r);
             bi_free(tmp);
         }
 
         p /= 2;
 
-        if (p != 0) {
-            MPI tmp = bi_mul(s, s);
-            bi_copy(tmp, s);
-            bi_free(tmp);
-        }
+        MPI tmp = bi_mul(b_copy, b_copy);
+        bi_free(b_copy);
+        b_copy = bi_init_and_copy(tmp);
+        bi_free(tmp);
     }
 
-    bi_free(s);
+    bi_free(b_copy);
 
-    return a;
+    return r;
 }
 
 // x % y

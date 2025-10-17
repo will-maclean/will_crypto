@@ -278,7 +278,7 @@ void test_bi_pow(void) {
         2, 5, 0, 3, 1, 0x7d,
         2, 0, 1, 2, 3, 0, 0, 1,
         2, 0, 2, 5, 6, 0, 0, 0, 0, 0, 0x20,
-        2, 0xffffffff, 0xffffffff, 2, 3, 0, 0xfffffffe, 0xffffffff,
+        2, 0xffffffff, 0xffffffff, 2, 4, 1, 0, 0xfffffffe, 0xffffffff,
     };
     // clang-format on
     uint32_t n_tests = 11;
