@@ -92,7 +92,7 @@ void test_bi_mod_exp(void) {
             bi_printf(m);
             printf("\ncalculated (a^b)%%m=");
             bi_printf(res);
-            printf("\nexpected res=");
+            printf("\nexpected res       =");
             bi_printf(expected_res);
             printf("\n\n");
         }
@@ -165,7 +165,7 @@ void test_bi_mod(void) {
             bi_printf(b);
             printf("\ncalculated a%%b=");
             bi_printf(res);
-            printf("\nexpected res=");
+            printf("\nexpected res   =");
             bi_printf(expected_res);
             printf("\n\n");
         }
@@ -196,6 +196,7 @@ void test_bi_mul(void) {
     };
     // clang-format on
     uint32_t curr_pos = 0;
+    uint32_t test = 0;
 
     while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
         uint32_t a_words = tests[curr_pos];
@@ -231,13 +232,13 @@ void test_bi_mul(void) {
 
         assert(pass, "bi_mul failed case");
         if (!pass) {
-            printf("a=");
+            printf("test case: %d\na=", test);
             bi_printf(a);
             printf("\nb=");
             bi_printf(b);
             printf("\ncalculated a*b=");
             bi_printf(res);
-            printf("\nexpected res=");
+            printf("\nexpected res  =");
             bi_printf(expected_res);
             printf("\n\n");
         }
@@ -246,6 +247,7 @@ void test_bi_mul(void) {
         bi_free(b);
         bi_free(res);
         bi_free(expected_res);
+        test++;
     }
 }
 void test_bi_pow(void) {
@@ -431,6 +433,8 @@ void test_bigint_math_proper(void) {
         printf("\n\n");
     }
     bi_free(res);
+    bi_free(b_euc);
+    bi_free(a_euc);
 
     // modulo
     bi_set(expected_res, 1u);
@@ -623,7 +627,7 @@ void test_rng(void) {
         counter++;
     }
 
-    printf("In one sec, for %d-word numbers, generated %llu nums\n", words,
+    printf("In one sec, for %d-word numbers, generated %lu nums\n", words,
            counter);
 }
 
@@ -646,6 +650,7 @@ void test_chacha(void) {
         free(a);
         a = b;
     }
+    free(b);
 }
 
 /*
@@ -727,6 +732,7 @@ void test_primality(void) {
     int words = 16;
     MPI test_prime = will_rng_next(words);
     miller_rabin(test_prime, 1000);
+    bi_free(test_prime);
 
     // this one takes a while, so if we've had errors elsewhere, don't run it
     if (failures == 0) {
@@ -764,6 +770,7 @@ void KISS(void) {
 }
 
 void tests(void) {
+    printf("----STARTING TESTS----\n\n");
     test_bigint();
 
     test_rng();
@@ -774,7 +781,7 @@ void tests(void) {
 
     test_primality();
 
-    printf("Tests completed!\n");
+    printf("\n\n----ENDING TESTS----\n");
     printf("Tests: %d. Passes: %d. Failures: %d\n", successes + failures,
            successes, failures);
 

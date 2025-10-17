@@ -143,7 +143,7 @@ MPI bi_add(MPI a, MPI b) {
 
     uint32_t carry = 0;
     unsigned long sum;
-    for (int32_t i = 0; i < min(a->words, b->words); i++) {
+    for (uint32_t i = 0; i < min(a->words, b->words); i++) {
         sum = (unsigned long)(a->data[i]) + (unsigned long)b->data[i] +
               res->data[i] + carry;
         res->data[i] = (uint32_t)(sum & 0xFFFFFFFF);
@@ -163,12 +163,12 @@ MPI bi_add(MPI a, MPI b) {
 
     if (a->words > b->words) {
         res->data[b->words] = carry + a->data[b->words];
-        for (int32_t i = b->words + 1; i < a->words; i++) {
+        for (uint32_t i = b->words + 1; i < a->words; i++) {
             res->data[i] = a->data[i];
         }
     } else if (b->words > a->words) {
         res->data[a->words] = carry + b->data[a->words];
-        for (int32_t i = a->words + 1; i < b->words; i++) {
+        for (uint32_t i = a->words + 1; i < b->words; i++) {
             res->data[i] = b->data[i];
         }
     } else {
@@ -183,7 +183,7 @@ void bi_add_in_place(MPI a, MPI b) {
     bi_squeeze(a);
     uint32_t carry = 0;
     unsigned long sum;
-    for (int i = 0; i < min(a->words, b->words); i++) {
+    for (uint i = 0; i < min(a->words, b->words); i++) {
         sum = (unsigned long)(a->data[i]) + (unsigned long)b->data[i] + carry;
         a->data[i] = (uint32_t)(sum & 0xFFFFFFFF);
 
@@ -224,7 +224,7 @@ MPI bi_sub(MPI a, MPI b) {
 
     uint64_t base = 1LL << 32;
     uint64_t carry = base;
-    for (int32_t i = 0; i < n; i++) {
+    for (uint32_t i = 0; i < n; i++) {
 
         carry = base - 1 + a_copy->data[i] - b->data[i] + carry / base;
 
@@ -270,7 +270,7 @@ MPI _bi_sub(MPI a, MPI b) {
     // we'll need to revisit this and make it smarter.
 
     uint64_t sub_from;
-    for (int32_t i = 0; i < b->words; i++) {
+    for (uint32_t i = 0; i < b->words; i++) {
         if (a_copy->data[i] >= b->data[i]) {
             res->data[i] = a_copy->data[i] - b->data[i];
         } else {
@@ -312,7 +312,7 @@ MPI _bi_sub(MPI a, MPI b) {
         */
     }
 
-    for (int32_t i = b->words; i < res->words; i++) {
+    for (uint32_t i = b->words; i < res->words; i++) {
         res->data[i] = a->data[i];
     }
 
@@ -384,7 +384,7 @@ MPI bi_pow_imm(MPI b, uint32_t p) {
     bi_set(a, 1u);
     MPI s = bi_init(2 * b->words);
 
-    for (int32_t i = 0; i < b->words; i++) {
+    for (uint32_t i = 0; i < b->words; i++) {
         s->data[i] = b->data[i];
     }
 
@@ -965,7 +965,7 @@ void bi_dec(MPI x) {
 MPI bi_and(MPI a, MPI b) {
     MPI res = bi_init(max(a->words, b->words));
 
-    for (int32_t i = 0; i < min(a->words, b->words); i++) {
+    for (uint32_t i = 0; i < min(a->words, b->words); i++) {
         res->data[i] = a->data[i] & b->data[i];
     }
 
@@ -976,16 +976,16 @@ MPI bi_and(MPI a, MPI b) {
 MPI bi_or(MPI a, MPI b) {
     MPI res = bi_init(max(a->words, b->words));
 
-    for (int32_t i = 0; i < min(a->words, b->words); i++) {
+    for (uint32_t i = 0; i < min(a->words, b->words); i++) {
         res->data[i] = a->data[i] | b->data[i];
     }
 
     if (a->words > b->words) {
-        for (int32_t i = b->words; i < a->words; i++) {
+        for (uint32_t i = b->words; i < a->words; i++) {
             res->data[i] = a->data[i];
         }
     } else if (a->words < b->words) {
-        for (int32_t i = a->words; i < b->words; i++) {
+        for (uint32_t i = a->words; i < b->words; i++) {
             res->data[i] = b->data[i];
         }
     }
@@ -997,16 +997,16 @@ MPI bi_or(MPI a, MPI b) {
 MPI bi_xor(MPI a, MPI b) {
     MPI res = bi_init(max(a->words, b->words));
 
-    for (int32_t i = 0; i < min(a->words, b->words); i++) {
+    for (uint32_t i = 0; i < min(a->words, b->words); i++) {
         res->data[i] = a->data[i] ^ b->data[i];
     }
 
     if (a->words > b->words) {
-        for (int32_t i = b->words; i < a->words; i++) {
+        for (uint32_t i = b->words; i < a->words; i++) {
             res->data[i] = a->data[i];
         }
     } else if (a->words < b->words) {
-        for (int32_t i = a->words; i < b->words; i++) {
+        for (uint32_t i = a->words; i < b->words; i++) {
             res->data[i] = b->data[i];
         }
     }
@@ -1018,7 +1018,7 @@ MPI bi_xor(MPI a, MPI b) {
 MPI bi_not(MPI a) {
     MPI res = bi_init_like(a);
 
-    for (int32_t i = 0; i < a->words; i++) {
+    for (uint32_t i = 0; i < a->words; i++) {
         res->data[i] = ~a->data[i];
     }
 
@@ -1032,7 +1032,7 @@ MPI bi_shift_left(MPI a, uint32_t n) {
     uint32_t offset_words = n / 32;
     uint32_t offset_mod = n % 32;
 
-    for (int32_t i = offset_words; i < res->words; i++) {
+    for (uint32_t i = offset_words; i < res->words; i++) {
         res->data[i] = (a->data[i - offset_words] << offset_mod);
 
         if (i > 0)
@@ -1050,7 +1050,7 @@ MPI bi_shift_right(MPI a, uint32_t n) {
     uint32_t offset_words = n / 32;
     uint32_t offset_mod = n % 32;
 
-    for (int32_t i = 0; i < res->words - offset_words; i++) {
+    for (uint32_t i = 0; i < res->words - offset_words; i++) {
         res->data[i] = (a->data[i - offset_words] >> offset_mod);
 
         if (i < res->words - 1)
@@ -1155,13 +1155,13 @@ MPI _bi_mod_exp(MPI a, MPI b, MPI n) {
 
 bool bi_lt(MPI a, MPI b) {
     if (a->words > b->words) {
-        for (int32_t i = b->words; i < a->words; i++) {
+        for (uint32_t i = b->words; i < a->words; i++) {
             if (a->data[i] > 0u) {
                 return false;
             }
         }
     } else if (b->words > a->words) {
-        for (int32_t i = a->words; i < b->words; i++) {
+        for (uint32_t i = a->words; i < b->words; i++) {
             if (b->data[i] > 0u) {
                 return true;
             }
@@ -1187,13 +1187,13 @@ bool bi_lt(MPI a, MPI b) {
 
 bool bi_le(MPI a, MPI b) {
     if (a->words > b->words) {
-        for (int32_t i = b->words; i < a->words; i++) {
+        for (uint32_t i = b->words; i < a->words; i++) {
             if (a->data[i] > 0u) {
                 return false;
             }
         }
     } else if (b->words > a->words) {
-        for (int32_t i = a->words; i < b->words; i++) {
+        for (uint32_t i = a->words; i < b->words; i++) {
             if (b->data[i] > 0u) {
                 return true;
             }
@@ -1222,19 +1222,19 @@ bool bi_eq(MPI a, MPI b) {
     // TODO: a and b can be numerically equicalent, but
     //  different word sizes, and fail this equality test.
     //  This probably isn't what we want??
-    for (int32_t i = 0; i < min(a->words, b->words); i++) {
+    for (uint32_t i = 0; i < min(a->words, b->words); i++) {
         if (a->data[i] != b->data[i])
             return false;
     }
 
     if (a->words > b->words) {
-        for (int32_t i = b->words; i < a->words; i++) {
+        for (uint32_t i = b->words; i < a->words; i++) {
             if (a->data[i] != 0u) {
                 return false;
             }
         }
     } else if (b->words > a->words) {
-        for (int32_t i = a->words; i < b->words; i++) {
+        for (uint32_t i = a->words; i < b->words; i++) {
             if (b->data[i] != 0u) {
                 return false;
             }
@@ -1245,7 +1245,7 @@ bool bi_eq(MPI a, MPI b) {
 }
 
 bool bi_eq_val(MPI a, uint32_t b) {
-    for (int32_t i = 1; i < a->words - 1; i++) {
+    for (uint32_t i = 1; i < a->words - 1; i++) {
         if (a->data[i] != 0u)
             return false;
     }
@@ -1255,13 +1255,13 @@ bool bi_eq_val(MPI a, uint32_t b) {
 
 bool bi_gt(MPI a, MPI b) {
     if (a->words > b->words) {
-        for (int32_t i = b->words; i < a->words; i++) {
+        for (uint32_t i = b->words; i < a->words; i++) {
             if (a->data[i] > 0u) {
                 return true;
             }
         }
     } else if (b->words > a->words) {
-        for (int32_t i = a->words; i < b->words; i++) {
+        for (uint32_t i = a->words; i < b->words; i++) {
             if (b->data[i] > 0u) {
                 return false;
             }
@@ -1274,7 +1274,7 @@ bool bi_gt(MPI a, MPI b) {
         return false;
     }
 
-    for (int32_t i = 0; i < a->words; i++) {
+    for (uint32_t i = 0; i < a->words; i++) {
         if (a->data[i] > b->data[i]) {
             return true;
         } else if (a->data[i] < b->data[i]) {
@@ -1287,20 +1287,20 @@ bool bi_gt(MPI a, MPI b) {
 }
 bool bi_ge(MPI a, MPI b) {
     if (a->words > b->words) {
-        for (int32_t i = b->words; i < a->words; i++) {
+        for (uint32_t i = b->words; i < a->words; i++) {
             if (a->data[i] > 0u) {
                 return true;
             }
         }
     } else if (b->words > a->words) {
-        for (int32_t i = a->words; i < b->words; i++) {
+        for (uint32_t i = a->words; i < b->words; i++) {
             if (b->data[i] > 0u) {
                 return false;
             }
         }
     }
 
-    for (int32_t i = 0; i < a->words; i++) {
+    for (uint32_t i = 0; i < a->words; i++) {
         if (a->data[i] > b->data[i]) {
             return true;
         } else if (a->data[i] < b->data[i]) {
@@ -1336,7 +1336,7 @@ MPI bi_pad_words(MPI x, uint32_t n) {
     MPI res = bi_init(x->words + n);
     res->words = x->words + n;
 
-    for (int32_t i = 0; i < x->words; i++) {
+    for (uint32_t i = 0; i < x->words; i++) {
         res->data[i] = x->data[i];
     }
 
@@ -1347,7 +1347,7 @@ MPI bi_pad_words_from_bottom(MPI x, uint32_t n) {
 
     MPI res = bi_init(x->words + n);
 
-    for (int32_t i = 0; i < x->words; i++) {
+    for (uint32_t i = 0; i < x->words; i++) {
         res->data[i + n] = x->data[i];
     }
 
@@ -1355,26 +1355,18 @@ MPI bi_pad_words_from_bottom(MPI x, uint32_t n) {
 }
 
 void bi_squeeze(MPI x) {
-    uint32_t squeeze_idx = 0;
-    bool squeeze_needed = false;
-    for (int32_t i = x->words - 1; i > 0; i--) {
-        if (x->data[i] == 0u) {
-            squeeze_needed = true;
-        }
-        if (x->data[i] != 0 && squeeze_needed) {
-            squeeze_idx = i;
-        }
+    uint32_t new_words = x->words;
+
+    while (new_words > 1 && x->data[new_words - 1] == 0u) {
+        new_words--;
     }
 
-    if (!squeeze_needed) {
+    if (new_words == x->words) {
         return;
     }
 
-    uint32_t squeezed_words = squeeze_idx + 1;
-    if (squeezed_words < x->words) {
-        x->data = realloc(x->data, squeezed_words * sizeof(uint32_t));
-        x->words = squeezed_words;
-    }
+    x->data = realloc(x->data, new_words * sizeof(uint32_t));
+    x->words = new_words;
 }
 
 // slices a from start to end, exclusive at both ends
@@ -1385,7 +1377,7 @@ __bi_result_t __bi_slice(MPI a, uint32_t start, uint32_t end) {
 
     MPI res = bi_init(end - start + 1);
 
-    for (int32_t i = start; i <= end; i++) {
+    for (uint32_t i = start; i <= end; i++) {
         res->data[i] = a->data[i + start];
     }
 
@@ -1413,7 +1405,7 @@ __bi_result_code_t __bi_copy_word_range(MPI src, MPI target,
         return BI_BAD_OPERANDS;
     }
 
-    for (int32_t i = 0; i < copy_words; i++) {
+    for (uint32_t i = 0; i < copy_words; i++) {
 
         target->data[target_start_idx + i] = src->data[src_start_idx + i];
     }
@@ -1442,7 +1434,7 @@ __bi_result_code_t __bi_add_to_range(MPI src, MPI target,
     }
 
     uint64_t carry = 0;
-    for (int32_t i = 0; i < range_words; i++) {
+    for (uint32_t i = 0; i < range_words; i++) {
         target->data[target_start_idx + i] += src->data[src_start_idx + i];
         uint64_t res = (uint64_t)target->data[target_start_idx + i] +
                        (uint64_t)src->data[target_start_idx + i] + carry;
