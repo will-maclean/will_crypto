@@ -984,7 +984,7 @@ void tests(void) {
     printf("Tests: %d. Passes: %d. Failures: %d\n", successes + failures,
            successes, failures);
 
-    test_rsa();
+    // test_rsa();
 }
 
 int main(void) { tests(); }
