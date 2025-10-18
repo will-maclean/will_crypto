@@ -105,77 +105,126 @@ void test_bi_mod_exp(void) {
     }
 }
 
-void test_knuth_d_remainder(void) {
+void test_bi_knuth_d(void) {
     // clang-format off
     uint32_t tests[] = {
-        // a words, ... a data, b words, ...b data, out words, ...out data
-        // single word a and b
-        1, 0, 1, 0xffffffff, 1, 0,
-        1, 0xffffffff, 1, 1, 1, 0,
-        1, 0xa, 1, 0x10, 1, 0xa,
-        1, 12345678, 1, 12345678, 1, 0,
-        1, 0xffffffff, 1, 0x12345678, 1, 0x12345687,
-        // multi-word a and b
-        2, 0, 1, 2, 3, 0, 1, 1,
-        2, 0xffffffff, 0xffffffff, 2, 0, 1, 1, 0xffffffff,
-        2, 0x9ABCDEF0, 0x12345678, 2, 0x00010000, 0x00000000, 1, 0x0000DEF0,
-        2, 0x10, 0x0, 2, 0x20, 0x0, 1, 0x10,
-        2, 0x12345678, 0x8765431, 2, 0x12345678, 0x87654321, 1, 0x0,
+        // u_words, u..., v_words, v..., return_quotient(0/1), expected_words, expected...
+        1, 0x00000005, 2, 0x0000000A, 0x00000000, 1, 1, 0x00000000,
+        1, 0x00000005, 2, 0x0000000A, 0x00000000, 0, 1, 0x00000005,
+        2, 0x00000000, 0x00000001, 2, 0x00000000, 0x00000001, 1, 1, 0x00000001,
+        2, 0x00000000, 0x00000001, 2, 0x00000000, 0x00000001, 0, 1, 0x00000000,
+        2, 0x9ABCDEF0, 0x12345678, 2, 0x00010000, 0x00000000, 1, 2, 0x56789ABC, 0x00001234,
+        2, 0x9ABCDEF0, 0x12345678, 2, 0x00010000, 0x00000000, 0, 1, 0x0000DEF0,
+        3, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000001, 2, 0xFFFFFFFE, 0x00000001, 1, 2, 0x00000001, 0x00000001,
+        3, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000001, 2, 0xFFFFFFFE, 0x00000001, 0, 1, 0x00000001,
+        3, 0x00000000, 0x00000000, 0x00000001, 2, 0x00000001, 0x00000001, 1, 1, 0xFFFFFFFF,
+        3, 0x00000000, 0x00000000, 0x00000001, 2, 0x00000001, 0x00000001, 0, 1, 0x00000001,
+        3, 0x68AC5678, 0x79ACF124, 0x00009ABD, 2, 0x12345678, 0x9ABCDEF0, 1, 1, 0x00010001,
+        3, 0x68AC5678, 0x79ACF124, 0x00009ABD, 2, 0x12345678, 0x9ABCDEF0, 0, 1, 0x00000000,
+        3, 0xFFFFFFFF, 0x00000000, 0x00000001, 2, 0x7FFFFFFF, 0x00000002, 1, 1, 0x66666666,
+        3, 0xFFFFFFFF, 0x00000000, 0x00000001, 2, 0x7FFFFFFF, 0x00000002, 0, 2, 0x66666665, 0x00000002,
     };
     // clang-format on
+
     uint32_t curr_pos = 0;
-
+    uint32_t test = 0;
     while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
-        uint32_t a_words = tests[curr_pos];
-        MPI a = bi_init(a_words);
-        curr_pos++;
+        printf("knuth_d test case %d\n", test);
+        uint32_t u_words = tests[curr_pos++];
+        MPI u = bi_init(u_words);
+        for (uint32_t j = 0; j < u_words; j++) {u->data[j] = tests[curr_pos++];}
 
-        for (uint32_t j = 0; j < a_words; j++) {
-            a->data[j] = tests[curr_pos];
-            curr_pos++;
-        }
+        uint32_t v_words = tests[curr_pos++];
+        MPI v = bi_init(v_words);
+        for (uint32_t j = 0; j < v_words; j++) {v->data[j] = tests[curr_pos++];}
 
-        uint32_t b_words = tests[curr_pos];
-        MPI b = bi_init(b_words);
-        curr_pos++;
+        bool return_quotient = tests[curr_pos++] != 0;
 
-        for (uint32_t j = 0; j < b_words; j++) {
-            b->data[j] = tests[curr_pos];
-            curr_pos++;
-        }
+        uint32_t exp_words = tests[curr_pos++];
+        MPI expected = bi_init(exp_words);
+        for (uint32_t j = 0; j < exp_words; j++) expected->data[j] = tests[curr_pos++];
 
-        MPI res = knuth_d(a, b, false);
+        MPI got = knuth_d(u, v, return_quotient);
 
-        uint32_t expected_res_words = tests[curr_pos];
-        MPI expected_res = bi_init(expected_res_words);
-        curr_pos++;
-
-        for (uint32_t j = 0; j < expected_res_words; j++) {
-            expected_res->data[j] = tests[curr_pos];
-            curr_pos++;
-        }
-
-        bool pass = bi_eq(res, expected_res);
-
-        assert(pass, "knuth_d failed case (remainder)");
+        bool pass = bi_eq(got, expected);
+        assert(pass, "bi_knuth_d failed case");
         if (!pass) {
-            printf("a=");
+            printf("test case %d\nu=", test);
+            bi_printf(u);
+            printf("\nv=");
+            bi_printf(v);
+            printf("\nreturn_quotient=%d", (int)return_quotient);
+            printf("\ncalculated=");
+            bi_printf(got);
+            printf("\nexpected  =");
+            bi_printf(expected);
+            printf("\n\n");
+        }
+
+        bi_free(u);
+        bi_free(v);
+        bi_free(got);
+        bi_free(expected);
+        test++;
+    }
+}
+void test_bi_shift_left(void) {
+    // clang-format off
+    uint32_t tests[] = {
+        1, 0x00000000,                  0,  1, 0x00000000,
+        1, 0x89ABCDEF,                  0,  1, 0x89ABCDEF,
+        1, 0x00000001,                  1,  1, 0x00000002,
+        1, 0x40000000,                  1,  1, 0x80000000,
+        1, 0x80000000,                  1,  2, 0x00000000, 0x00000001,
+        2, 0xFFFFFFFF, 0x00000000,      4,  2, 0xFFFFFFF0, 0x0000000F,
+        2, 0x89ABCDEF, 0x01234567,     32,  3, 0x00000000, 0x89ABCDEF, 0x01234567,
+        3, 0xAAAAAAAA, 0xBBBBBBBB, 0xCCCCCCCC,  64,  5, 0x00000000, 0x00000000, 0xAAAAAAAA, 0xBBBBBBBB, 0xCCCCCCCC,
+        3, 0xFFFFFFFF, 0x00000000, 0x40000000,  1,  3, 0xFFFFFFFE, 0x00000001, 0x80000000,
+        3, 0x00000001, 0x00000000, 0x00000000, 36,  2, 0x00000000, 0x00000010,
+        2, 0xFFFFFFFF, 0x00000001,     31,  2, 0x80000000, 0xFFFFFFFF,
+        1, 0x00000001,                 32,  2, 0x00000000, 0x00000001,
+        1, 0x00000000,                100,  1, 0x00000000,
+        1, 0x00000001,                100,  4, 0x00000000, 0x00000000, 0x00000000, 0x00000010,
+        2, 0xFFFFFFFF, 0xFFFFFFFF,      4,  3, 0xFFFFFFF0, 0xFFFFFFFF, 0x0000000F,
+    };
+    // clang-format on
+
+    uint32_t curr_pos = 0;
+    uint32_t test = 0;
+    while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
+        uint32_t a_words = tests[curr_pos++];
+        MPI a = bi_init(a_words);
+        for (uint32_t j = 0; j < a_words; j++) a->data[j] = tests[curr_pos++];
+
+        uint32_t n = tests[curr_pos++];
+
+        uint32_t exp_words = tests[curr_pos++];
+        MPI expected = bi_init(exp_words);
+        for (uint32_t j = 0; j < exp_words; j++) expected->data[j] = tests[curr_pos++];
+
+        MPI got = bi_shift_left(a, n);
+
+        bool pass = bi_eq(got, expected);
+        assert(pass, "bi_shift_left failed case");
+        if (!pass) {
+            printf("case %d\na=", test);
             bi_printf(a);
-            printf("\nb=");
-            bi_printf(b);
-            printf("\ncalculated a%%b=");
-            bi_printf(res);
-            printf("\nexpected res   =");
-            bi_printf(expected_res);
+            printf("\nn=%u", n);
+            printf("\ncalculated a<<n=");
+            bi_printf(got);
+            printf("\nexpected       =");
+            bi_printf(expected);
             printf("\n\n");
         }
 
         bi_free(a);
-        bi_free(b);
-        bi_free(res);
-        bi_free(expected_res);
+        bi_free(got);
+        bi_free(expected);
+
+        test++;
     }
 }
+
 void test_bi_mod(void) {
     // clang-format off
     uint32_t tests[] = {
@@ -397,6 +446,58 @@ void test_bi_pow(void) {
         bi_free(expected_res);
     }
 }
+void test_bi_shift_right(void) {
+    // clang-format off
+    uint32_t tests[] = {
+        1, 0x00000000,                 0,   1, 0x00000000,
+        1, 0x89ABCDEF,                 0,   1, 0x89ABCDEF,
+        1, 0x00000001,                 1,   1, 0x00000000,
+        1, 0x80000000,                 1,   1, 0x40000000,
+        1, 0xFFFFFFFF,                 4,   1, 0x0FFFFFFF,
+        2, 0x00000000, 0x00000001,     4,   1, 0x10000000,
+        2, 0x89ABCDEF, 0x01234567,    32,   1, 0x01234567,
+        3, 0xAAAAAAAA, 0xBBBBBBBB, 0xCCCCCCCC,  64,   1, 0xCCCCCCCC,
+        3, 0xFFFFFFFF, 0x00000000, 0x80000000,  1,    3, 0x7FFFFFFF, 0x00000000, 0x40000000,
+        3, 0x00000000, 0x00000000, 0x00000001, 36,    1, 0x10000000,
+        2, 0xFFFFFFFF, 0xFFFFFFFF,    31,   2, 0xFFFFFFFF, 0x00000001,
+        1, 0x00000001,                32,   1, 0x00000000,
+        2, 0x00000001, 0x00000000,   100,   1, 0x00000000,
+        4, 0x00000001, 0x00000000, 0x00000000, 0x80000000, 33,   3, 0x00000000, 0x00000000, 0x40000000,
+    };
+    // clang-format on
+
+    uint32_t curr_pos = 0;
+    while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
+        uint32_t a_words = tests[curr_pos++];
+        MPI a = bi_init(a_words);
+        for (uint32_t j = 0; j < a_words; j++) a->data[j] = tests[curr_pos++];
+
+        uint32_t n = tests[curr_pos++];
+
+        uint32_t exp_words = tests[curr_pos++];
+        MPI expected = bi_init(exp_words);
+        for (uint32_t j = 0; j < exp_words; j++) expected->data[j] = tests[curr_pos++];
+
+        MPI got = bi_shift_right(a, n);
+
+        bool pass = bi_eq(got, expected);
+        assert(pass, "bi_shift_right failed case");
+        if (!pass) {
+            printf("a=");
+            bi_printf(a);
+            printf("\nn=%u", n);
+            printf("\ncalculated a>>n=");
+            bi_printf(got);
+            printf("\nexpected       =");
+            bi_printf(expected);
+            printf("\n\n");
+        }
+
+        bi_free(a);
+        bi_free(got);
+        bi_free(expected);
+    }
+}
 
 void test_bigint_math_proper(void) {
     // start with one word tests
@@ -602,11 +703,13 @@ void test_bigint_math_proper(void) {
     bi_free(b);
     bi_free(expected_res);
 
+    test_bi_shift_right();
+    test_bi_shift_left();
     test_bi_mul();
     test_bi_pow();
     test_bi_mod();
     test_bi_mod_exp();
-    test_knuth_d_remainder();
+    test_bi_knuth_d();
 }
 
 void test_bigint(void) {

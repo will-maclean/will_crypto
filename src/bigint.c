@@ -26,6 +26,9 @@ static inline __bi_result_t bi_result_error(__bi_result_code_t code) {
     return bi_result_make(NULL, code);
 }
 
+__bi_result_t __knuth_d(MPI u, MPI v, bool return_quotient);
+__bi_result_t __bi_div_imm(MPI a, uint32_t b, bool return_quotient);
+
 int assert_same_shape(MPI a, MPI b) { return a->words == b->words; }
 
 uint32_t min(uint32_t a, uint32_t b) {
@@ -410,6 +413,17 @@ MPI bi_pow_imm(MPI b, uint32_t p) {
 
 // x % y
 MPI bi_mod(MPI x, MPI y) {
+
+    __bi_result_t res = __knuth_d(x, y, false);
+
+    if (res.code != BI_OK) {
+        printf("bi_mod failed with error code: %d\n", res.code);
+        exit(1);
+    }
+
+    return res.x;
+}
+MPI bi_mod_old(MPI x, MPI y) {
     // TODO: handle div by zero
     if (bi_gt(y, x)) {
         MPI res = bi_init_and_copy(x);
@@ -468,155 +482,8 @@ uint32_t leading_zeros(uint32_t x) {
     return __builtin_clz(x);
 }
 
-// subtract q̂*V from U[j..j+m]
-// returns whether a borrow was reported
-bool __knuth_d_subtract_reporting_borrow(MPI U, MPI qV, uint32_t j,
-                                         uint32_t m) {
-    uint32_t start_idx = j;
-    uint32_t end_idx = j + m;
-
-    if (start_idx >= U->words || end_idx >= U->words) {
-        printf("Error in __knuth_d_subtract_reporting_borrow. code: %d",
-               BI_BAD_OPERANDS);
-        exit(1);
-    }
-
-    uint64_t borrow = 0;
-    for (uint32_t offset = 0; offset <= m; offset++) {
-        uint32_t u_idx = start_idx + offset;
-        uint64_t u = (uint64_t)U->data[u_idx];
-        uint64_t v = (offset < qV->words) ? (uint64_t)qV->data[offset] : 0;
-        uint64_t sub = v + borrow;
-
-        if (u < sub) {
-            U->data[u_idx] = (uint32_t)((1ULL << 32) + u - sub);
-            borrow = 1;
-        } else {
-            U->data[u_idx] = (uint32_t)(u - sub);
-            borrow = 0;
-        }
-    }
-
-    return borrow != 0;
-}
-
-// /* q[0], r[0], u[0], and v[0] contain the LEAST significant words.
-// (The sequence is in little-endian order).
-// This is a fairly precise implementation of Knuth's Algorithm D, for a
-// binary computer with base b = 2**32. The caller supplies:
-//    1. Space q for the quotient, m - n + 1 words (at least one).
-//    2. Space r for the remainder (optional), n words.
-//    3. The dividend u, m words, m >= 1.
-//    4. The divisor v, n words, n >= 2.
-// The most significant digit of the divisor, v[n-1], must be nonzero.  The
-// dividend u may have leading zeros; this just makes the algorithm take
-// longer and makes the quotient contain more leading zeros.  A value of
-// NULL may be given for the address of the remainder to signify that the
-// caller does not want the remainder.
-//    The program does not alter the input parameters u and v.
-//    The quotient and remainder returned may have leading zeros.  The
-// function itself returns a value of 0 for success and 1 for invalid
-// parameters (e.g., division by 0).
-//    For now, we must have m >= n.  Knuth's Algorithm D also requires
-// that the dividend be at least as long as the divisor.  (In his terms,
-// m >= 0 (unstated).  Therefore m+n >= n.) */
-
-// int divmnu(unsigned q[], unsigned r[],
-//      const unsigned u[], const unsigned v[],
-//      int m, int n) {
-
-//    const unsigned long long b = 4294967296LL; // Number base (2**32).
-//    unsigned *un, *vn;                         // Normalized form of u, v.
-//    unsigned long long qhat;                   // Estimated quotient digit.
-//    unsigned long long rhat;                   // A remainder.
-//    unsigned long long p;                      // Product of two digits.
-//    long long t, k;
-//    int s, i, j;
-
-//    if (m < n || n <= 0 || v[n-1] == 0)
-//       return 1;                         // Return if invalid param.
-
-//    if (n == 1) {                        // Take care of
-//       k = 0;                            // the case of a
-//       for (j = m - 1; j >= 0; j--) {    // single-digit
-//          q[j] = (k*b + u[j])/v[0];      // divisor here.
-//          k = (k*b + u[j]) - q[j]*v[0];
-//       }
-//       if (r != NULL) r[0] = k;
-//       return 0;
-//    }
-
-//    /* Normalize by shifting v left just enough so that its high-order
-//    bit is on, and shift u left the same amount. We may have to append a
-//    high-order digit on the dividend; we do that unconditionally. */
-
-//    s = nlz(v[n-1]);             // 0 <= s <= 31.
-//    vn = (unsigned *)alloca(4*n);
-//    for (i = n - 1; i > 0; i--)
-//       vn[i] = (v[i] << s) | ((unsigned long long)v[i-1] >> (32-s));
-//    vn[0] = v[0] << s;
-
-//    un = (unsigned *)alloca(4*(m + 1));
-//    un[m] = (unsigned long long)u[m-1] >> (32-s);
-//    for (i = m - 1; i > 0; i--)
-//       un[i] = (u[i] << s) | ((unsigned long long)u[i-1] >> (32-s));
-//    un[0] = u[0] << s;
-
-//    for (j = m - n; j >= 0; j--) {       // Main loop.
-//       // Compute estimate qhat of q[j].
-//       qhat = (un[j+n]*b + un[j+n-1])/vn[n-1];
-//       rhat = (un[j+n]*b + un[j+n-1]) - qhat*vn[n-1];
-// again:
-//       if (qhat >= b || qhat*vn[n-2] > b*rhat + un[j+n-2])
-//       { qhat = qhat - 1;
-//         rhat = rhat + vn[n-1];
-//         if (rhat < b) goto again;
-//       }
-
-//       // Multiply and subtract.
-//       k = 0;
-//       for (i = 0; i < n; i++) {
-//          p = qhat*vn[i];
-//          t = un[i+j] - k - (p & 0xFFFFFFFFLL);
-//          un[i+j] = t;
-//          k = (p >> 32) - (t >> 32);
-//       }
-//       t = un[j+n] - k;
-//       un[j+n] = t;
-
-//       q[j] = qhat;              // Store quotient digit.
-//       if (t < 0) {              // If we subtracted too
-//          q[j] = q[j] - 1;       // much, add back.
-//          k = 0;
-//          for (i = 0; i < n; i++) {
-//             t = (unsigned long long)un[i+j] + vn[i] + k;
-//             un[i+j] = t;
-//             k = t >> 32;
-//          }
-//          un[j+n] = un[j+n] + k;
-//       }
-//    } // End j.
-//    // If the caller wants the remainder, unnormalize
-//    // it and pass it back.
-//    if (r != NULL) {
-//       for (i = 0; i < n-1; i++)
-//          r[i] = (un[i] >> s) | ((unsigned long long)un[i+1] << (32-s));
-//       r[n-1] = un[n-1] >> s;
-//    }
-//    return 0;
-// }
-
 // u / v
 __bi_result_t __knuth_d(MPI u, MPI v, bool return_quotient) {
-
-    // Best attempt at implementing Knuth's
-    // Algorithm D from
-    //
-    // https: //
-    // www.hvks.com/Numerical/Downloads/HVE%20The%20Math%20behind%20arbitrary%20precision.pdfj
-
-    // number of leading zeros is important, so make
-    // sure we squeeze off any zeros
     bi_squeeze(u);
     bi_squeeze(v);
 
@@ -647,79 +514,108 @@ __bi_result_t __knuth_d(MPI u, MPI v, bool return_quotient) {
         }
     }
 
-    // invariant: u > v
+    if (v->words == 1) {
+        return __bi_div_imm(u, v->data[0], return_quotient);
+    }
 
-    int n = u->words;
-    int m = v->words;
+    // D0: Define
+    MPI Ustruct = bi_pad_words(u, 1);
+    uint32_t m = u->words;
+    MPI Vstruct = bi_init_and_copy(v);
+    uint32_t n = Vstruct->words;
+    const uint64_t B = 2ul << 32;
+    MPI Qstruct = bi_init(m - n + 1);
 
-    int d = leading_zeros(v->data[m - 1]);
+    if (m < n || n <= 1 || v->data[n - 1] == 0) {
+        printf("Bad operands in knuth_d. m=%d, n=%d", m, n);
+        return bi_result_error(BI_BAD_OPERANDS);
+    }
 
-    MPI Utmp = bi_init_and_copy(u);
-    MPI Vtmp = bi_init_and_copy(v);
+    // D1: Normalise
+    uint32_t D = leading_zeros(Vstruct->data[n - 1]);
+    MPI Utmp = bi_shift_left(Ustruct, D);
+    MPI Vtmp = bi_shift_left(Vstruct, D);
+    bi_copy(Utmp, Ustruct);
+    bi_copy(Vtmp, Vstruct);
+    bi_free(Utmp);
+    bi_free(Vtmp);
+    Utmp = bi_pad_words(Ustruct, 1);
+    bi_copy(Utmp, Ustruct);
+    bi_free(Utmp);
 
-    MPI Utmp2 = bi_shift_left(Utmp, d);
-    MPI V = bi_shift_left(Vtmp, d);
-    MPI U = bi_pad_words(Utmp2, 1);
-    U->data[n] = 0;
+    // D2/D7: Loop setup
+    uint32_t *U = Ustruct->data;
+    uint32_t *V = Vstruct->data;
+    uint32_t *Q = Qstruct->data;
 
-    MPI Q = bi_init(n - m + 1);
+    for (int32_t j = m - n; j >= 0; j--) {
 
-    uint64_t B = 1ull << 32;
-    for (int32_t _j = n - m; _j >= 0; _j--) {
-        uint32_t j = (uint32_t)_j;
+        // D3: Calculate q_hat
+        uint64_t div_num = (uint64_t)U[n + j] * B + U[n - 1 + j];
+        uint64_t div_den = V[n - 1];
+        uint64_t q_hat = div_num / div_den;
+        uint64_t r_hat = div_num % div_den;
 
-        uint64_t num = U->data[j + m] * B + U->data[j + m - 1];
-        uint64_t denom = V->data[m - 1];
-        uint64_t q_hat = num / denom;
-        uint64_t r_hat = num % denom;
-
-        while (q_hat * V->data[m - 2] > r_hat * B + U->data[j + m - 2]) {
+    again:
+        if (q_hat == B ||
+            q_hat * (uint64_t)V[n - 2] > (r_hat * B + (uint64_t)U[n - 2 + j])) {
             q_hat--;
-            r_hat += V->data[m - 1];
+            r_hat += V[n - 1];
 
-            if (r_hat >= B) {
-                break;
+            if (r_hat < B) {
+                goto again;
             }
         }
 
-        MPI qV = bi_mul_imm(V, q_hat);
-        MPI tmpU = bi_init_like(U);
-        for (uint32_t i = j; i <= j + m; i++) {
-            tmpU->data[i] = U->data[i];
+        // D4: Multiply and subtract
+        int64_t k = 0;
+        int64_t t;
+        for (uint32_t i = 0; i < n; i++) {
+            uint64_t p = q_hat * (uint64_t)V[i];
+            t = U[i + j] - k - (p & 0xFFFFFFFFLL);
+            U[i + j] = t;
+            k = (p >> 32) - (t >> 32);
         }
+        t = U[j + n] - k;
+        U[j + n] = t;
 
-        if (__knuth_d_subtract_reporting_borrow(U, qV, j, m)) {
-            q_hat--;
-            bi_add_to_range(V, U, 0, j, m);
+        // D5: Test remainder
+        Q[j] = (uint32_t)q_hat;
+
+        if (t < 0) {
+            // D6: Add back
+            Q[j]--;
+
+            k = 0;
+            for (uint32_t i = 0; i < n; i++) {
+                t = (uint64_t)U[i + j] + V[i] + k;
+                U[i + j] = t;
+                k = t >> 32;
+            }
+
+            // deliberately ignore overflow here, it's
+            // balanced out by the borrow in the subtraction
+            // above
+            U[j + n] += k;
         }
-        Q->data[j] = q_hat;
-
-        bi_free(qV);
-        bi_free(tmpU);
     }
 
-    MPI R_tmp = bi_init(m - 1);
-    for (int i = 0; i < m - 1; i++) {
-        R_tmp->data[i] = U->data[i];
-    }
-    MPI R = bi_shift_right(R_tmp, d);
-
-    bi_free(U);
-    bi_free(Utmp);
-    bi_free(Utmp2);
-    bi_free(V);
-    bi_free(Vtmp);
-    bi_free(R_tmp);
-
-    bi_squeeze(R);
-    bi_squeeze(Q);
+    bi_free(Vstruct);
 
     if (return_quotient) {
-        bi_free(R);
-        return bi_result_make(Q, BI_OK);
+        bi_free(Ustruct);
+
+        bi_squeeze(Qstruct);
+
+        return bi_result_make(Qstruct, BI_OK);
     } else {
-        bi_free(Q);
-        return bi_result_make(R, BI_OK);
+        // D8: Unnormalise
+        bi_free(Qstruct);
+        MPI res = bi_shift_right(Ustruct, D);
+        bi_free(Ustruct);
+
+        bi_squeeze(res);
+        return bi_result_make(res, BI_OK);
     }
 }
 
@@ -735,7 +631,7 @@ MPI knuth_d(MPI u, MPI v, bool return_quotient) {
     return res.x;
 }
 
-__bi_result_t __bi_eucl_div(MPI x, MPI y) {
+__bi_result_t __bi_eucl_div_old(MPI x, MPI y) {
     if (bi_eq_val(y, 0)) {
         return bi_result_error(BI_DIV_ZERO);
     }
@@ -799,7 +695,7 @@ __bi_result_t __bi_eucl_div(MPI x, MPI y) {
 }
 
 MPI bi_eucl_div(MPI a, MPI b) {
-    __bi_result_t res = __bi_eucl_div(a, b);
+    __bi_result_t res = __knuth_d(a, b, true);
 
     if (res.code != BI_OK) {
         bi_free(res.x);
@@ -916,17 +812,30 @@ MPI bi_not(MPI a) {
 }
 
 MPI bi_shift_left(MPI a, uint32_t n) {
-    MPI res = bi_init_like(a);
+    if (n == 0) {
+        return bi_init_and_copy(a);
+    }
+
+    bi_squeeze(a);
+    if (bi_eq_val(a, 0)) {
+        return bi_init(1);
+    }
 
     uint32_t offset_words = n / 32;
     uint32_t offset_mod = n % 32;
 
-    for (uint32_t i = offset_words; i < res->words; i++) {
-        res->data[i] = (a->data[i - offset_words] << offset_mod);
+    MPI res = bi_init(a->words + offset_words + 1);
 
-        if (i > 0)
-            res->data[i] |=
-                (a->data[i - offset_words - 1] >> (32u - offset_mod));
+    for (uint32_t i = offset_words; i < res->words; i++) {
+        if (i < a->words + offset_words) {
+            uint32_t upper_fetch_word = a->data[i - offset_words];
+            res->data[i] += upper_fetch_word << offset_mod;
+        }
+
+        if (offset_mod && i > offset_words) {
+            uint32_t lower_fetch_word = a->data[i - offset_words - 1];
+            res->data[i] += lower_fetch_word >> (32 - offset_mod);
+        }
     }
 
     bi_squeeze(res);
@@ -934,17 +843,32 @@ MPI bi_shift_left(MPI a, uint32_t n) {
 }
 
 MPI bi_shift_right(MPI a, uint32_t n) {
+    if (n == 0) {
+        return bi_init_and_copy(a);
+    }
+
+    if (n >= 32 * a->words) {
+        return bi_init(1);
+    }
+
+    bi_squeeze(a);
+    if (bi_eq_val(a, 0)) {
+        return bi_init(1);
+    }
+
     MPI res = bi_init_like(a);
 
     uint32_t offset_words = n / 32;
     uint32_t offset_mod = n % 32;
 
     for (uint32_t i = 0; i < res->words - offset_words; i++) {
-        res->data[i] = (a->data[i - offset_words] >> offset_mod);
+        uint32_t lower_fetch_word = a->data[i + offset_words + 0];
+        res->data[i] = ((uint64_t)lower_fetch_word >> offset_mod);
 
-        if (i < res->words - 1)
-            res->data[i] |=
-                (a->data[i - offset_words + 1] << (32u - offset_mod));
+        if (i < a->words - offset_words - 1 && offset_mod) {
+            uint32_t upper_fetch_word = a->data[i + offset_words + 1];
+            res->data[i] += (upper_fetch_word << (32 - offset_mod));
+        }
     }
 
     bi_squeeze(res);
@@ -1108,9 +1032,6 @@ bool bi_le(MPI a, MPI b) {
 }
 
 bool bi_eq(MPI a, MPI b) {
-    // TODO: a and b can be numerically equicalent, but
-    //  different word sizes, and fail this equality test.
-    //  This probably isn't what we want??
     for (uint32_t i = 0; i < min(a->words, b->words); i++) {
         if (a->data[i] != b->data[i])
             return false;
@@ -1134,7 +1055,7 @@ bool bi_eq(MPI a, MPI b) {
 }
 
 bool bi_eq_val(MPI a, uint32_t b) {
-    for (uint32_t i = 1; i < a->words - 1; i++) {
+    for (uint32_t i = 1; i < a->words; i++) {
         if (a->data[i] != 0u)
             return false;
     }
@@ -1345,4 +1266,52 @@ void bi_add_to_range(MPI src, MPI target, uint32_t src_start_idx,
         printf("Error in bi_copy_word_range. Error code: %d\n", res_code);
         exit(1);
     }
+}
+
+__bi_result_t __bi_div_imm(MPI a, uint32_t b, bool return_quotient) {
+    if (b == 0) {
+        return bi_result_error(BI_DIV_ZERO);
+    }
+
+    MPI q = bi_init_like(a);
+    uint64_t r = 0;
+
+    for (int i = a->words - 1; i >= 0; i--) {
+        uint64_t x = (r << 32) | a->data[i];
+        q->data[i] = x / b;
+        r = x % b;
+    }
+
+    if (return_quotient) {
+        return bi_result_make(q, BI_OK);
+    } else {
+        bi_free(q);
+        MPI rem = bi_init(1);
+        rem->data[0] = (uint32_t)r;
+        return bi_result_make(rem, BI_OK);
+    }
+}
+
+MPI bi_mod_imm(MPI a, uint32_t b){
+
+    __bi_result_t res = __bi_div_imm(a, b, false);
+
+    if(res.code != BI_OK){
+        printf("error in bi_mod_imm. code=%d", res.code);
+        exit(1);
+    }
+
+    return res.x;
+}
+
+MPI bi_eucl_div_imm(MPI a, uint32_t b){
+
+    __bi_result_t res = __bi_div_imm(a, b, true);
+
+    if(res.code != BI_OK){
+        printf("error in bi_mod_imm. code=%d", res.code);
+        exit(1);
+    }
+
+    return res.x;
 }
