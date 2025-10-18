@@ -896,7 +896,7 @@ MPI bi_mod_exp(MPI a, MPI b, MPI n) {
     while (!bi_eq_val(b_copy, 0u)) {
         if (!bi_even(b_copy)) {
             // res = (res * a) % n
-            //TODO: replace with modular multiplication
+            // TODO: replace with modular multiplication
             MPI res_base = bi_mul(res, base_tmp);
             MPI res_tmp = bi_mod(res_base, n);
             bi_copy(res_tmp, res);
@@ -1274,4 +1274,68 @@ MPI bi_eucl_div_imm(MPI a, uint32_t b) {
     }
 
     return res.x;
+}
+
+MPI bi_gcd(MPI a, MPI b) {
+    if (bi_eq_val(a, 0) || bi_eq_val(b, 0)) {
+        return bi_init(1);
+    }
+
+    if (bi_eq_val(a, 0) || bi_eq_val(b, 0)) {
+        MPI res = bi_init(1);
+        bi_set(res, 1);
+        return res;
+    }
+
+    bi_squeeze(a);
+    bi_squeeze(b);
+
+    MPI tmp = bi_or(a, b);
+    uint32_t shift = leading_zeros(tmp->data[tmp->words - 1]);
+    bi_free(tmp);
+
+    MPI a_tmp = bi_shift_right(a, leading_zeros(a->data[a->words - 1]));
+    MPI b_tmp = bi_init_and_copy(b);
+
+    do {
+        tmp =
+            bi_shift_right(b_tmp, leading_zeros(b_tmp->data[b_tmp->words - 1]));
+        bi_free(b_tmp);
+        b_tmp = bi_init_and_copy(tmp);
+        bi_free(tmp);
+
+        if (bi_gt(a_tmp, b_tmp)) {
+            tmp = bi_init_and_copy(a_tmp);
+            bi_free(a_tmp);
+            a_tmp = bi_init_and_copy(b_tmp);
+            bi_free(b_tmp);
+            b_tmp = bi_init_and_copy(tmp);
+            bi_free(tmp);
+        }
+
+        tmp = bi_sub(b_tmp, a_tmp);
+        bi_free(b_tmp);
+        b_tmp = bi_init_and_copy(tmp);
+        bi_free(tmp);
+
+    } while (!bi_eq_val(b_tmp, 0));
+
+    MPI res = bi_shift_left(a_tmp, shift);
+
+    bi_free(tmp);
+    bi_free(a_tmp);
+    bi_free(b_tmp);
+
+    return res;
+}
+
+MPI bi_lcm(MPI a, MPI b) {
+    MPI gcd_ab = bi_gcd(a, b);
+    MPI res = bi_eucl_div(a, gcd_ab);
+    MPI res2 = bi_mul(res, b);
+
+    bi_free(gcd_ab);
+    bi_free(res);
+
+    return res2;
 }

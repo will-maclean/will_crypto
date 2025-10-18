@@ -29,13 +29,13 @@ struct rsa_state {
 void load_new_primes(struct rsa_state *new_state, uint32_t seed,
                      rsa_mode_t mode);
 
-struct lcm_ext_euc_res {
+struct ext_euc_res {
     MPI bez_x;
     MPI bez_y;
-    MPI lcm;
+    MPI gcd;
 };
 
-struct lcm_ext_euc_res lcm_ext_euc(MPI a, MPI b);
+struct ext_euc_res ext_euc(MPI a, MPI b);
 
 struct lambda_n_d_res {
     MPI lambda_n;

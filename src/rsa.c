@@ -25,7 +25,7 @@ void load_new_primes(struct rsa_state *new_state, uint32_t seed,
     new_state->q = gen_prime(prime_words);
 }
 
-struct lcm_ext_euc_res lcm_ext_euc(MPI a, MPI b) {
+struct ext_euc_res ext_euc(MPI a, MPI b) {
     MPI r, s, t, old_r, old_s, old_t, quotient, tmp1, tmp2;
 
     old_r = bi_init_and_copy(a);
@@ -72,10 +72,10 @@ struct lcm_ext_euc_res lcm_ext_euc(MPI a, MPI b) {
         bi_free(quotient);
     }
 
-    struct lcm_ext_euc_res res;
+    struct ext_euc_res res;
     res.bez_x = bi_init_and_copy(old_s);
     res.bez_y = bi_init_and_copy(old_t);
-    res.lcm = bi_init_and_copy(old_r);
+    res.gcd = bi_init_and_copy(old_r);
 
     bi_free(r);
     bi_free(s);
@@ -94,14 +94,9 @@ struct lambda_n_d_res calc_lambda_n_d(MPI p, MPI q, MPI e) {
     MPI q_cpy = bi_init_and_copy(q);
     bi_dec(q_cpy);
 
-    struct lcm_ext_euc_res lcm_res = lcm_ext_euc(p_cpy, q_cpy);
-    res.lambda_n = bi_init_and_copy(lcm_res.lcm);
+    res.lambda_n = bi_lcm(p_cpy, q_cpy);
 
-    bi_free(lcm_res.bez_x);
-    bi_free(lcm_res.bez_y);
-    bi_free(lcm_res.lcm);
-
-    lcm_res = lcm_ext_euc(e, res.lambda_n);
+    struct ext_euc_res lcm_res = ext_euc(e, res.lambda_n);
     printf("calculating d, where lambda_n=\n");
     bi_printf(res.lambda_n);
     printf("\ne=\n");
@@ -112,7 +107,7 @@ struct lambda_n_d_res calc_lambda_n_d(MPI p, MPI q, MPI e) {
 
     bi_free(lcm_res.bez_x);
     bi_free(lcm_res.bez_y);
-    bi_free(lcm_res.lcm);
+    bi_free(lcm_res.gcd);
 
     return res;
 }

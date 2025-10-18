@@ -113,4 +113,7 @@ MPI bi_pad_words(MPI x, uint32_t n);
 MPI bi_pad_words_from_bottom(MPI x, uint32_t n);
 void bi_squeeze(MPI x);
 
+MPI bi_lcm(MPI a, MPI b);
+MPI bi_gcd(MPI a, MPI b);
+
 #endif
