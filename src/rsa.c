@@ -2,6 +2,7 @@
 #include "bigint.h"
 #include "primality.h"
 #include "rng.h"
+#include <stdio.h>
 
 void load_new_primes(struct rsa_state *new_state, uint32_t seed,
                      rsa_mode_t mode) {
@@ -9,6 +10,9 @@ void load_new_primes(struct rsa_state *new_state, uint32_t seed,
     switch (mode) {
     case RSA_MODE_1024:
         prime_words = 16;
+        break;
+    case RSA_MODE_512:
+        prime_words = 8;
         break;
     }
 
@@ -32,9 +36,7 @@ struct lcm_ext_euc_res lcm_ext_euc(MPI a, MPI b) {
     old_s = bi_init_like(a);
     bi_set(old_s, 1);
     s = bi_init_like(a);
-    bi_set(s, 0);
     old_t = bi_init_like(a);
-    bi_set(old_t, 0);
     t = bi_init_like(a);
     bi_set(t, 1);
 
@@ -70,30 +72,50 @@ struct lcm_ext_euc_res lcm_ext_euc(MPI a, MPI b) {
         old_t = bi_init_and_copy(tmp1);
         bi_free(tmp1);
         bi_free(tmp2);
+        bi_free(quotient);
     }
 
-    /* The Bézout coefficients are what we're here for. There's lots
-     * of other information that can be extracted from old_r, t, and s,
-     * but we don't care about it.
-     */
-
     struct lcm_ext_euc_res res;
-    res.bez_x = old_s;
-    res.bez_y = old_t;
-    res.lcm = old_r;
+    res.bez_x = bi_init_and_copy(old_s);
+    res.bez_y = bi_init_and_copy(old_t);
+    res.lcm = bi_init_and_copy(old_r);
+
+    bi_free(r);
+    bi_free(s);
+    bi_free(t);
+    bi_free(old_r);
+    bi_free(old_s);
+    bi_free(old_t);
     return res;
 }
 
-struct lambda_n_d_res calc_lambda_n_d(MPI p, MPI q) {
+struct lambda_n_d_res calc_lambda_n_d(MPI p, MPI q, MPI e) {
+    struct lambda_n_d_res res;
+
     MPI p_cpy = bi_init_and_copy(p);
     bi_dec(p_cpy);
     MPI q_cpy = bi_init_and_copy(q);
     bi_dec(q_cpy);
 
     struct lcm_ext_euc_res lcm_res = lcm_ext_euc(p_cpy, q_cpy);
-    struct lambda_n_d_res res;
-    res.lambda_n = bi_init_and_copy(lcm_res.bez_x);
-    res.d = bi_init_and_copy(lcm_res.bez_y);
+    res.lambda_n = bi_init_and_copy(lcm_res.lcm);
+
+    bi_free(lcm_res.bez_x);
+    bi_free(lcm_res.bez_y);
+    bi_free(lcm_res.lcm);
+
+    lcm_res = lcm_ext_euc(e, res.lambda_n);
+    printf("calculating d, where lambda_n=\n");
+    bi_printf(res.lambda_n);
+    printf("\ne=\n");
+    bi_printf(e);
+    printf("\nlcm_res.bez_x=\n");
+    bi_printf(lcm_res.bez_x);
+    res.d = bi_mod(lcm_res.bez_x, res.lambda_n);
+
+    bi_free(lcm_res.bez_x);
+    bi_free(lcm_res.bez_y);
+    bi_free(lcm_res.lcm);
 
     return res;
 }
@@ -112,14 +134,15 @@ void gen_pub_priv_keys(long seed, struct rsa_public_token *pub,
     load_new_primes(&state, seed, mode);
 
     MPI n = bi_mul(state.p, state.q);
-
-    struct lambda_n_d_res lambda_n_d = calc_lambda_n_d(state.p, state.q);
-
     MPI e = gen_e();
+
+    struct lambda_n_d_res lambda_n_d = calc_lambda_n_d(state.p, state.q, e);
 
     pub->e = e;
     pub->n = n;
 
     priv->d = lambda_n_d.d;
     priv->n = n;
+
+    bi_free(lambda_n_d.lambda_n);
 }

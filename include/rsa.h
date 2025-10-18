@@ -7,6 +7,7 @@
 #define RSA_DEFAULT_E 65537
 
 typedef enum {
+    RSA_MODE_512,
     RSA_MODE_1024,
 } rsa_mode_t;
 
@@ -40,7 +41,7 @@ struct lambda_n_d_res {
     MPI lambda_n;
     MPI d;
 };
-struct lambda_n_d_res calc_lambda_n_d(MPI p, MPI q);
+struct lambda_n_d_res calc_lambda_n_d(MPI p, MPI q, MPI e);
 
 MPI gen_e(void);
 

@@ -13,7 +13,6 @@ file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/*.c)
 list(REMOVE_ITEM SRC_FILES
     ${PROJECT_SOURCE_DIR}/src/main.c
     ${PROJECT_SOURCE_DIR}/src/tests.c
-    ${PROJECT_SOURCE_DIR}/src/rsa.c
 )
 
 # Create main executable

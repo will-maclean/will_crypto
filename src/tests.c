@@ -843,7 +843,7 @@ void test_rsa(void) {
     struct rsa_public_token pub;
     struct rsa_private_token priv;
 
-    gen_pub_priv_keys(seed, &pub, &priv, RSA_MODE_1024);
+    gen_pub_priv_keys(seed, &pub, &priv, RSA_MODE_512);
 
     printf("Generated public and private keys for RSA\nn:\n");
     bi_printf(pub.n);
