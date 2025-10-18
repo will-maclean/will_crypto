@@ -129,7 +129,6 @@ void test_bi_knuth_d(void) {
     uint32_t curr_pos = 0;
     uint32_t test = 0;
     while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
-        printf("knuth_d test case %d\n", test);
         uint32_t u_words = tests[curr_pos++];
         MPI u = bi_init(u_words);
         for (uint32_t j = 0; j < u_words; j++) {u->data[j] = tests[curr_pos++];}
