@@ -21,6 +21,98 @@ void assert(bool result, char *failure_msg) {
     }
 }
 
+void test_lcm_ext_euc(void) {
+    //   a_words(=2), a[0], a[1],  b_words(=2), b[0], b[1],  expected_lcm_words,
+    //   expected_lcm[...]
+    // clang-format off
+    uint32_t tests[] = {
+        2, 0x00000000, 0x00000000,   2, 0x00000000, 0x00000000,   1, 0x00000000,
+        2, 0x00000000, 0x00000000,   2, 0x00000024, 0x00000000,   1, 0x00000000,
+        2, 0x0000000C, 0x00000000,   2, 0x00000024, 0x00000000,   2, 0x00000024, 0x00000000,
+        2, 0x00000007, 0x00000000,   2, 0x00000014, 0x00000000,   2, 0x0000008C, 0x00000000,
+        2, 0x0000000F, 0x00000000,   2, 0x0000000A, 0x00000000,   2, 0x0000001E, 0x00000000,
+        2, 0x00000000, 0x00000001,   2, 0x00010000, 0x00000000,   2, 0x00000000, 0x00000001,
+        2, 0xFFFFFFFF, 0x00000000,   2, 0x00000002, 0x00000000,   2, 0xFFFFFFFE, 0x00000001,
+        2, 0x00000000, 0x00000001,   2, 0x00000003, 0x00000000,   2, 0x00000000, 0x00000003,
+    };
+    // clang-format on
+
+    uint32_t curr_pos = 0;
+
+    while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
+        uint32_t a_words = tests[curr_pos++];
+        MPI a = bi_init(a_words);
+        for (uint32_t j = 0; j < a_words; j++)
+            a->data[j] = tests[curr_pos++];
+
+        uint32_t b_words = tests[curr_pos++];
+        MPI b = bi_init(b_words);
+        for (uint32_t j = 0; j < b_words; j++)
+            b->data[j] = tests[curr_pos++];
+
+        uint32_t exp_lcm_words = tests[curr_pos++];
+        MPI expected_lcm = bi_init(exp_lcm_words);
+        for (uint32_t j = 0; j < exp_lcm_words; j++)
+            expected_lcm->data[j] = tests[curr_pos++];
+
+        struct lcm_ext_euc_res res = lcm_ext_euc(a, b);
+
+        bool lcm_ok = bi_eq(res.lcm, expected_lcm);
+        assert(lcm_ok, "lcm_ext_euc: lcm mismatch");
+        if (!lcm_ok) {
+            printf("a=");
+            bi_printf(a);
+            printf("\nb=");
+            bi_printf(b);
+            printf("\nexpected lcm=");
+            bi_printf(expected_lcm);
+            printf("\nreturned lcm=");
+            bi_printf(res.lcm);
+            printf("\n\n");
+        }
+
+        if (!bi_eq_val(a, 0)) {
+            MPI rem_a = bi_mod(res.lcm, a);
+            bool rem0a = bi_eq_val(rem_a, 0);
+            assert(rem0a, "lcm_ext_euc: lcm is not divisible by a");
+            if (!rem0a) {
+                printf("a=");
+                bi_printf(a);
+                printf("\nlcm=");
+                bi_printf(res.lcm);
+                printf("\nlcm %% a (remainder)=");
+                bi_printf(rem_a);
+                printf("\n\n");
+            }
+            bi_free(rem_a);
+        }
+
+        if (!bi_eq_val(b, 0)) {
+            MPI rem_b = bi_mod(res.lcm, b);
+            bool rem0b = bi_eq_val(rem_b, 0);
+            assert(rem0b, "lcm_ext_euc: lcm is not divisible by b");
+            if (!rem0b) {
+                printf("b=");
+                bi_printf(b);
+                printf("\nlcm=");
+                bi_printf(res.lcm);
+                printf("\nlcm %% b (remainder)=");
+                bi_printf(rem_b);
+                printf("\n\n");
+            }
+            bi_free(rem_b);
+        }
+
+        // --- Free
+        bi_free(a);
+        bi_free(b);
+        bi_free(expected_lcm);
+        bi_free(res.bez_x);
+        bi_free(res.bez_y);
+        bi_free(res.lcm);
+    }
+}
+
 void test_bi_mod_exp(void) {
     // a ^ b mod m
     // clang-format off
@@ -719,6 +811,7 @@ void test_bigint_math_proper(void) {
     test_bi_mod();
     test_bi_mod_exp();
     test_bi_knuth_d();
+    test_lcm_ext_euc();
 }
 
 void test_bigint(void) {

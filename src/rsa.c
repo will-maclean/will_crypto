@@ -25,9 +25,6 @@ void load_new_primes(struct rsa_state *new_state, uint32_t seed,
     new_state->q = gen_prime(prime_words);
 }
 
-/*
- * Assumes bez_x and bez_y are NOT set
- */
 struct lcm_ext_euc_res lcm_ext_euc(MPI a, MPI b) {
     MPI r, s, t, old_r, old_s, old_t, quotient, tmp1, tmp2;
 
