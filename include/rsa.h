@@ -6,6 +6,10 @@
 
 #define RSA_DEFAULT_E 65537
 
+typedef enum {
+    RSA_MODE_1024,
+} rsa_mode_t;
+
 struct rsa_public_token {
     MPI e;
     MPI n;
@@ -21,19 +25,26 @@ struct rsa_state {
     MPI q;
 };
 
-static void load_new_primes(struct rsa_state *new_state, int seed);
+void load_new_primes(struct rsa_state *new_state, uint32_t seed,
+                     rsa_mode_t mode);
 
-/*
- * Assumes bez_x and bez_y are NOT set
- */
-int lcm_ext_euc(MPI a, MPI b, MPI bez_x, MPI bez_y);
+struct lcm_ext_euc_res {
+    MPI bez_x;
+    MPI bez_y;
+    MPI lcm;
+};
 
-static int calc_lambda_n_d(MPI p, MPI q, MPI lambda_n, struct bigint *d);
+struct lcm_ext_euc_res lcm_ext_euc(MPI a, MPI b);
 
-static int gen_e(MPI res);
+struct lambda_n_d_res {
+    MPI lambda_n;
+    MPI d;
+};
+struct lambda_n_d_res calc_lambda_n_d(MPI p, MPI q);
+
+MPI gen_e(void);
 
 void gen_pub_priv_keys(long seed, struct rsa_public_token *pub,
-                       struct rsa_private_token *priv);
+                       struct rsa_private_token *priv, rsa_mode_t mode);
 
-bool primality_test(MPI x);
 #endif

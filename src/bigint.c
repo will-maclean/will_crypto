@@ -893,77 +893,37 @@ MPI bi_mod_exp(MPI a, MPI b, MPI n) {
     MPI base_tmp = bi_mod(a, n);
     MPI b_copy = bi_init_and_copy(b);
 
-    while (bi_eq_val(b_copy, 0u)) {
+    while (!bi_eq_val(b_copy, 0u)) {
         if (!bi_even(b_copy)) {
             // res = (res * a) % n
+            //TODO: replace with modular multiplication
             MPI res_base = bi_mul(res, base_tmp);
             MPI res_tmp = bi_mod(res_base, n);
             bi_copy(res_tmp, res);
 
+            bi_dec(b_copy);
+
             bi_free(res_base);
             bi_free(res_tmp);
+        } else {
+            // a = a^2 % n
+            MPI a_squared = bi_mul(base_tmp, base_tmp);
+            MPI base_tmp_tmp = bi_mod(a_squared, n);
+            bi_copy(base_tmp_tmp, base_tmp);
+            bi_free(a_squared);
+            bi_free(base_tmp_tmp);
+
+            // b >>= 1
+            MPI b_tmp = bi_shift_right(b_copy, 1u);
+            bi_copy(b_tmp, b_copy);
+            bi_free(b_tmp);
         }
-
-        // b >>= 1
-        MPI b_tmp = bi_shift_right(b_copy, 1u);
-        bi_copy(b_tmp, b_copy);
-        bi_free(b_tmp);
-
-        // a = a^2 % n
-        MPI a_squared = bi_pow_imm(base_tmp, 2);
-        MPI base_tmp_tmp = bi_mod(a_squared, n);
-        bi_copy(base_tmp_tmp, base_tmp);
-        bi_free(a_squared);
-        bi_free(base_tmp_tmp);
     }
 
     bi_free(base_tmp);
     bi_free(b_copy);
 
     return res;
-}
-
-MPI _bi_mod_exp(MPI a, MPI b, MPI n) {
-    if (bi_eq_val(n, 1u)) {
-        MPI res = bi_init(1u);
-        return res;
-    }
-
-    if (bi_eq_val(b, 0u)) {
-        MPI res = bi_init(1u);
-        bi_set(res, 1u);
-        return res;
-    }
-
-    if (bi_even(b)) {
-        MPI tmp_b = bi_shift_right(b, 1u);
-        MPI x = bi_mod_exp(a, tmp_b, n);
-        bi_free(tmp_b);
-
-        MPI tmp_x = bi_mod(x, n);
-        bi_copy(tmp_x, x);
-        bi_free(tmp_x);
-
-        tmp_x = bi_mul(x, x);
-        bi_copy(tmp_x, x);
-        bi_free(tmp_x);
-
-        tmp_x = bi_mod(x, n);
-        bi_free(x);
-
-        return tmp_x;
-    }
-
-    bi_dec(b);
-    MPI tmp = bi_mod_exp(a, b, n);
-    MPI tmp2 = bi_mul(a, tmp);
-    MPI tmp3 = bi_mod(tmp2, n);
-
-    bi_free(tmp);
-    bi_free(tmp2);
-
-    bi_inc(b);
-    return tmp3;
 }
 
 bool bi_lt(MPI a, MPI b) {
@@ -1292,11 +1252,11 @@ __bi_result_t __bi_div_imm(MPI a, uint32_t b, bool return_quotient) {
     }
 }
 
-MPI bi_mod_imm(MPI a, uint32_t b){
+MPI bi_mod_imm(MPI a, uint32_t b) {
 
     __bi_result_t res = __bi_div_imm(a, b, false);
 
-    if(res.code != BI_OK){
+    if (res.code != BI_OK) {
         printf("error in bi_mod_imm. code=%d", res.code);
         exit(1);
     }
@@ -1304,11 +1264,11 @@ MPI bi_mod_imm(MPI a, uint32_t b){
     return res.x;
 }
 
-MPI bi_eucl_div_imm(MPI a, uint32_t b){
+MPI bi_eucl_div_imm(MPI a, uint32_t b) {
 
     __bi_result_t res = __bi_div_imm(a, b, true);
 
-    if(res.code != BI_OK){
+    if (res.code != BI_OK) {
         printf("error in bi_mod_imm. code=%d", res.code);
         exit(1);
     }

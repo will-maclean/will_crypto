@@ -2,6 +2,7 @@
 #include "chacha.h"
 #include "primality.h"
 #include "rng.h"
+#include "rsa.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -28,14 +29,14 @@ void test_bi_mod_exp(void) {
         // single word 
         1, 0, 1, 0, 1, 7, 1, 1,
         1, 2, 1, 5, 1, 0xD, 1, 6,
-        1, 3, 1, 0xA, 1, 0xB, 1, 4,
+        1, 3, 1, 0xA, 1, 0xB, 1, 1,
         1, 0xffffffff, 1, 2, 1, 0xfffffffb, 1, 0x10,
         1, 7, 1, 5, 1, 0xF, 1, 7,
         // multi-word 
         2, 2, 0, 2, 3, 0, 2, 0xB, 0, 2, 8, 0,
-        2, 0, 1, 2, 2, 0, 2, 0x13, 0, 2, 0xa, 0,
-        2, 0xffffffff, 0xffffffff, 3, 0, 2, 0, 3, 0x11, 0, 0, 3, 1, 0, 0,
-        2, 0x9ABCDEF0, 0x12345678, 3, 5, 0, 0, 2, 0x00010000, 0, 1, 0x0000DEF0,
+        2, 0, 1, 2, 2, 0, 2, 0x13, 0, 2, 0x11, 0,
+        2, 0xffffffff, 0xffffffff, 3, 0, 2, 0, 3, 0x11, 0, 0, 1, 0,
+        2, 0x9ABCDEF0, 0x12345678, 3, 5, 0, 0, 2, 0x00010000, 0, 1, 0,
         2, 0x12345678, 0x87654321, 3, 2, 0, 1, 3, 0, 1, 0, 1, 0,
     };
     // clang-format on
@@ -92,7 +93,7 @@ void test_bi_mod_exp(void) {
             bi_printf(m);
             printf("\ncalculated (a^b)%%m=");
             bi_printf(res);
-            printf("\nexpected res       =");
+            printf("\nexpected res      =");
             bi_printf(expected_res);
             printf("\n\n");
         }
@@ -131,17 +132,22 @@ void test_bi_knuth_d(void) {
     while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
         uint32_t u_words = tests[curr_pos++];
         MPI u = bi_init(u_words);
-        for (uint32_t j = 0; j < u_words; j++) {u->data[j] = tests[curr_pos++];}
+        for (uint32_t j = 0; j < u_words; j++) {
+            u->data[j] = tests[curr_pos++];
+        }
 
         uint32_t v_words = tests[curr_pos++];
         MPI v = bi_init(v_words);
-        for (uint32_t j = 0; j < v_words; j++) {v->data[j] = tests[curr_pos++];}
+        for (uint32_t j = 0; j < v_words; j++) {
+            v->data[j] = tests[curr_pos++];
+        }
 
         bool return_quotient = tests[curr_pos++] != 0;
 
         uint32_t exp_words = tests[curr_pos++];
         MPI expected = bi_init(exp_words);
-        for (uint32_t j = 0; j < exp_words; j++) expected->data[j] = tests[curr_pos++];
+        for (uint32_t j = 0; j < exp_words; j++)
+            expected->data[j] = tests[curr_pos++];
 
         MPI got = knuth_d(u, v, return_quotient);
 
@@ -193,13 +199,15 @@ void test_bi_shift_left(void) {
     while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
         uint32_t a_words = tests[curr_pos++];
         MPI a = bi_init(a_words);
-        for (uint32_t j = 0; j < a_words; j++) a->data[j] = tests[curr_pos++];
+        for (uint32_t j = 0; j < a_words; j++)
+            a->data[j] = tests[curr_pos++];
 
         uint32_t n = tests[curr_pos++];
 
         uint32_t exp_words = tests[curr_pos++];
         MPI expected = bi_init(exp_words);
-        for (uint32_t j = 0; j < exp_words; j++) expected->data[j] = tests[curr_pos++];
+        for (uint32_t j = 0; j < exp_words; j++)
+            expected->data[j] = tests[curr_pos++];
 
         MPI got = bi_shift_left(a, n);
 
@@ -469,13 +477,15 @@ void test_bi_shift_right(void) {
     while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
         uint32_t a_words = tests[curr_pos++];
         MPI a = bi_init(a_words);
-        for (uint32_t j = 0; j < a_words; j++) a->data[j] = tests[curr_pos++];
+        for (uint32_t j = 0; j < a_words; j++)
+            a->data[j] = tests[curr_pos++];
 
         uint32_t n = tests[curr_pos++];
 
         uint32_t exp_words = tests[curr_pos++];
         MPI expected = bi_init(exp_words);
-        for (uint32_t j = 0; j < exp_words; j++) expected->data[j] = tests[curr_pos++];
+        for (uint32_t j = 0; j < exp_words; j++)
+            expected->data[j] = tests[curr_pos++];
 
         MPI got = bi_shift_right(a, n);
 
@@ -827,19 +837,22 @@ void test_chacha(void) {
     free(b);
 }
 
-/*
-void test_rsa(){
-        int seed = 1234;
+void test_rsa(void) {
+    uint32_t seed = 1234;
 
-        struct rsa_public_token pub;
-        struct rsa_private_token priv;
+    struct rsa_public_token pub;
+    struct rsa_private_token priv;
 
-        gen_pub_priv_keys(seed, &pub, &priv);
+    gen_pub_priv_keys(seed, &pub, &priv, RSA_MODE_1024);
 
-        printf("seed: %d, pub->e: %d, pub->n: %d, priv->d: %d\n",
-               seed, pub.e, pub.n, priv.d);
+    printf("Generated public and private keys for RSA\nn:\n");
+    bi_printf(pub.n);
+    printf("\n,e:\n");
+    bi_printf(pub.e);
+    printf("\nd:\n");
+    bi_printf(priv.d);
+    printf("\n");
 }
-*/
 
 void test_primality(void) {
 
@@ -903,14 +916,26 @@ void test_primality(void) {
     bi_free(sd.s);
     bi_free(sd.d);
 
-    int words = 16;
+    struct will_rng_cfg cfg;
+    uint32_t seed = 12345678u;
+    uint32_t words = 32;
+    cfg.words = words;
+    init_will_rng(&cfg, seed);
     MPI test_prime = will_rng_next(words);
     miller_rabin(test_prime, 1000);
     bi_free(test_prime);
 
     // this one takes a while, so if we've had errors elsewhere, don't run it
     if (failures == 0) {
+        uint64_t counter = 0;
+
+        clock_t start = clock();
         MPI generated_prime = gen_prime(words);
+        clock_t ticks = clock() - start;
+
+        printf("Prime number gen took %f milliseconds\n",
+               1000 * (float)ticks / (float)CLOCKS_PER_SEC);
+
         if (generated_prime) {
             printf("Generated prime:\n");
             printf("\n");
@@ -959,7 +984,7 @@ void tests(void) {
     printf("Tests: %d. Passes: %d. Failures: %d\n", successes + failures,
            successes, failures);
 
-    //	test_rsa();
+    test_rsa();
 }
 
 int main(void) { tests(); }
