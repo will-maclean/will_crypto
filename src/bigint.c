@@ -523,7 +523,7 @@ __bi_result_t __knuth_d(MPI u, MPI v, bool return_quotient) {
     uint32_t m = u->words;
     MPI Vstruct = bi_init_and_copy(v);
     uint32_t n = Vstruct->words;
-    const uint64_t B = 2ul << 32;
+    const uint64_t B = 1ull << 32;
     MPI Qstruct = bi_init(m - n + 1);
 
     if (m < n || n <= 1 || v->data[n - 1] == 0) {
