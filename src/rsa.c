@@ -25,64 +25,92 @@ void load_new_primes(struct rsa_state *new_state, uint32_t seed,
     new_state->q = gen_prime(prime_words);
 }
 
+typedef struct {
+    MPI val;
+    bool positive;
+} sMPI;
+
 struct ext_euc_res ext_euc(MPI a, MPI b) {
-    MPI r, s, t, old_r, old_s, old_t, quotient, tmp1, tmp2;
+    // we have an issue - our bigint library supports
+    // positive numbers only. This is fine in almost all
+    // parts of the existing application, EXCEPT the extended
+    // euclidean algorithm, where the calculated coefficents
+    // and factors may go negative at any point during the
+    // calculation. The returned bezout coefficients themselves
+    // may also be negative.
+    //
+    // We can hack around our lack of negative number support.
+    // However, there will be sign errors in the returned
+    // coefficients. HOWEVER, if all you want to do with the
+    // returned coefficients is put them through a modulus
+    // operators (e.g. d = (bez coef x) mod lambda(n)), then
+    // the sign is irrelevant.
 
-    old_r = bi_init_and_copy(a);
-    r = bi_init_and_copy(b);
-    old_s = bi_init_like(a);
-    bi_set(old_s, 1);
-    s = bi_init_like(a);
-    old_t = bi_init_like(a);
-    t = bi_init_like(a);
-    bi_set(t, 1);
+    sMPI r = {NULL, true}, s = {NULL, true}, t = {NULL, true},
+         old_r = {NULL, true}, old_s = {NULL, true}, old_t = {NULL, true},
+         quotient = {NULL, true}, tmp1 = {NULL, true}, tmp2 = {NULL, true};
 
-    while (!bi_eq_val(r, 0)) {
-        quotient = bi_eucl_div(old_r, r);
+    old_r.val = bi_init_and_copy(a);
+    r.val = bi_init_and_copy(b);
+    old_s.val = bi_init_like(a);
+    bi_set(old_s.val, 1);
+    s.val = bi_init_like(a);
+    old_t.val = bi_init_like(a);
+    t.val = bi_init_like(a);
+    bi_set(t.val, 1);
+
+    while (!bi_eq_val(r.val, 0)) {
+        quotient.val = bi_eucl_div(old_r.val, r.val);
+        quotient.positive = old_r.positive ^ r.positive;
 
         // (old_r, r) := (r, old_r − quotient × r)
-        tmp1 = bi_init_and_copy(r);
-        tmp2 = bi_mul(quotient, r);
-        bi_free(r);
-        r = bi_sub(old_r, tmp2);
-        bi_free(old_r);
-        old_r = bi_init_and_copy(tmp1);
-        bi_free(tmp1);
-        bi_free(tmp2);
+        tmp1.val = bi_init_and_copy(r.val);
+        tmp1.positive = r.positive;
+
+        tmp2.val = bi_mul(quotient.val, r.val);
+        tmp2.positive = quotient.positive ^ r.positive;
+
+        bi_free(r.val);
+
+        r.val = bi_sub(old_r.val, tmp2.val);
+        bi_free(old_r.val);
+        old_r.val = bi_init_and_copy(tmp1.val);
+        bi_free(tmp1.val);
+        bi_free(tmp2.val);
 
         // (old_s, s) := (s, old_s − quotient × s)
-        tmp1 = bi_init_and_copy(s);
-        tmp2 = bi_mul(quotient, s);
-        bi_free(s);
-        s = bi_sub(old_s, tmp2);
-        bi_free(old_s);
-        old_s = bi_init_and_copy(tmp1);
-        bi_free(tmp1);
-        bi_free(tmp2);
+        tmp1.val = bi_init_and_copy(s.val);
+        tmp2.val = bi_mul(quotient.val, s.val);
+        bi_free(s.val);
+        s.val = bi_sub(old_s.val, tmp2.val);
+        bi_free(old_s.val);
+        old_s.val = bi_init_and_copy(tmp1.val);
+        bi_free(tmp1.val);
+        bi_free(tmp2.val);
 
         // (old_t, t) := (t, old_t − quotient × t)
-        tmp1 = bi_init_and_copy(t);
-        tmp2 = bi_mul(quotient, t);
-        bi_free(t);
-        t = bi_sub(old_t, tmp2);
-        bi_free(old_t);
-        old_t = bi_init_and_copy(tmp1);
-        bi_free(tmp1);
-        bi_free(tmp2);
-        bi_free(quotient);
+        tmp1.val = bi_init_and_copy(t.val);
+        tmp2.val = bi_mul(quotient.val, t.val);
+        bi_free(t.val);
+        t.val = bi_sub(old_t.val, tmp2.val);
+        bi_free(old_t.val);
+        old_t.val = bi_init_and_copy(tmp1.val);
+        bi_free(tmp1.val);
+        bi_free(tmp2.val);
+        bi_free(quotient.val);
     }
 
     struct ext_euc_res res;
-    res.bez_x = bi_init_and_copy(old_s);
-    res.bez_y = bi_init_and_copy(old_t);
-    res.gcd = bi_init_and_copy(old_r);
+    res.bez_x = bi_init_and_copy(old_s.val);
+    res.bez_y = bi_init_and_copy(old_t.val);
+    res.gcd = bi_init_and_copy(old_r.val);
 
-    bi_free(r);
-    bi_free(s);
-    bi_free(t);
-    bi_free(old_r);
-    bi_free(old_s);
-    bi_free(old_t);
+    bi_free(r.val);
+    bi_free(s.val);
+    bi_free(t.val);
+    bi_free(old_r.val);
+    bi_free(old_s.val);
+    bi_free(old_t.val);
     return res;
 }
 
