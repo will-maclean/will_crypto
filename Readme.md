@@ -23,7 +23,7 @@ make
 ```
 
 ## Usage: `will_crypto`
-RSA keygen: `bin\will_crypto gen_keys`
+RSA keygen: `./bin/will_crypto gen_keys`
 Sample output:
 ```
 Generating keys for will_rsa
@@ -46,7 +46,7 @@ will_rsa(private)
 
 
 ## Usage: `tests`
-Tests: `bin/tests`
+Tests: `./bin/tests`
 
 Sample output:
 ```

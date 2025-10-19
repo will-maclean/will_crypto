@@ -10,6 +10,8 @@ void print_help_and_exit(int exit_code) {
         printf("Error, exiting.\n");
     }
     char *help_message = "\n\nwill_crypto\n"
+                         "Usage: will_crypto [function]\n"
+                         "Functions:\n"
                          "\thelp: prints help and usage message\n"
                          "\tgen_keys: generates and saves keys\n";
 
