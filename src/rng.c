@@ -4,15 +4,12 @@
 #include <string.h>
 
 struct will_rng_state {
-    struct will_rng_cfg *cfg;
     uint32_t prev[16];
 };
 
 static struct will_rng_state rng_state;
 
-void init_will_rng(struct will_rng_cfg *cfg, uint32_t seed) {
-    rng_state.cfg = cfg;
-
+void will_rng_init(uint32_t seed) {
     // Probably not the most secure seeding method...
     for (int i = 0; i < 16; i++)
         rng_state.prev[i] = i * seed;

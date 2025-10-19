@@ -16,10 +16,7 @@ void load_new_primes(struct rsa_state *new_state, uint32_t seed,
         break;
     }
 
-    struct will_rng_cfg rng_cfg;
-    rng_cfg.words = prime_words;
-
-    init_will_rng(&rng_cfg, seed);
+    will_rng_init(seed);
 
     new_state->p = gen_prime(prime_words);
     new_state->q = gen_prime(prime_words);
@@ -29,6 +26,41 @@ typedef struct {
     MPI val;
     bool positive;
 } sMPI;
+
+void signed_div(sMPI a, sMPI b, sMPI *res) {
+    res->val = bi_eucl_div(a.val, b.val);
+    res->positive = a.positive ^ b.positive;
+}
+
+void signed_sub(sMPI a, sMPI b, sMPI *res) {
+    if (a.positive == b.positive) {
+        if (bi_gt(a.val, b.val)) {
+            res->val = bi_sub(a.val, b.val);
+            res->positive = a.positive;
+        } else {
+            res->val = bi_sub(b.val, a.val);
+            res->positive = !a.positive;
+        }
+    } else {
+        res->val = bi_add(a.val, b.val);
+        res->positive = a.positive;
+    }
+}
+
+void signed_mul(sMPI a, sMPI b, sMPI *res) {
+    res->val = bi_mul(a.val, b.val);
+    res->positive = a.positive ^ b.positive;
+}
+
+void signed_init_copy(sMPI src, sMPI *target) {
+    target->val = bi_init_and_copy(src.val);
+    target->positive = src.positive;
+}
+
+void signed_free_init_copy(sMPI src, sMPI *target) {
+    bi_free(target->val);
+    signed_init_copy(src, target);
+}
 
 struct ext_euc_res ext_euc(MPI a, MPI b) {
     // we have an issue - our bigint library supports
@@ -60,41 +92,32 @@ struct ext_euc_res ext_euc(MPI a, MPI b) {
     bi_set(t.val, 1);
 
     while (!bi_eq_val(r.val, 0)) {
-        quotient.val = bi_eucl_div(old_r.val, r.val);
-        quotient.positive = old_r.positive ^ r.positive;
+        signed_div(old_r, r, &quotient);
 
         // (old_r, r) := (r, old_r − quotient × r)
-        tmp1.val = bi_init_and_copy(r.val);
-        tmp1.positive = r.positive;
-
-        tmp2.val = bi_mul(quotient.val, r.val);
-        tmp2.positive = quotient.positive ^ r.positive;
-
+        signed_init_copy(r, &tmp1);
+        signed_mul(quotient, r, &tmp2);
         bi_free(r.val);
-
-        r.val = bi_sub(old_r.val, tmp2.val);
-        bi_free(old_r.val);
-        old_r.val = bi_init_and_copy(tmp1.val);
+        signed_sub(old_r, tmp2, &r);
+        signed_free_init_copy(tmp1, &old_r);
         bi_free(tmp1.val);
         bi_free(tmp2.val);
 
         // (old_s, s) := (s, old_s − quotient × s)
-        tmp1.val = bi_init_and_copy(s.val);
-        tmp2.val = bi_mul(quotient.val, s.val);
+        signed_init_copy(s, &tmp1);
+        signed_mul(quotient, s, &tmp2);
         bi_free(s.val);
-        s.val = bi_sub(old_s.val, tmp2.val);
-        bi_free(old_s.val);
-        old_s.val = bi_init_and_copy(tmp1.val);
+        signed_sub(old_s, tmp2, &s);
+        signed_free_init_copy(tmp1, &old_s);
         bi_free(tmp1.val);
         bi_free(tmp2.val);
 
         // (old_t, t) := (t, old_t − quotient × t)
-        tmp1.val = bi_init_and_copy(t.val);
-        tmp2.val = bi_mul(quotient.val, t.val);
+        signed_init_copy(t, &tmp1);
+        signed_mul(quotient, t, &tmp2);
         bi_free(t.val);
-        t.val = bi_sub(old_t.val, tmp2.val);
-        bi_free(old_t.val);
-        old_t.val = bi_init_and_copy(tmp1.val);
+        signed_sub(old_t, tmp2, &t);
+        signed_free_init_copy(tmp1, &old_t);
         bi_free(tmp1.val);
         bi_free(tmp2.val);
         bi_free(quotient.val);
@@ -122,20 +145,25 @@ struct lambda_n_d_res calc_lambda_n_d(MPI p, MPI q, MPI e) {
     MPI q_cpy = bi_init_and_copy(q);
     bi_dec(q_cpy);
 
-    res.lambda_n = bi_lcm(p_cpy, q_cpy);
+    struct ext_euc_res euc_res = ext_euc(p_cpy, q_cpy);
+    MPI lcm_tmp1 = bi_eucl_div(p_cpy, euc_res.gcd);
+    res.lambda_n = bi_mul(lcm_tmp1, q_cpy);
 
-    struct ext_euc_res lcm_res = ext_euc(e, res.lambda_n);
-    printf("calculating d, where lambda_n=\n");
-    bi_printf(res.lambda_n);
-    printf("\ne=\n");
-    bi_printf(e);
-    printf("\nlcm_res.bez_x=\n");
-    bi_printf(lcm_res.bez_x);
-    res.d = bi_mod(lcm_res.bez_x, res.lambda_n);
+    bi_free(euc_res.bez_x);
+    bi_free(euc_res.bez_y);
+    bi_free(euc_res.gcd);
 
-    bi_free(lcm_res.bez_x);
-    bi_free(lcm_res.bez_y);
-    bi_free(lcm_res.gcd);
+    euc_res = ext_euc(e, res.lambda_n);
+    res.d = bi_mod(euc_res.bez_x, res.lambda_n);
+    bi_squeeze(res.d);
+
+    bi_free(euc_res.bez_x);
+    bi_free(euc_res.bez_y);
+    bi_free(euc_res.gcd);
+
+    bi_free(p_cpy);
+    bi_free(q_cpy);
+    bi_free(lcm_tmp1);
 
     return res;
 }
@@ -162,7 +190,9 @@ void gen_pub_priv_keys(long seed, struct rsa_public_token *pub,
     pub->n = n;
 
     priv->d = lambda_n_d.d;
-    priv->n = n;
+    priv->n = bi_init_and_copy(n);
 
     bi_free(lambda_n_d.lambda_n);
+    bi_free(state.p);
+    bi_free(state.q);
 }

@@ -21,8 +21,202 @@ void assert(bool result, char *failure_msg) {
     }
 }
 
+void test_ext_euc(void) {
+    // clang-format off
+    uint32_t tests[] = {
+        1, 12,             1, 36,             1, 12,
+        1, 0x00000000,             1, 0x00000000,             1, 0x00000000,
+        1, 0x00000000,             1, 0x00000024,             1, 0x00000024,
+        1, 0x00000024,             1, 0x00000000,             1, 0x00000024,
+        1, 0x0000000C,             1, 0x00000024,             1, 0x0000000C,
+        1, 0x00000007,             1, 0x00000014,             1, 0x00000001,
+        1, 0xFFFFFFFF,             1, 0x00000002,             1, 0x00000001,
+        1, 0x00010000,             1, 0x00100000,             1, 0x00010000,
+        2, 0x00000000, 0x00000001, 1, 0x00000003,             1, 0x00000001,
+        3, 0x00000000, 0x00000000, 0x00000001,
+           2, 0x00010000, 0x00000000,
+           2, 0x00010000, 0x00000000,
+        3, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+           1, 0xFFFFFFFF,
+           1, 0xFFFFFFFF,
+        2, 0x89ABCDEF, 0x01234567,
+           2, 0x89ABCDEF, 0x01234567,
+           2, 0x89ABCDEF, 0x01234567,
+        2, 0x9ABCDEF0, 0x12345678,
+           2, 0x00010000, 0x00000000,
+           1, 0x00000010,
+    };
+    // clang-format on
+
+    uint32_t curr_pos = 0;
+    uint32_t test = 0;
+    while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
+        uint32_t a_words = tests[curr_pos++];
+        MPI a = bi_init(a_words);
+        for (uint32_t j = 0; j < a_words; j++)
+            a->data[j] = tests[curr_pos++];
+
+        uint32_t b_words = tests[curr_pos++];
+        MPI b = bi_init(b_words);
+        for (uint32_t j = 0; j < b_words; j++)
+            b->data[j] = tests[curr_pos++];
+
+        uint32_t eg_words = tests[curr_pos++];
+        MPI expected_gcd = bi_init(eg_words);
+        for (uint32_t j = 0; j < eg_words; j++)
+            expected_gcd->data[j] = tests[curr_pos++];
+
+        struct ext_euc_res res = ext_euc(a, b);
+
+        bool gcd_ok = bi_eq(res.gcd, expected_gcd);
+        assert(gcd_ok, "ext_euc: gcd mismatch");
+        if (!gcd_ok) {
+            printf("case=%d\ba=", test);
+            bi_printf(a);
+            printf("\nb=");
+            bi_printf(b);
+            printf("\nexpected gcd=");
+            bi_printf(expected_gcd);
+            printf("\nreturned gcd=");
+            bi_printf(res.gcd);
+            printf("\nBezout x=");
+            bi_printf(res.bez_x);
+            printf("\nBezout y=");
+            bi_printf(res.bez_y);
+            printf("\n\n");
+        }
+
+        bi_free(a);
+        bi_free(b);
+        bi_free(expected_gcd);
+        bi_free(res.bez_x);
+        bi_free(res.bez_y);
+        bi_free(res.gcd);
+        test++;
+    }
+}
+
+void test_bi_gcd(void) {
+    //   a_words, a[0]..,  b_words, b[0]..,  expected_words, expected[0]..
+    // clang-format off
+    uint32_t tests[] = {
+        1, 0x00000000,   1, 0x00000000,   1, 0x00000000,
+        1, 0x00000000,   1, 0x00000024,   1, 0x00000024,
+        1, 0x0000000C,   1, 0x00000024,   1, 0x0000000C,
+        1, 0x00000007,   1, 0x00000014,   1, 0x00000001,
+        1, 0xFFFFFFFF,   1, 0x00000002,   1, 0x00000001,
+        1, 0x00010000,   1, 0x00100000,   1, 0x00010000,
+        1, 0x00000001,   1, 0x00000001,   1, 0x00000001,
+        2, 0x00000000, 0x00000001,   1, 0x00000003,   1, 0x00000001,
+        3, 0x00000000, 0x00000000, 0x00000001,   2, 0x00010000, 0x00000000,   2, 0x00010000, 0x00000000,
+        3, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,   1, 0xFFFFFFFF,   1, 0xFFFFFFFF,
+        2, 0x00000000, 0x00001234,   2, 0x00000000, 0x00000001,   2, 0x00000000, 0x00000001,
+        2, 0x89ABCDEF, 0x01234567,   2, 0x89ABCDEF, 0x01234567,   2, 0x89ABCDEF, 0x01234567,
+        1, 0x00000000,   3, 0x00000000, 0x00000000, 0x00000001,   3, 0x00000000, 0x00000000, 0x00000001,
+    };
+    // clang-format on
+
+    uint32_t curr = 0;
+    while (curr < sizeof(tests) / sizeof(uint32_t)) {
+        uint32_t a_words = tests[curr++];
+        MPI a = bi_init(a_words);
+        for (uint32_t j = 0; j < a_words; j++)
+            a->data[j] = tests[curr++];
+
+        uint32_t b_words = tests[curr++];
+        MPI b = bi_init(b_words);
+        for (uint32_t j = 0; j < b_words; j++)
+            b->data[j] = tests[curr++];
+
+        uint32_t e_words = tests[curr++];
+        MPI expected = bi_init(e_words);
+        for (uint32_t j = 0; j < e_words; j++)
+            expected->data[j] = tests[curr++];
+
+        MPI got = bi_gcd(a, b);
+
+        bool pass = bi_eq(got, expected);
+        assert(pass, "bi_gcd failed case");
+        if (!pass) {
+            printf("a=");
+            bi_printf(a);
+            printf("\nb=");
+            bi_printf(b);
+            printf("\nexpected gcd=");
+            bi_printf(expected);
+            printf("\ncalculated   =");
+            bi_printf(got);
+            printf("\n\n");
+        }
+
+        bi_free(a);
+        bi_free(b);
+        bi_free(expected);
+        bi_free(got);
+    }
+}
+
+void test_bi_lcm(void) {
+    //   a_words, a[0]..,  b_words, b[0]..,  expected_words, expected[0]..
+    // clang-format off
+    uint32_t tests[] = {
+        1, 0x00000000,   1, 0x00000000,   1, 0x00000000,
+        1, 0x00000000,   1, 0x00000024,   1, 0x00000000,
+        1, 0x0000000C,   1, 0x00000024,   1, 0x00000024,
+        1, 0x00000007,   1, 0x00000014,   1, 0x0000008C,
+        1, 0xFFFFFFFF,   1, 0x00000002,   2, 0xFFFFFFFE, 0x00000001,
+        1, 0x00010000,   1, 0x00100000,   1, 0x00100000,
+        1, 0x00000001,   1, 0x00000001,   1, 0x00000001,
+        2, 0x00000000, 0x00000001,   1, 0x00000003,   2, 0x00000000, 0x00000003,
+        3, 0x00000000, 0x00000000, 0x00000001,   2, 0x00010000, 0x00000000,   3, 0x00000000, 0x00000000, 0x00000001,
+        3, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,   1, 0xFFFFFFFF,   3, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+        2, 0x00000000, 0x00001234,   2, 0x00000000, 0x00000001,   2, 0x00000000, 0x00001234,
+        2, 0x89ABCDEF, 0x01234567,   2, 0x89ABCDEF, 0x01234567,   2, 0x89ABCDEF, 0x01234567,
+        1, 0x00000000,   3, 0x00000000, 0x00000000, 0x00000001,   1, 0x00000000,
+    };
+    // clang-format on
+
+    uint32_t curr = 0;
+    while (curr < sizeof(tests) / sizeof(uint32_t)) {
+        uint32_t a_words = tests[curr++];
+        MPI a = bi_init(a_words);
+        for (uint32_t j = 0; j < a_words; j++)
+            a->data[j] = tests[curr++];
+
+        uint32_t b_words = tests[curr++];
+        MPI b = bi_init(b_words);
+        for (uint32_t j = 0; j < b_words; j++)
+            b->data[j] = tests[curr++];
+
+        uint32_t e_words = tests[curr++];
+        MPI expected = bi_init(e_words);
+        for (uint32_t j = 0; j < e_words; j++)
+            expected->data[j] = tests[curr++];
+
+        MPI got = bi_lcm(a, b);
+
+        bool pass = bi_eq(got, expected);
+        assert(pass, "bi_lcm failed case");
+        if (!pass) {
+            printf("a=");
+            bi_printf(a);
+            printf("\nb=");
+            bi_printf(b);
+            printf("\nexpected lcm=");
+            bi_printf(expected);
+            printf("\ncalculated   =");
+            bi_printf(got);
+            printf("\n\n");
+        }
+
+        bi_free(a);
+        bi_free(b);
+        bi_free(expected);
+        bi_free(got);
+    }
+}
+
 void test_bi_mod_exp(void) {
-    // a ^ b mod m
     // clang-format off
     uint32_t tests[] = {
         // a words, ... a data, b words, ...b data, m words, ... m data, out words, ...out data
@@ -719,6 +913,9 @@ void test_bigint_math_proper(void) {
     test_bi_mod();
     test_bi_mod_exp();
     test_bi_knuth_d();
+    test_bi_gcd();
+    test_bi_lcm();
+    test_ext_euc();
 }
 
 void test_bigint(void) {
@@ -794,13 +991,11 @@ void test_bigint(void) {
 }
 
 void test_rng(void) {
-    struct will_rng_cfg cfg;
     uint32_t seed = 12345678u;
     uint32_t words = 32;
-    cfg.words = words;
 
     MPI res;
-    init_will_rng(&cfg, seed);
+    will_rng_init(seed);
 
     // See how many rng gens we can get done in a second
     uint64_t counter = 0;
@@ -845,13 +1040,18 @@ void test_rsa(void) {
 
     gen_pub_priv_keys(seed, &pub, &priv, RSA_MODE_512);
 
-    printf("Generated public and private keys for RSA\nn:\n");
+    printf("Generated public and private keys for RSA (512 bit key)\nn:\n");
     bi_printf(pub.n);
-    printf("\n,e:\n");
+    printf("\ne:\n");
     bi_printf(pub.e);
     printf("\nd:\n");
     bi_printf(priv.d);
     printf("\n");
+
+    bi_free(pub.e);
+    bi_free(pub.n);
+    bi_free(priv.d);
+    bi_free(priv.n);
 }
 
 void test_primality(void) {
@@ -916,19 +1116,15 @@ void test_primality(void) {
     bi_free(sd.s);
     bi_free(sd.d);
 
-    struct will_rng_cfg cfg;
     uint32_t seed = 12345678u;
     uint32_t words = 32;
-    cfg.words = words;
-    init_will_rng(&cfg, seed);
+    will_rng_init(seed);
     MPI test_prime = will_rng_next(words);
     miller_rabin(test_prime, 1000);
     bi_free(test_prime);
 
     // this one takes a while, so if we've had errors elsewhere, don't run it
     if (failures == 0) {
-        uint64_t counter = 0;
-
         clock_t start = clock();
         MPI generated_prime = gen_prime(words);
         clock_t ticks = clock() - start;
@@ -984,7 +1180,9 @@ void tests(void) {
     printf("Tests: %d. Passes: %d. Failures: %d\n", successes + failures,
            successes, failures);
 
-    // test_rsa();
+    printf("\n----Starting RSA test-----\n");
+    test_rsa();
+    printf("\n----Finishing RSA test-----\n");
 }
 
 int main(void) { tests(); }
