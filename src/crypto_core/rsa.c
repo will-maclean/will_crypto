@@ -1,7 +1,7 @@
-#include "rsa.h"
-#include "bigint.h"
-#include "primality.h"
-#include "rng.h"
+#include <bigint/bigint.h>
+#include <crypto_core/primality.h>
+#include <crypto_core/rsa.h>
+#include <rng/rng.h>
 #include <stdio.h>
 #include <stdlib.h>
 

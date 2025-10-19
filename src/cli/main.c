@@ -1,5 +1,5 @@
-#include "bigint.h"
-#include "rsa.h"
+#include <bigint/bigint.h>
+#include <crypto_core/rsa.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -1,4 +1,4 @@
-#include "bigint.h"
+#include <bigint/bigint.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>

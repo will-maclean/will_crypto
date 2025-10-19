@@ -1,8 +1,8 @@
-#include "bigint.h"
-#include "chacha.h"
-#include "primality.h"
-#include "rng.h"
-#include "rsa.h"
+#include <bigint/bigint.h>
+#include <crypto_core/primality.h>
+#include <crypto_core/rsa.h>
+#include <rng/chacha.h>
+#include <rng/rng.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>

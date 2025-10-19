@@ -1,7 +1,7 @@
 #ifndef __rsa
 #define __rsa
 
-#include "bigint.h"
+#include <bigint/bigint.h>
 #include <stdbool.h>
 
 #define RSA_DEFAULT_E 65537

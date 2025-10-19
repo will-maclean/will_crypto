@@ -1,5 +1,5 @@
-#include "rng.h"
-#include "chacha.h"
+#include <rng/chacha.h>
+#include <rng/rng.h>
 #include <stdint.h>
 #include <string.h>
 

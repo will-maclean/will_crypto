@@ -1,7 +1,7 @@
 #ifndef __primality
 #define __primality
 
-#include "bigint.h"
+#include <bigint/bigint.h>
 #include <stdbool.h>
 
 struct mr_sd {
