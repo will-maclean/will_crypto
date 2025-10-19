@@ -2,6 +2,9 @@
 #include <rng/rng.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
+
+static bool inited = false;
 
 struct will_rng_state {
     uint32_t prev[16];
@@ -13,6 +16,8 @@ void will_rng_init(uint32_t seed) {
     // Probably not the most secure seeding method...
     for (int i = 0; i < 16; i++)
         rng_state.prev[i] = i * seed;
+    
+    inited = true;
 }
 
 MPI will_rng_next(int words) {
@@ -25,6 +30,10 @@ MPI will_rng_next(int words) {
      * 	3. Set the chacha output to that same 512 bit block in rng_state->prev,
      * as well as the matching block in *res
      */
+
+    if(!inited){
+        will_rng_init(time(NULL));
+    }
 
     MPI res = bi_init(words);
 
