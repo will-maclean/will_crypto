@@ -48,4 +48,10 @@ MPI gen_e(void);
 void gen_pub_priv_keys(long seed, struct rsa_public_token *pub,
                        struct rsa_private_token *priv, rsa_mode_t mode);
 
+void pub_key_to_file(struct rsa_public_token *pub, char *path,
+                     bool overwrite_existing);
+void priv_key_to_file(struct rsa_private_token *pub, char *path,
+                      bool overwrite_existing);
+void pub_key_from_file(struct rsa_public_token *pub, char *path);
+void priv_key_from_file(struct rsa_private_token *pub, char *path);
 #endif

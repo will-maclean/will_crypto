@@ -12,7 +12,7 @@ list(REMOVE_ITEM SRC_FILES
     ${PROJECT_SOURCE_DIR}/src/tests.c
 )
 
-add_executable(main
+add_executable(will_crypto
     ${SRC_FILES}
     ${PROJECT_SOURCE_DIR}/src/main.c
 )
@@ -25,7 +25,7 @@ add_executable(tests
 set (CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
 set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
 
-set_target_properties(main tests
+set_target_properties(will_crypto tests
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin
     COMPILE_FLAGS "-g -Wall -Wextra -pedantic"

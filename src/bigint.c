@@ -708,12 +708,49 @@ MPI bi_eucl_div(MPI a, MPI b) {
     return res.x;
 }
 
-void bi_printf(MPI x) {
+void bi_print(MPI x) {
     printf("0x");
     for (int32_t i = x->words - 1; i > 0; i--) {
         printf("%08x", x->data[i]);
     }
     printf("%08x", x->data[0]);
+}
+
+void bi_printf(MPI x, FILE *fp) {
+    for (int32_t i = x->words - 1; i >= 0; i--) {
+        fprintf(fp, "%08x", x->data[i]);
+    }
+}
+
+MPI from_hex_str(char *str) {
+    uint32_t len = strlen(str);
+    uint32_t words = len / 8;
+
+    MPI res = bi_init(words);
+
+    // note - in a string representation,
+    // left->right is most significant -> least
+    // significant. But, our lib is idx 0 = least
+    // significant, increasing. So the first word
+    // in the string will be the most significant
+    // word in the output, which goes at the end.
+    char *endptr;
+    for (uint32_t i = 0; i < words; i++) {
+        // extract the substr for the curr word
+        char slice[9];
+        strncpy(slice, str + i, ((uint64_t)str + (i + 8ull)));
+        slice[8] = '\0';
+
+        // parse the substr
+        res->data[res->words - i - 1] = strtoul(slice, &endptr, 16);
+
+        if (*endptr != '\0') {
+            printf("Failed parsing MPI string %s\nExiting.", str);
+            exit(1);
+        }
+    }
+
+    return res;
 }
 
 void bi_inc(MPI x) {

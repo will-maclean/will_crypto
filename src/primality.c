@@ -5,45 +5,21 @@
 #include <stdlib.h>
 
 struct mr_sd miller_rabin_sd(MPI n) {
-    // printf("Starting MR SD\n");
     MPI s = bi_init_like(n);
     MPI tmp_two = bi_init_like(n);
-    // printf("\ntmp_two=\n");
-    // bi_printf(tmp_two);
     bi_set(tmp_two, 2u);
-    // printf("\ntmp_two=\n");
-    // bi_printf(tmp_two);
     MPI tmp_zero = bi_init_like(n);
     bi_set(tmp_zero, 0u);
 
     MPI d = bi_init_and_copy(n);
     bi_dec(d);
 
-    // printf("Starting MR SD while loop\n");
     while (bi_even(d)) {
-
-        // printf("About to do eucl div. d=\n");
-        // bi_printf(d);
-        // printf("\ntmp_two=\n");
-        // bi_printf(tmp_two);
-
-        // printf("\nstarting euc div\n");
         MPI tmp = bi_eucl_div(d, tmp_two);
-        // printf("\nMR SD while loop 1\n");
-
         bi_copy(tmp, d);
-        // printf("MR SD while loop 1\n");
-
         bi_free(tmp);
-        // printf("MR SD while loop 1\n");
-
         bi_inc(s);
-        // printf("MR SD while loop 1\n");
     }
-
-    // TODO: assert d * 2 ^ s = n - 1
-    //  bi_squeeze(s);
-    //  bi_squeeze(d);
 
     bi_free(tmp_two);
     bi_free(tmp_zero);
@@ -81,7 +57,7 @@ MPI miller_rabin_randn(MPI n) {
 
     printf(
         "WARNING: miller_rabin_randn failed to find a suitable rand for n:\n");
-    bi_printf(n);
+    bi_print(n);
     printf("\n");
 
     bi_free(n_minus_two);

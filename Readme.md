@@ -9,6 +9,7 @@ of functionality:
 - Prime number generation (working)
 - RSA keygen (working)
 - RSA encryption/decryption, including padding scheme (todo)
+- CLI (supports RSA keygen)
 
 ## Installation
 ```bash
@@ -21,7 +22,30 @@ make
 # binaries are now available in will_crypto/bin
 ```
 
-## Usage
+## Usage: `will_crypto`
+RSA keygen: `bin\will_crypto gen_keys`
+Sample output:
+```
+Generating keys for will_rsa
+Saved public key to ./will_rsa.pub
+Saved private key to ./will_rsa.priv
+```
+And file contents like:
+```
+# will_rsa.pub
+3bf179584bddddaa276e4ec354eb5c423daa330d635f77dadef3d236c4970bc2178f3ac59dfcfa9e42036d17d28e2bd3ca761c3961f24b79a418db3948c0e2721b55593ec72362c31a24773069f43eaee8e1b429f11bee319c1bf556296654110850bcc454aa0ff43fefa14dcdfa7f7737b0afca2b96c9eae2ec6e55a4705e6d
+00010001
+will_rsa(public)
+```
+```
+# will_rsa.priv
+3bf179584bddddaa276e4ec354eb5c423daa330d635f77dadef3d236c4970bc2178f3ac59dfcfa9e42036d17d28e2bd3ca761c3961f24b79a418db3948c0e2721b55593ec72362c31a24773069f43eaee8e1b429f11bee319c1bf556296654110850bcc454aa0ff43fefa14dcdfa7f7737b0afca2b96c9eae2ec6e55a4705e6d
+00000dc5ef5a1023
+will_rsa(private)
+```
+
+
+## Usage: `tests`
 Tests: `bin/tests`
 
 Sample output:

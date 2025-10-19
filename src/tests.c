@@ -72,17 +72,17 @@ void test_ext_euc(void) {
         assert(gcd_ok, "ext_euc: gcd mismatch");
         if (!gcd_ok) {
             printf("case=%d\ba=", test);
-            bi_printf(a);
+            bi_print(a);
             printf("\nb=");
-            bi_printf(b);
+            bi_print(b);
             printf("\nexpected gcd=");
-            bi_printf(expected_gcd);
+            bi_print(expected_gcd);
             printf("\nreturned gcd=");
-            bi_printf(res.gcd);
+            bi_print(res.gcd);
             printf("\nBezout x=");
-            bi_printf(res.bez_x);
+            bi_print(res.bez_x);
             printf("\nBezout y=");
-            bi_printf(res.bez_y);
+            bi_print(res.bez_y);
             printf("\n\n");
         }
 
@@ -139,13 +139,13 @@ void test_bi_gcd(void) {
         assert(pass, "bi_gcd failed case");
         if (!pass) {
             printf("a=");
-            bi_printf(a);
+            bi_print(a);
             printf("\nb=");
-            bi_printf(b);
+            bi_print(b);
             printf("\nexpected gcd=");
-            bi_printf(expected);
+            bi_print(expected);
             printf("\ncalculated   =");
-            bi_printf(got);
+            bi_print(got);
             printf("\n\n");
         }
 
@@ -199,13 +199,13 @@ void test_bi_lcm(void) {
         assert(pass, "bi_lcm failed case");
         if (!pass) {
             printf("a=");
-            bi_printf(a);
+            bi_print(a);
             printf("\nb=");
-            bi_printf(b);
+            bi_print(b);
             printf("\nexpected lcm=");
-            bi_printf(expected);
+            bi_print(expected);
             printf("\ncalculated   =");
-            bi_printf(got);
+            bi_print(got);
             printf("\n\n");
         }
 
@@ -280,15 +280,15 @@ void test_bi_mod_exp(void) {
         assert(pass, "bi_mod_exp failed_exp case");
         if (!pass) {
             printf("a=");
-            bi_printf(a);
+            bi_print(a);
             printf("\nb=");
-            bi_printf(b);
+            bi_print(b);
             printf("\nm=");
-            bi_printf(m);
+            bi_print(m);
             printf("\ncalculated (a^b)%%m=");
-            bi_printf(res);
+            bi_print(res);
             printf("\nexpected res      =");
-            bi_printf(expected_res);
+            bi_print(expected_res);
             printf("\n\n");
         }
 
@@ -349,14 +349,14 @@ void test_bi_knuth_d(void) {
         assert(pass, "bi_knuth_d failed case");
         if (!pass) {
             printf("test case %d\nu=", test);
-            bi_printf(u);
+            bi_print(u);
             printf("\nv=");
-            bi_printf(v);
+            bi_print(v);
             printf("\nreturn_quotient=%d", (int)return_quotient);
             printf("\ncalculated=");
-            bi_printf(got);
+            bi_print(got);
             printf("\nexpected  =");
-            bi_printf(expected);
+            bi_print(expected);
             printf("\n\n");
         }
 
@@ -409,12 +409,12 @@ void test_bi_shift_left(void) {
         assert(pass, "bi_shift_left failed case");
         if (!pass) {
             printf("case %d\na=", test);
-            bi_printf(a);
+            bi_print(a);
             printf("\nn=%u", n);
             printf("\ncalculated a<<n=");
-            bi_printf(got);
+            bi_print(got);
             printf("\nexpected       =");
-            bi_printf(expected);
+            bi_print(expected);
             printf("\n\n");
         }
 
@@ -481,13 +481,13 @@ void test_bi_mod(void) {
         assert(pass, "bi_mod failed case");
         if (!pass) {
             printf("a=");
-            bi_printf(a);
+            bi_print(a);
             printf("\nb=");
-            bi_printf(b);
+            bi_print(b);
             printf("\ncalculated a%%b=");
-            bi_printf(res);
+            bi_print(res);
             printf("\nexpected res   =");
-            bi_printf(expected_res);
+            bi_print(expected_res);
             printf("\n\n");
         }
 
@@ -554,13 +554,13 @@ void test_bi_mul(void) {
         assert(pass, "bi_mul failed case");
         if (!pass) {
             printf("test case: %d\na=", test);
-            bi_printf(a);
+            bi_print(a);
             printf("\nb=");
-            bi_printf(b);
+            bi_print(b);
             printf("\ncalculated a*b=");
-            bi_printf(res);
+            bi_print(res);
             printf("\nexpected res  =");
-            bi_printf(expected_res);
+            bi_print(expected_res);
             printf("\n\n");
         }
 
@@ -634,11 +634,11 @@ void test_bi_pow(void) {
         assert(pass, "bi_pow_imm failed case");
         if (!pass) {
             printf("a=");
-            bi_printf(a);
+            bi_print(a);
             printf("\nb=%d\ncalculated a^b=", b);
-            bi_printf(res);
+            bi_print(res);
             printf("\nexptected res=");
-            bi_printf(expected_res);
+            bi_print(expected_res);
             printf("\n\n");
         }
 
@@ -687,12 +687,12 @@ void test_bi_shift_right(void) {
         assert(pass, "bi_shift_right failed case");
         if (!pass) {
             printf("a=");
-            bi_printf(a);
+            bi_print(a);
             printf("\nn=%u", n);
             printf("\ncalculated a>>n=");
-            bi_printf(got);
+            bi_print(got);
             printf("\nexpected       =");
-            bi_printf(expected);
+            bi_print(expected);
             printf("\n\n");
         }
 
@@ -772,11 +772,11 @@ void test_bigint_math_proper(void) {
     assert(passed, "bigint 1-word multiplication");
     if (!passed) {
         printf("a, b, res:\n");
-        bi_printf(a);
+        bi_print(a);
         printf("\n");
-        bi_printf(b);
+        bi_print(b);
         printf("\n");
-        bi_printf(res);
+        bi_print(res);
         printf("\n\n");
     }
     bi_free(res);
@@ -800,11 +800,11 @@ void test_bigint_math_proper(void) {
     assert(passed, "bigint 2-word euclidian division");
     if (!passed) {
         printf("a, b, res:\n");
-        bi_printf(a_euc);
+        bi_print(a_euc);
         printf("\n");
-        bi_printf(b_euc);
+        bi_print(b_euc);
         printf("\n");
-        bi_printf(res);
+        bi_print(res);
         printf("\n\n");
     }
     bi_free(res);
@@ -845,9 +845,9 @@ void test_bigint_math_proper(void) {
     assert(passed, "bigint 2-word decrement");
     if (!passed) {
         printf("a, expected_res:\n");
-        bi_printf(a);
+        bi_print(a);
         printf("\n");
-        bi_printf(expected_res);
+        bi_print(expected_res);
         printf("\n");
     }
 
@@ -1041,11 +1041,11 @@ void test_rsa(void) {
     gen_pub_priv_keys(seed, &pub, &priv, RSA_MODE_512);
 
     printf("Generated public and private keys for RSA (512 bit key)\nn:\n");
-    bi_printf(pub.n);
+    bi_print(pub.n);
     printf("\ne:\n");
-    bi_printf(pub.e);
+    bi_print(pub.e);
     printf("\nd:\n");
-    bi_printf(priv.d);
+    bi_print(priv.d);
     printf("\n");
 
     bi_free(pub.e);
@@ -1135,7 +1135,7 @@ void test_primality(void) {
         if (generated_prime) {
             printf("Generated prime:\n");
             printf("\n");
-            bi_printf(generated_prime);
+            bi_print(generated_prime);
         } else {
             printf("Failed to generate prime\n");
         }

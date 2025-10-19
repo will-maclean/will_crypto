@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 struct bigint {
     uint32_t words;
@@ -96,7 +97,8 @@ MPI bi_xor(MPI a, MPI b);
 MPI bi_not(MPI a);
 MPI bi_shift_left(MPI a, uint32_t n);
 MPI bi_shift_right(MPI a, uint32_t n);
-void bi_printf(MPI x);
+void bi_print(MPI x);
+void bi_printf(MPI x, FILE *fp);
 
 // helper functions
 MPI bi_concat(MPI a, MPI b);
@@ -115,5 +117,7 @@ void bi_squeeze(MPI x);
 
 MPI bi_lcm(MPI a, MPI b);
 MPI bi_gcd(MPI a, MPI b);
+
+MPI from_hex_str(char *str);
 
 #endif

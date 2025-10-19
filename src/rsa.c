@@ -3,6 +3,7 @@
 #include "primality.h"
 #include "rng.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 void load_new_primes(struct rsa_state *new_state, uint32_t seed,
                      rsa_mode_t mode) {
@@ -195,4 +196,121 @@ void gen_pub_priv_keys(long seed, struct rsa_public_token *pub,
     bi_free(lambda_n_d.lambda_n);
     bi_free(state.p);
     bi_free(state.q);
+}
+
+bool file_exists(char *path) {
+    FILE *fp;
+    fp = fopen(path, "r");
+
+    if (fp) {
+        fclose(fp);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// public key file standard will be simple: numbers stored in hex format, n on
+// first line, e on second line
+void pub_key_to_file(struct rsa_public_token *pub, char *path,
+                     bool overwrite_existing) {
+    if (file_exists(path) && !overwrite_existing) {
+        printf(
+            "Public key file %s already exists! Exiting without overwriting\n",
+            path);
+        exit(1);
+    }
+
+    FILE *fp;
+    fp = fopen(path, "w");
+
+    if (fp) {
+
+        bi_printf(pub->n, fp);
+        fprintf(fp, "\n");
+        bi_printf(pub->e, fp);
+        fprintf(fp, "\nwill_rsa(public)\n");
+        fclose(fp);
+
+    } else {
+        printf("Unable to open public key file %s. Private.", path);
+        exit(1);
+    }
+}
+
+void pub_key_from_file(struct rsa_public_token *pub, char *path) {
+    if (!file_exists(path)) {
+        printf("Public key file %s does not exist! Exiting.\n", path);
+        exit(1);
+    }
+
+    FILE *fp;
+    fp = fopen(path, "r");
+
+    if (fp) {
+        char n_str[4096];
+        char e_str[4096];
+        fscanf(fp, "%s\n%s\n", n_str, e_str);
+
+        pub->n = from_hex_str(n_str);
+        pub->e = from_hex_str(e_str);
+        fclose(fp);
+    } else {
+        printf("Unable to open public key file %s", path);
+        exit(1);
+    }
+}
+
+// private key file standard will be simple: numbers stored in hex format, n on
+// first line, d on second line
+void priv_key_to_file(struct rsa_private_token *priv, char *path,
+                      bool overwrite_existing) {
+    if (file_exists(path) && !overwrite_existing) {
+        printf(
+            "Private key file %s already exists! Exiting without overwriting\n",
+            path);
+        exit(1);
+    }
+
+    FILE *fp;
+    fp = fopen(path, "w");
+
+    if (fp) {
+
+        bi_printf(priv->n, fp);
+        fprintf(fp, "\n");
+        bi_printf(priv->d, fp);
+        fprintf(fp, "\nwill_rsa(private)\n");
+
+        fclose(fp);
+
+    } else {
+        printf("Unable to open private key file %s. Exiting.", path);
+        exit(1);
+    }
+}
+
+void priv_key_from_file(struct rsa_private_token *priv, char *path) {
+    if (!file_exists(path)) {
+        printf("Private key file %s does not exist! Exiting.\n", path);
+        exit(1);
+    }
+
+    FILE *fp;
+    fp = fopen(path, "r");
+
+    if (fp) {
+        char n_str[4096];
+        char d_str[4096];
+        fgets(n_str, sizeof(n_str), fp);
+        fgets(d_str, sizeof(d_str), fp);
+
+        priv->n = from_hex_str(n_str);
+        priv->d = from_hex_str(d_str);
+
+        fclose(fp);
+    } else {
+        printf("Unable to open public key file %s", path);
+        exit(1);
+    }
 }
