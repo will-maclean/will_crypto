@@ -5,5 +5,5 @@
 #include <stdint.h>
 
 void will_rng_init(uint32_t seed);
-MPI will_rng_next(int words);
+MPI will_rng_next(uint32_t words);
 #endif

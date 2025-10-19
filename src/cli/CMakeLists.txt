@@ -18,8 +18,5 @@ will_crypto::crypto_core
 set_target_properties(will_crypto 
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin
-    COMPILE_FLAGS "-Wall -Wextra -pedantic"
+    COMPILE_FLAGS "-O3"
 )
-
-set (CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
-set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")

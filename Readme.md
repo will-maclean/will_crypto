@@ -98,3 +98,243 @@ Sample output:
 
 Total Test time (real) =  49.36 sec
 ```
+
+## Benchmarking
+Build benchmarking target:
+`cmake --build build --target benchmarking`
+
+Run benchmarking:
+`./bin/benchmarking`
+
+Current benchmarking summary results are:
+```
+----BENCHMARK RESULTS----
+
+        Function: bi_add
+        N trials: 100
+        N words for inputs: 1
+        Avg exe ms: 0.000830
+
+        Function: bi_add
+        N trials: 100
+        N words for inputs: 2
+        Avg exe ms: 0.000790
+
+        Function: bi_add
+        N trials: 100
+        N words for inputs: 4
+        Avg exe ms: 0.000870
+
+        Function: bi_add
+        N trials: 100
+        N words for inputs: 8
+        Avg exe ms: 0.000940
+
+        Function: bi_add
+        N trials: 100
+        N words for inputs: 32
+        Avg exe ms: 0.001390
+
+        Function: bi_add
+        N trials: 100
+        N words for inputs: 64
+        Avg exe ms: 0.001810
+
+        Function: bi_add
+        N trials: 100
+        N words for inputs: 128
+        Avg exe ms: 0.002000
+
+        Function: bi_sub
+        N trials: 100
+        N words for inputs: 1
+        Avg exe ms: 0.000570
+
+        Function: bi_sub
+        N trials: 100
+        N words for inputs: 2
+        Avg exe ms: 0.000600
+
+        Function: bi_sub
+        N trials: 100
+        N words for inputs: 4
+        Avg exe ms: 0.000570
+
+        Function: bi_sub
+        N trials: 100
+        N words for inputs: 8
+        Avg exe ms: 0.000520
+
+        Function: bi_sub
+        N trials: 100
+        N words for inputs: 32
+        Avg exe ms: 0.000750
+
+        Function: bi_sub
+        N trials: 100
+        N words for inputs: 64
+        Avg exe ms: 0.000870
+
+        Function: bi_sub
+        N trials: 100
+        N words for inputs: 128
+        Avg exe ms: 0.001270
+
+        Function: bi_mul
+        N trials: 100
+        N words for inputs: 1
+        Avg exe ms: 0.000500
+
+        Function: bi_mul
+        N trials: 100
+        N words for inputs: 2
+        Avg exe ms: 0.000540
+
+        Function: bi_mul
+        N trials: 100
+        N words for inputs: 4
+        Avg exe ms: 0.000640
+
+        Function: bi_mul
+        N trials: 100
+        N words for inputs: 8
+        Avg exe ms: 0.000930
+
+        Function: bi_mul
+        N trials: 100
+        N words for inputs: 32
+        Avg exe ms: 0.006780
+
+        Function: bi_mul
+        N trials: 100
+        N words for inputs: 64
+        Avg exe ms: 0.025670
+
+        Function: bi_mul
+        N trials: 100
+        N words for inputs: 128
+        Avg exe ms: 0.100770
+
+        Function: bi_eucl_div
+        N trials: 100
+        N words for inputs: 1
+        Avg exe ms: 0.000570
+
+        Function: bi_eucl_div
+        N trials: 100
+        N words for inputs: 2
+        Avg exe ms: 0.000670
+
+        Function: bi_eucl_div
+        N trials: 100
+        N words for inputs: 4
+        Avg exe ms: 0.000650
+
+        Function: bi_eucl_div
+        N trials: 100
+        N words for inputs: 8
+        Avg exe ms: 0.000730
+
+        Function: bi_eucl_div
+        N trials: 100
+        N words for inputs: 32
+        Avg exe ms: 0.001070
+
+        Function: bi_eucl_div
+        N trials: 100
+        N words for inputs: 64
+        Avg exe ms: 0.001170
+
+        Function: bi_eucl_div
+        N trials: 100
+        N words for inputs: 128
+        Avg exe ms: 0.001580
+
+        Function: bi_mod
+        N trials: 100
+        N words for inputs: 1
+        Avg exe ms: 0.000570
+
+        Function: bi_mod
+        N trials: 100
+        N words for inputs: 2
+        Avg exe ms: 0.000740
+
+        Function: bi_mod
+        N trials: 100
+        N words for inputs: 4
+        Avg exe ms: 0.000730
+
+        Function: bi_mod
+        N trials: 100
+        N words for inputs: 8
+        Avg exe ms: 0.000740
+
+        Function: bi_mod
+        N trials: 100
+        N words for inputs: 32
+        Avg exe ms: 0.001050
+
+        Function: bi_mod
+        N trials: 100
+        N words for inputs: 64
+        Avg exe ms: 0.001220
+
+        Function: bi_mod
+        N trials: 100
+        N words for inputs: 128
+        Avg exe ms: 0.001880
+
+        Function: rng
+        N trials: 100
+        N words for inputs: 32
+        Avg exe ms: 0.001740
+
+        Function: rng
+        N trials: 100
+        N words for inputs: 64
+        Avg exe ms: 0.002980
+
+        Function: rng
+        N trials: 100
+        N words for inputs: 128
+        Avg exe ms: 0.005420
+
+        Function: gen_prime
+        N trials: 1
+        N words for inputs: 1
+        Avg exe ms: 1.346000
+
+        Function: gen_prime
+        N trials: 1
+        N words for inputs: 2
+        Avg exe ms: 1.710000
+
+        Function: gen_prime
+        N trials: 1
+        N words for inputs: 4
+        Avg exe ms: 2.676000
+
+        Function: gen_prime
+        N trials: 1
+        N words for inputs: 8
+        Avg exe ms: 32.871998
+
+        Function: gen_prime
+        N trials: 1
+        N words for inputs: 16
+        Avg exe ms: 103.470001
+
+        Function: gen_prime
+        N trials: 1
+        N words for inputs: 32
+        Avg exe ms: 3276.571045
+
+        Function: gen_prime
+        N trials: 1
+        N words for inputs: 64
+        Avg exe ms: 50792.167969
+
+
+----END BENCHMARK RESULTS----
+```

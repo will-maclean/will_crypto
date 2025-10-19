@@ -19,5 +19,5 @@ bool __miller_rabin_inner_check(MPI n, MPI a, struct mr_sd sd);
  */
 bool miller_rabin(MPI x, int k);
 
-MPI gen_prime(int words);
+MPI gen_prime(uint32_t words);
 #endif

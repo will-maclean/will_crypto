@@ -20,7 +20,7 @@ void will_rng_init(uint32_t seed) {
     inited = true;
 }
 
-MPI will_rng_next(int words) {
+MPI will_rng_next(uint32_t words) {
     /*
      * Idea is as follows:
      *

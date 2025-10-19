@@ -1,5 +1,6 @@
 #include <bigint/bigint.h>
 #include <crypto_core/rsa.h>
+#include <crypto_core/primality.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,7 +22,7 @@ void print_help_and_exit(int exit_code) {
 
 typedef enum program_function_t {
     gen_keys,
-
+    gen_prime_fn,
 } program_function_t;
 
 typedef struct {
@@ -34,10 +35,16 @@ typedef struct {
 } gen_keys_args_t;
 
 typedef struct {
+    uint32_t words;
+
+} gen_prime_args_t;
+
+typedef struct {
     program_function_t function;
 
     union {
         gen_keys_args_t gen_keys_args;
+        gen_prime_args_t gen_prime_args;
     } args;
 } program_inputs_t;
 
@@ -59,6 +66,10 @@ program_inputs_t parse_args(int argc, char *argv[]) {
         strcpy(res.args.gen_keys_args.public_key_filename, "will_rsa.pub");
         res.args.gen_keys_args.seed = time(NULL);
         res.args.gen_keys_args.rsa_mode = RSA_MODE_1024;
+    } else if (!strcmp(fn_name, "gen_prime")) {
+                res.function = gen_prime_fn;
+
+        res.args.gen_prime_args.words = 16;
 
     } else if (!strcmp(fn_name, "help")) {
         print_help_and_exit(0);
@@ -113,6 +124,11 @@ int main(int argc, char *argv[]) {
     switch (args.function) {
     case gen_keys:
         cmdline_gen_keys(args.args.gen_keys_args);
+        break;
+    case gen_prime_fn:
+        MPI prime = gen_prime(args.args.gen_prime_args.words);
+        bi_print(prime);
+        bi_free(prime);
         break;
     }
 

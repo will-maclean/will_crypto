@@ -160,7 +160,7 @@ bool miller_rabin(MPI n, int k) {
     return true;
 }
 
-MPI gen_prime(int words) {
+MPI gen_prime(uint32_t words) {
     int max_tries = 10000;
     int mr_k = 20;
     MPI res;
