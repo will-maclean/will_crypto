@@ -18,5 +18,5 @@ will_crypto::crypto_core
 set_target_properties(benchmarking 
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin
-    # COMPILE_FLAGS "-O3"
+    COMPILE_FLAGS "-O3"
 )

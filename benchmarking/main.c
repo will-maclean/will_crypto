@@ -127,14 +127,14 @@ int main(void) {
         {"rng", void_uint32, .fn._void_uint32_fn = will_rng_next, 100, 32},
         {"rng", void_uint32, .fn._void_uint32_fn = will_rng_next, 100, 64},
         {"rng", void_uint32, .fn._void_uint32_fn = will_rng_next, 100, 128},
-        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 1, 1},
-        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 1, 2},
-        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 1, 4},
-        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 1, 8},
-        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 1, 16},
-        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 1, 32},
-        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 1, 64},
-        // {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 1, 128}, // still takes too long :(
+        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 100, 1},
+        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 100, 2},
+        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 100, 4},
+        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 100, 8},
+        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 10, 16},
+        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 10, 32},
+        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 10, 64},
+        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 1, 128},
     };
 
     int n_configs = sizeof(configs) / sizeof(test_config_t);

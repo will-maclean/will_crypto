@@ -4,6 +4,24 @@
 #include <rng/rng.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+static void rsa_mode_to_str(rsa_mode_t mode, char *res) {
+    switch (mode) {
+    case RSA_MODE_512:
+        strcpy(res, "will_rsa_512");
+        break;
+    case RSA_MODE_1024:
+        strcpy(res, "will_rsa_1024");
+        break;
+    case RSA_MODE_2048:
+        strcpy(res, "will_rsa_2048");
+        break;
+    case RSA_MODE_4096:
+        strcpy(res, "will_rsa_4096");
+        break;
+    }
+}
 
 void load_new_primes(struct rsa_state *new_state, uint32_t seed,
                      rsa_mode_t mode) {
@@ -14,6 +32,12 @@ void load_new_primes(struct rsa_state *new_state, uint32_t seed,
         break;
     case RSA_MODE_512:
         prime_words = 8;
+        break;
+    case RSA_MODE_2048:
+        prime_words = 32;
+        break;
+    case RSA_MODE_4096:
+        prime_words = 64;
         break;
     }
 
@@ -212,7 +236,7 @@ bool file_exists(char *path) {
 
 // public key file standard will be simple: numbers stored in hex format, n on
 // first line, e on second line
-void pub_key_to_file(struct rsa_public_token *pub, char *path,
+void pub_key_to_file(struct rsa_public_token *pub, char *path, rsa_mode_t mode,
                      bool overwrite_existing) {
     if (file_exists(path) && !overwrite_existing) {
         printf(
@@ -225,11 +249,13 @@ void pub_key_to_file(struct rsa_public_token *pub, char *path,
     fp = fopen(path, "w");
 
     if (fp) {
+        char name[256];
+        rsa_mode_to_str(mode, name);
 
         bi_printf(pub->n, fp);
         fprintf(fp, "\n");
         bi_printf(pub->e, fp);
-        fprintf(fp, "\nwill_rsa(public)\n");
+        fprintf(fp, "\n%s(public)\n", name);
         fclose(fp);
 
     } else {
@@ -264,7 +290,7 @@ void pub_key_from_file(struct rsa_public_token *pub, char *path) {
 // private key file standard will be simple: numbers stored in hex format, n on
 // first line, d on second line
 void priv_key_to_file(struct rsa_private_token *priv, char *path,
-                      bool overwrite_existing) {
+                      rsa_mode_t mode, bool overwrite_existing) {
     if (file_exists(path) && !overwrite_existing) {
         printf(
             "Private key file %s already exists! Exiting without overwriting\n",
@@ -276,11 +302,13 @@ void priv_key_to_file(struct rsa_private_token *priv, char *path,
     fp = fopen(path, "w");
 
     if (fp) {
+        char name[256];
+        rsa_mode_to_str(mode, name);
 
         bi_printf(priv->n, fp);
         fprintf(fp, "\n");
         bi_printf(priv->d, fp);
-        fprintf(fp, "\nwill_rsa(private)\n");
+        fprintf(fp, "\n%s(private)\n", name);
 
         fclose(fp);
 

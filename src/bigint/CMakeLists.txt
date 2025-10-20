@@ -10,3 +10,8 @@ target_include_directories(bigint
   PRIVATE
     ${CMAKE_CURRENT_DIR}
 )
+
+set_target_properties(bigint 
+    PROPERTIES
+    COMPILE_FLAGS "-O3"
+)

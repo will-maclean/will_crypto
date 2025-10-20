@@ -1,6 +1,6 @@
 #include <bigint/bigint.h>
-#include <crypto_core/rsa.h>
 #include <crypto_core/primality.h>
+#include <crypto_core/rsa.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -65,11 +65,11 @@ program_inputs_t parse_args(int argc, char *argv[]) {
         strcpy(res.args.gen_keys_args.private_key_filename, "will_rsa.priv");
         strcpy(res.args.gen_keys_args.public_key_filename, "will_rsa.pub");
         res.args.gen_keys_args.seed = time(NULL);
-        res.args.gen_keys_args.rsa_mode = RSA_MODE_1024;
+        res.args.gen_keys_args.rsa_mode = RSA_MODE_4096;
     } else if (!strcmp(fn_name, "gen_prime")) {
-                res.function = gen_prime_fn;
+        res.function = gen_prime_fn;
 
-        res.args.gen_prime_args.words = 16;
+        res.args.gen_prime_args.words = 128;
 
     } else if (!strcmp(fn_name, "help")) {
         print_help_and_exit(0);
@@ -105,8 +105,8 @@ void cmdline_gen_keys(gen_keys_args_t args) {
     join_dir_and_filename(args.output_dir, args.private_key_filename,
                           full_private_filepath);
 
-    pub_key_to_file(&pub, full_public_filepath, true);
-    priv_key_to_file(&priv, full_private_filepath, true);
+    pub_key_to_file(&pub, full_public_filepath, args.rsa_mode, true);
+    priv_key_to_file(&priv, full_private_filepath, args.rsa_mode, true);
 
     printf("Saved public key to %s\n", full_public_filepath);
     printf("Saved private key to %s\n", full_private_filepath);

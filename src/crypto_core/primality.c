@@ -31,39 +31,16 @@ struct mr_sd miller_rabin_sd(MPI n) {
 }
 
 MPI miller_rabin_randn(MPI n) {
-    MPI n_minus_two = bi_init_and_copy(n);
-    bi_dec(n_minus_two);
-    bi_dec(n_minus_two);
+    // assumption: n is already squeezed
+    uint32_t leading_zeros = __builtin_clz(n->data[n->words - 1]);
+    uint32_t mask = (uint32_t)(32ull - 1) >> (leading_zeros + 1);
 
-    MPI tmp_two = bi_init_like(n);
-    bi_set(tmp_two, 2u);
+    MPI a = will_rng_next(n->words);
 
-    int max_iters = 100000;
-    MPI a;
+    a->data[a->words - 1] &= mask;
+    a->data[0] = !(a->data[0] & 1u);
 
-    for (int i = 0; i < max_iters; i++) {
-        // have to do some funniness to get random numbers of the
-        // correct length
-        a = will_rng_next(n->words);
-
-        if (bi_gt(a, tmp_two) && bi_lt(a, n_minus_two)) {
-            bi_free(n_minus_two);
-            bi_free(tmp_two);
-            return a;
-        }
-
-        bi_free(a);
-    }
-
-    printf(
-        "WARNING: miller_rabin_randn failed to find a suitable rand for n:\n");
-    bi_print(n);
-    printf("\n");
-
-    bi_free(n_minus_two);
-    bi_free(tmp_two);
-
-    return NULL;
+    return a;
 }
 
 bool __miller_rabin_inner_check(MPI n, MPI a, struct mr_sd sd) {
@@ -102,7 +79,12 @@ bool __miller_rabin_inner_check(MPI n, MPI a, struct mr_sd sd) {
     return res;
 }
 
+static const uint32_t first_primes[] = {
+    2, 3, 5, 7, 11, 13, 17, 19, 23, 29,
+};
+
 bool miller_rabin(MPI n, int k) {
+    // assumption: n is already squeezed
     /* Before starting the test, we must assert:
      * 1. n > 2
      * 2. n is odd
@@ -133,9 +115,37 @@ bool miller_rabin(MPI n, int k) {
     // bi_printf(d);
     // printf("\n");
 
-    for (int k_ = 0; k_ < k; k_++) {
+    // start off by testing the first few primes
+    uint32_t n_first_primes = sizeof(first_primes) / sizeof(uint32_t);
+
+    MPI res, a;
+
+    for (uint32_t i = 0; i < n_first_primes; i++) {
+        a = bi_init(1);
+        a->data[0] = first_primes[i];
+
+        // for small a, it's faster to do a
+        // division than an actual miller rabin test
+        res = bi_mod(n, a);
+
+        if (bi_eq_val(res, 0)) {
+            bi_free(sd.s);
+            bi_free(sd.d);
+            bi_free(a);
+            bi_free(res);
+            return false;
+        }
+
+        bi_free(a);
+        bi_free(res);
+    }
+
+    if (k < n_first_primes)
+        return true;
+
+    for (int k_ = 0; k_ < k - n_first_primes; k_++) {
         // Sets a with a random number betwee 2 and n-2
-        MPI a = miller_rabin_randn(n);
+        a = miller_rabin_randn(n);
 
         if (a == NULL) {
             bi_free(sd.s);
@@ -168,6 +178,7 @@ MPI gen_prime(uint32_t words) {
 
     while (counter < max_tries) {
         res = will_rng_next(words);
+        bi_squeeze(res);
         res->data[0] |= 1u; // make sure all the generated numbers are odd
 
         if (miller_rabin(res, mr_k)) {

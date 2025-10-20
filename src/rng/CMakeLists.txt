@@ -15,3 +15,8 @@ target_link_libraries(rng
 PUBLIC
   will_crypto::bigint
 )
+
+set_target_properties(rng 
+    PROPERTIES
+    COMPILE_FLAGS "-O3"
+)

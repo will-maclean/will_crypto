@@ -9,7 +9,11 @@
 typedef enum {
     RSA_MODE_512,
     RSA_MODE_1024,
+    RSA_MODE_2048,
+    RSA_MODE_4096,
 } rsa_mode_t;
+
+static void rsa_mode_to_str(rsa_mode_t mode, char *res);
 
 struct rsa_public_token {
     MPI e;
@@ -48,10 +52,10 @@ MPI gen_e(void);
 void gen_pub_priv_keys(long seed, struct rsa_public_token *pub,
                        struct rsa_private_token *priv, rsa_mode_t mode);
 
-void pub_key_to_file(struct rsa_public_token *pub, char *path,
+void pub_key_to_file(struct rsa_public_token *pub, char *path, rsa_mode_t mode,
                      bool overwrite_existing);
 void priv_key_to_file(struct rsa_private_token *pub, char *path,
-                      bool overwrite_existing);
+                      rsa_mode_t mode, bool overwrite_existing);
 void pub_key_from_file(struct rsa_public_token *pub, char *path);
 void priv_key_from_file(struct rsa_private_token *pub, char *path);
 #endif

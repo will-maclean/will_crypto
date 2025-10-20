@@ -16,3 +16,8 @@ PUBLIC
   will_crypto::bigint
   will_crypto::rng
 )
+
+set_target_properties(crypto_core 
+    PROPERTIES
+    COMPILE_FLAGS "-O3"
+)
