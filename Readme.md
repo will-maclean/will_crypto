@@ -11,6 +11,9 @@ of functionality:
 - RSA encryption/decryption, including padding scheme (todo)
 - CLI (supports RSA keygen)
 
+Note - this is a hobby project, and as such will probably contain bugs. Please
+don't use this in production systems!
+
 ## Installation
 ```bash
 git clone https://github.com/will-maclean/will_crypto.git
