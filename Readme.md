@@ -7,8 +7,8 @@ of functionality:
 - Big integer support (working)
 - RNG (ideally, cryptographically secure) (working)
 - Prime number generation (working)
-- RSA keygen (working)
-- RSA encryption/decryption, including padding scheme (todo)
+- RSA keygen (in progress)
+- RSA encryption/decryption, including padding scheme (in progress)
 - CLI (supports RSA keygen)
 
 Note - this is a hobby project, and as such will probably contain bugs. Please
