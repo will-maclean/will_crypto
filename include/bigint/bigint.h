@@ -142,7 +142,7 @@ typedef struct  {
 } ext_euc_res_t;
 
 sMPI signed_add(sMPI a, sMPI b);
-sMPI signed_div(sMPI a, sMPI b);
+sMPI signed_eucl_div(sMPI a, sMPI b);
 sMPI signed_mul(sMPI a, sMPI b);
 sMPI signed_sub(sMPI a, sMPI b);
 sMPI signed_mod(sMPI a, sMPI b);

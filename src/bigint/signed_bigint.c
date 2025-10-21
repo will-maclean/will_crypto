@@ -40,10 +40,12 @@ MPI to_unsigned(sMPI x){
     return res;
 }
 
-sMPI signed_div(sMPI a, sMPI b) {
+sMPI signed_eucl_div(sMPI a, sMPI b) {
     sMPI res;
     res.val = bi_eucl_div(a.val, b.val);
     res.positive = a.positive == b.positive;
+
+    //TODO: believe this is currently broken
 
     return res;
 }
@@ -89,7 +91,7 @@ void signed_free_init_copy(sMPI src, sMPI *target) {
 }
 
 sMPI signed_mod(sMPI a, sMPI b){
-    sMPI adivb = signed_div(a, b);
+    sMPI adivb = signed_eucl_div(a, b);
     sMPI tmp = signed_mul(b, adivb);
     sMPI res = signed_sub(a, tmp);
     signed_free(adivb);
@@ -122,7 +124,7 @@ ext_euc_res_t ext_euc(MPI a, MPI b) {
     bi_set(t.val, 1);
 
     while (!bi_eq_val(r.val, 0)) {
-        quotient = signed_div(old_r, r);
+        quotient = signed_eucl_div(old_r, r);
 
         // (old_r, r) := (r, old_r − quotient × r)
         tmp1 = signed_init_copy(r);

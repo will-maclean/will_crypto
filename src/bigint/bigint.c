@@ -1076,14 +1076,8 @@ bool bi_gt(MPI a, MPI b) {
             }
         }
     }
-
-    if (a->words != b->words) {
-        // Honestly, not sure what to do here. I think for now I'll
-        // just return false
-        return false;
-    }
-
-    for (uint32_t i = 0; i < a->words; i++) {
+    
+    for (int32_t i = min(a->words, b->words) - 1; i >= 0; i--) {
         if (a->data[i] > b->data[i]) {
             return true;
         } else if (a->data[i] < b->data[i]) {
@@ -1109,7 +1103,7 @@ bool bi_ge(MPI a, MPI b) {
         }
     }
 
-    for (uint32_t i = 0; i < a->words; i++) {
+    for (int32_t i = min(a->words, b->words) - 1; i >= 0; i--) {
         if (a->data[i] > b->data[i]) {
             return true;
         } else if (a->data[i] < b->data[i]) {
