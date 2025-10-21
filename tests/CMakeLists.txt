@@ -25,6 +25,6 @@ else()
   target_link_libraries(tests PRIVATE ${CUNIT_LIBRARIES})
 endif()
 
-target_compile_options(tests PRIVATE -Wall -Wextra -Wpedantic)
+target_compile_options(tests PRIVATE -Wall -Wextra -Wpedantic -g)
 
 add_test(NAME tests COMMAND tests)

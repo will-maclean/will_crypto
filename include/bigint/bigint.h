@@ -120,4 +120,32 @@ MPI bi_gcd(MPI a, MPI b);
 
 MPI from_hex_str(char *str);
 
+
+// ------ SIGNED OPs -----
+typedef struct {
+    MPI val;
+    bool positive;
+} sMPI;
+
+sMPI signed_init_copy(sMPI src);
+void signed_free_init_copy(sMPI src, sMPI *target);
+void signed_free(sMPI x);
+sMPI from_unsigned(MPI x);
+MPI to_unsigned(sMPI x);
+bool signed_eq_val(sMPI, uint32_t x, bool positive);
+
+typedef struct  {
+    sMPI bez_x;
+    sMPI bez_y;
+    sMPI gcd;
+} ext_euc_res_t;
+
+sMPI signed_add(sMPI a, sMPI b);
+sMPI signed_div(sMPI a, sMPI b);
+sMPI signed_mul(sMPI a, sMPI b);
+sMPI signed_sub(sMPI a, sMPI b);
+sMPI signed_mod(sMPI a, sMPI b);
+ext_euc_res_t ext_euc(MPI a, MPI b);
+
+
 #endif

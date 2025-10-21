@@ -5,9 +5,6 @@
 #include <rng/rng.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 
 #include <CUnit/Basic.h>
 #include <CUnit/CUnit.h>
@@ -73,20 +70,7 @@ void test_primality(void) {
     bi_free(sd.s);
     bi_free(sd.d);
 
-    clock_t start = clock();
     MPI generated_prime = gen_prime(32);
-    clock_t ticks = clock() - start;
-
-    printf("Prime number gen took %f milliseconds\n",
-           1000 * (float)ticks / (float)CLOCKS_PER_SEC);
-
-    if (generated_prime) {
-        printf("Generated prime:\n");
-        printf("\n");
-        bi_print(generated_prime);
-    } else {
-        printf("Failed to generate prime\n");
-    }
 
     bi_free(generated_prime);
 }

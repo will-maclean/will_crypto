@@ -37,8 +37,17 @@ MPI miller_rabin_randn(MPI n) {
 
     MPI a = will_rng_next(n->words);
 
+    // ensures a < n
     a->data[a->words - 1] &= mask;
-    a->data[0] = !(a->data[0] & 1u);
+
+    // ensures a < (n - 2)
+    bi_dec(a);
+    bi_dec(a);
+
+    // ensures a >= 2
+    if (a->data[0] < 2) {
+        a->data[0] = 2;
+    }
 
     return a;
 }
@@ -140,8 +149,11 @@ bool miller_rabin(MPI n, int k) {
         bi_free(res);
     }
 
-    if (k < n_first_primes)
+    if (k < n_first_primes) {
+        bi_free(sd.s);
+        bi_free(sd.d);
         return true;
+    }
 
     for (int k_ = 0; k_ < k - n_first_primes; k_++) {
         // Sets a with a random number betwee 2 and n-2

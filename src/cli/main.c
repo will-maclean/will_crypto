@@ -91,8 +91,8 @@ void join_dir_and_filename(char *dir, char *file, char *res) {
 }
 
 void cmdline_gen_keys(gen_keys_args_t args) {
-    struct rsa_public_token pub;
-    struct rsa_private_token priv;
+    rsa_public_token_t pub;
+    rsa_private_token_t priv;
 
     printf("Generating keys for will_rsa\n");
 

@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void rsa_mode_to_str(rsa_mode_t mode, char *res) {
+void rsa_mode_to_str(rsa_mode_t mode, char *res) {
     switch (mode) {
     case RSA_MODE_512:
         strcpy(res, "will_rsa_512");
@@ -23,8 +23,8 @@ static void rsa_mode_to_str(rsa_mode_t mode, char *res) {
     }
 }
 
-void load_new_primes(struct rsa_state *new_state, uint32_t seed,
-                     rsa_mode_t mode) {
+void load_new_primes(rsa_state_t *new_state, uint32_t seed, rsa_mode_t mode,
+                     MPI e) {
     uint32_t prime_words;
     switch (mode) {
     case RSA_MODE_1024:
@@ -43,149 +43,89 @@ void load_new_primes(struct rsa_state *new_state, uint32_t seed,
 
     will_rng_init(seed);
 
+    MPI p, q;
+    uint32_t max_trials = 10000;
+
+    for (uint32_t i = 0; i < max_trials; i++) {
+        p = gen_prime(prime_words);
+        q = gen_prime(prime_words);
+
+        // ensure gcd(p-1, e) = 1 and gcd(q-1, e) = 1
+        bi_dec(p);
+        bi_dec(q);
+
+         ext_euc_res_t p_gcd = ext_euc(p, e);
+
+        if (!signed_eq_val(p_gcd.gcd, 1, true)) {
+            // p-1 is not coprime with e -> try again
+            bi_free(p);
+            bi_free(q);
+            signed_free(p_gcd.bez_x);
+            signed_free(p_gcd.bez_y);
+            signed_free(p_gcd.gcd);
+            continue;
+        }
+
+        ext_euc_res_t q_gcd = ext_euc(q, e);
+
+        if (!signed_eq_val(q_gcd.gcd, 1, true )) {
+            // q-1 is not coprime with e -> try again
+            bi_free(p);
+            bi_free(q);
+            signed_free(p_gcd.bez_x);
+            signed_free(p_gcd.bez_y);
+            signed_free(p_gcd.gcd);
+            continue;
+        } else {
+            // both p-1 and q-1 are coprime with e -> acceptable values
+            signed_free(p_gcd.bez_x);
+            signed_free(p_gcd.bez_y);
+            signed_free(p_gcd.gcd);
+
+            bi_inc(p);
+            bi_inc(q);
+
+            new_state->p = p;
+            new_state->q = q;
+
+            return;
+        }
+    }
+
     new_state->p = gen_prime(prime_words);
     new_state->q = gen_prime(prime_words);
 }
 
-typedef struct {
-    MPI val;
-    bool positive;
-} sMPI;
 
-void signed_div(sMPI a, sMPI b, sMPI *res) {
-    res->val = bi_eucl_div(a.val, b.val);
-    res->positive = a.positive ^ b.positive;
-}
 
-void signed_sub(sMPI a, sMPI b, sMPI *res) {
-    if (a.positive == b.positive) {
-        if (bi_gt(a.val, b.val)) {
-            res->val = bi_sub(a.val, b.val);
-            res->positive = a.positive;
-        } else {
-            res->val = bi_sub(b.val, a.val);
-            res->positive = !a.positive;
-        }
-    } else {
-        res->val = bi_add(a.val, b.val);
-        res->positive = a.positive;
-    }
-}
-
-void signed_mul(sMPI a, sMPI b, sMPI *res) {
-    res->val = bi_mul(a.val, b.val);
-    res->positive = a.positive ^ b.positive;
-}
-
-void signed_init_copy(sMPI src, sMPI *target) {
-    target->val = bi_init_and_copy(src.val);
-    target->positive = src.positive;
-}
-
-void signed_free_init_copy(sMPI src, sMPI *target) {
-    bi_free(target->val);
-    signed_init_copy(src, target);
-}
-
-struct ext_euc_res ext_euc(MPI a, MPI b) {
-    // we have an issue - our bigint library supports
-    // positive numbers only. This is fine in almost all
-    // parts of the existing application, EXCEPT the extended
-    // euclidean algorithm, where the calculated coefficents
-    // and factors may go negative at any point during the
-    // calculation. The returned bezout coefficients themselves
-    // may also be negative.
-    //
-    // We can hack around our lack of negative number support.
-    // However, there will be sign errors in the returned
-    // coefficients. HOWEVER, if all you want to do with the
-    // returned coefficients is put them through a modulus
-    // operators (e.g. d = (bez coef x) mod lambda(n)), then
-    // the sign is irrelevant.
-
-    sMPI r = {NULL, true}, s = {NULL, true}, t = {NULL, true},
-         old_r = {NULL, true}, old_s = {NULL, true}, old_t = {NULL, true},
-         quotient = {NULL, true}, tmp1 = {NULL, true}, tmp2 = {NULL, true};
-
-    old_r.val = bi_init_and_copy(a);
-    r.val = bi_init_and_copy(b);
-    old_s.val = bi_init_like(a);
-    bi_set(old_s.val, 1);
-    s.val = bi_init_like(a);
-    old_t.val = bi_init_like(a);
-    t.val = bi_init_like(a);
-    bi_set(t.val, 1);
-
-    while (!bi_eq_val(r.val, 0)) {
-        signed_div(old_r, r, &quotient);
-
-        // (old_r, r) := (r, old_r − quotient × r)
-        signed_init_copy(r, &tmp1);
-        signed_mul(quotient, r, &tmp2);
-        bi_free(r.val);
-        signed_sub(old_r, tmp2, &r);
-        signed_free_init_copy(tmp1, &old_r);
-        bi_free(tmp1.val);
-        bi_free(tmp2.val);
-
-        // (old_s, s) := (s, old_s − quotient × s)
-        signed_init_copy(s, &tmp1);
-        signed_mul(quotient, s, &tmp2);
-        bi_free(s.val);
-        signed_sub(old_s, tmp2, &s);
-        signed_free_init_copy(tmp1, &old_s);
-        bi_free(tmp1.val);
-        bi_free(tmp2.val);
-
-        // (old_t, t) := (t, old_t − quotient × t)
-        signed_init_copy(t, &tmp1);
-        signed_mul(quotient, t, &tmp2);
-        bi_free(t.val);
-        signed_sub(old_t, tmp2, &t);
-        signed_free_init_copy(tmp1, &old_t);
-        bi_free(tmp1.val);
-        bi_free(tmp2.val);
-        bi_free(quotient.val);
-    }
-
-    struct ext_euc_res res;
-    res.bez_x = bi_init_and_copy(old_s.val);
-    res.bez_y = bi_init_and_copy(old_t.val);
-    res.gcd = bi_init_and_copy(old_r.val);
-
-    bi_free(r.val);
-    bi_free(s.val);
-    bi_free(t.val);
-    bi_free(old_r.val);
-    bi_free(old_s.val);
-    bi_free(old_t.val);
-    return res;
-}
-
-struct lambda_n_d_res calc_lambda_n_d(MPI p, MPI q, MPI e) {
-    struct lambda_n_d_res res;
+lambda_n_d_res_t calc_lambda_n_d(MPI p, MPI q, MPI e) {
+    lambda_n_d_res_t res;
 
     MPI p_cpy = bi_init_and_copy(p);
     bi_dec(p_cpy);
     MPI q_cpy = bi_init_and_copy(q);
     bi_dec(q_cpy);
 
-    struct ext_euc_res euc_res = ext_euc(p_cpy, q_cpy);
-    MPI lcm_tmp1 = bi_eucl_div(p_cpy, euc_res.gcd);
+    ext_euc_res_t euc_res = ext_euc(p_cpy, q_cpy);
+    MPI gcd = to_unsigned(euc_res.gcd);
+    MPI lcm_tmp1 = bi_eucl_div(p_cpy, gcd);
     res.lambda_n = bi_mul(lcm_tmp1, q_cpy);
 
-    bi_free(euc_res.bez_x);
-    bi_free(euc_res.bez_y);
-    bi_free(euc_res.gcd);
+    signed_free(euc_res.bez_x);
+    signed_free(euc_res.bez_y);
+    signed_free(euc_res.gcd);
 
     euc_res = ext_euc(e, res.lambda_n);
-    res.d = bi_mod(euc_res.bez_x, res.lambda_n);
-    bi_squeeze(res.d);
+    sMPI lambda_n = from_unsigned(res.lambda_n);
+    sMPI d_tmp = signed_mod(euc_res.bez_x, lambda_n);
 
-    bi_free(euc_res.bez_x);
-    bi_free(euc_res.bez_y);
-    bi_free(euc_res.gcd);
+    res.d = to_unsigned(d_tmp);
 
+    signed_free(euc_res.bez_x);
+    signed_free(euc_res.bez_y);
+    signed_free(euc_res.gcd);
+    
+    bi_free(gcd);
     bi_free(p_cpy);
     bi_free(q_cpy);
     bi_free(lcm_tmp1);
@@ -199,17 +139,29 @@ MPI gen_e(void) {
     return res;
 }
 
-void gen_pub_priv_keys(long seed, struct rsa_public_token *pub,
-                       struct rsa_private_token *priv, rsa_mode_t mode) {
+void gen_pub_priv_keys(long seed, rsa_public_token_t *pub,
+                       rsa_private_token_t *priv, rsa_mode_t mode) {
 
-    struct rsa_state state;
+    rsa_state_t state;
 
-    load_new_primes(&state, seed, mode);
+    MPI e = gen_e();
+    load_new_primes(&state, seed, mode, e);
 
     MPI n = bi_mul(state.p, state.q);
-    MPI e = gen_e();
 
-    struct lambda_n_d_res lambda_n_d = calc_lambda_n_d(state.p, state.q, e);
+    lambda_n_d_res_t lambda_n_d = calc_lambda_n_d(state.p, state.q, e);
+
+    // assertion for safety
+    // gcd(lambda(n), e) = 1
+    ext_euc_res_t check = ext_euc(lambda_n_d.lambda_n, e);
+    if(!signed_eq_val(check.gcd, 1, true)){
+        printf("ERROR in RSA keygen: gcd(lambda(n), e) != 1. n=");
+        bi_print(n);
+        printf("\ne=");
+        bi_print(e);
+        printf("\nlambda(n)=");
+        bi_print(lambda_n_d.lambda_n);
+    }
 
     pub->e = e;
     pub->n = n;
@@ -236,7 +188,7 @@ bool file_exists(char *path) {
 
 // public key file standard will be simple: numbers stored in hex format, n on
 // first line, e on second line
-void pub_key_to_file(struct rsa_public_token *pub, char *path, rsa_mode_t mode,
+void pub_key_to_file(rsa_public_token_t *pub, char *path, rsa_mode_t mode,
                      bool overwrite_existing) {
     if (file_exists(path) && !overwrite_existing) {
         printf(
@@ -264,7 +216,7 @@ void pub_key_to_file(struct rsa_public_token *pub, char *path, rsa_mode_t mode,
     }
 }
 
-void pub_key_from_file(struct rsa_public_token *pub, char *path) {
+void pub_key_from_file(rsa_public_token_t *pub, char *path) {
     if (!file_exists(path)) {
         printf("Public key file %s does not exist! Exiting.\n", path);
         exit(1);
@@ -289,8 +241,8 @@ void pub_key_from_file(struct rsa_public_token *pub, char *path) {
 
 // private key file standard will be simple: numbers stored in hex format, n on
 // first line, d on second line
-void priv_key_to_file(struct rsa_private_token *priv, char *path,
-                      rsa_mode_t mode, bool overwrite_existing) {
+void priv_key_to_file(rsa_private_token_t *priv, char *path, rsa_mode_t mode,
+                      bool overwrite_existing) {
     if (file_exists(path) && !overwrite_existing) {
         printf(
             "Private key file %s already exists! Exiting without overwriting\n",
@@ -318,7 +270,7 @@ void priv_key_to_file(struct rsa_private_token *priv, char *path,
     }
 }
 
-void priv_key_from_file(struct rsa_private_token *priv, char *path) {
+void priv_key_from_file(rsa_private_token_t *priv, char *path) {
     if (!file_exists(path)) {
         printf("Private key file %s does not exist! Exiting.\n", path);
         exit(1);
@@ -341,4 +293,12 @@ void priv_key_from_file(struct rsa_private_token *priv, char *path) {
         printf("Unable to open public key file %s", path);
         exit(1);
     }
+}
+
+MPI will_rsa_encrypt_num(MPI input, rsa_public_token_t *key) {
+    return bi_mod_exp(input, key->e, key->n);
+}
+
+MPI will_rsa_decrypt_num(MPI input, rsa_private_token_t *key) {
+    return bi_mod_exp(input, key->d, key->n);
 }

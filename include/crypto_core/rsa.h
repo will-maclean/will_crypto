@@ -13,49 +13,45 @@ typedef enum {
     RSA_MODE_4096,
 } rsa_mode_t;
 
-static void rsa_mode_to_str(rsa_mode_t mode, char *res);
+void rsa_mode_to_str(rsa_mode_t mode, char *res);
 
-struct rsa_public_token {
+typedef struct {
     MPI e;
     MPI n;
-};
+} rsa_public_token_t;
 
-struct rsa_private_token {
+typedef struct {
     MPI d;
     MPI n;
-};
+} rsa_private_token_t;
 
-struct rsa_state {
+typedef struct {
     MPI p;
     MPI q;
-};
+} rsa_state_t;
 
-void load_new_primes(struct rsa_state *new_state, uint32_t seed,
-                     rsa_mode_t mode);
+void load_new_primes(rsa_state_t *new_state, uint32_t seed, rsa_mode_t mode,
+                     MPI e);
 
-struct ext_euc_res {
-    MPI bez_x;
-    MPI bez_y;
-    MPI gcd;
-};
 
-struct ext_euc_res ext_euc(MPI a, MPI b);
-
-struct lambda_n_d_res {
+typedef struct {
     MPI lambda_n;
     MPI d;
-};
-struct lambda_n_d_res calc_lambda_n_d(MPI p, MPI q, MPI e);
+} lambda_n_d_res_t;
+lambda_n_d_res_t calc_lambda_n_d(MPI p, MPI q, MPI e);
 
 MPI gen_e(void);
 
-void gen_pub_priv_keys(long seed, struct rsa_public_token *pub,
-                       struct rsa_private_token *priv, rsa_mode_t mode);
+void gen_pub_priv_keys(long seed, rsa_public_token_t *pub,
+                       rsa_private_token_t *priv, rsa_mode_t mode);
 
-void pub_key_to_file(struct rsa_public_token *pub, char *path, rsa_mode_t mode,
+void pub_key_to_file(rsa_public_token_t *pub, char *path, rsa_mode_t mode,
                      bool overwrite_existing);
-void priv_key_to_file(struct rsa_private_token *pub, char *path,
-                      rsa_mode_t mode, bool overwrite_existing);
-void pub_key_from_file(struct rsa_public_token *pub, char *path);
-void priv_key_from_file(struct rsa_private_token *pub, char *path);
+void priv_key_to_file(rsa_private_token_t *pub, char *path, rsa_mode_t mode,
+                      bool overwrite_existing);
+void pub_key_from_file(rsa_public_token_t *pub, char *path);
+void priv_key_from_file(rsa_private_token_t *pub, char *path);
+
+MPI will_rsa_encrypt_num(MPI input, rsa_public_token_t *key);
+MPI will_rsa_decrypt_num(MPI input, rsa_private_token_t *key);
 #endif
