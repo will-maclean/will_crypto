@@ -67,6 +67,7 @@ MPI bi_mul_imm(MPI a, uint32_t x);
 void bi_inc(MPI x);
 void bi_dec(MPI x);
 MPI bi_mod_exp(MPI x, MPI exp, MPI mod);
+MPI bi_mod_mult_inv(MPI a, MPI b);
 MPI bi_pow_imm(MPI b, uint32_t p);
 
 MPI knuth_d(MPI u, MPI v, bool return_quotient);

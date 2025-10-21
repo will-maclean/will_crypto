@@ -1351,39 +1351,13 @@ MPI bi_gcd(MPI a, MPI b) {
     bi_squeeze(a);
     bi_squeeze(b);
 
-    MPI tmp = bi_or(a, b);
-    uint32_t shift = trailing_zeros(tmp);
-    bi_free(tmp);
+    ext_euc_res_t tmp = ext_euc(a, b);
 
-    MPI a_tmp = bi_shift_right(a, trailing_zeros(a));
-    MPI b_tmp = bi_init_and_copy(b);
+    MPI res = to_unsigned(tmp.gcd);
 
-    do {
-        tmp = bi_shift_right(b_tmp, trailing_zeros(b_tmp));
-        bi_free(b_tmp);
-        b_tmp = bi_init_and_copy(tmp);
-        bi_free(tmp);
-
-        if (bi_gt(a_tmp, b_tmp)) {
-            tmp = bi_init_and_copy(a_tmp);
-            bi_free(a_tmp);
-            a_tmp = bi_init_and_copy(b_tmp);
-            bi_free(b_tmp);
-            b_tmp = bi_init_and_copy(tmp);
-            bi_free(tmp);
-        }
-
-        tmp = bi_sub(b_tmp, a_tmp);
-        bi_free(b_tmp);
-        b_tmp = bi_init_and_copy(tmp);
-        bi_free(tmp);
-
-    } while (!bi_eq_val(b_tmp, 0));
-
-    MPI res = bi_shift_left(a_tmp, shift);
-
-    bi_free(a_tmp);
-    bi_free(b_tmp);
+    signed_free(tmp.gcd);
+    signed_free(tmp.bez_x);
+    signed_free(tmp.bez_y);
 
     return res;
 }
@@ -1404,4 +1378,33 @@ MPI bi_lcm(MPI a, MPI b) {
     bi_free(res);
 
     return res2;
+}
+
+// computes a^-1 mod b, where the result is shifted to be positive
+MPI bi_mod_mult_inv(MPI a, MPI b){
+    ext_euc_res_t tmp = ext_euc(a, b);
+
+    if(!signed_eq_val(tmp.gcd, 1, true)){
+        printf("ERROR: bi_mod_mult_inv: gcd(a, b) != 1, where:\na=");
+        bi_print(a);
+        printf("\nb=");
+        bi_print(b);
+
+        exit(1);
+    }
+
+    signed_free(tmp.bez_y);
+    signed_free(tmp.gcd);
+    if (tmp.bez_x.positive){
+
+        return tmp.bez_x.val;
+    } else {
+        sMPI b_tmp = from_unsigned(b);
+        sMPI res = signed_add(b_tmp, tmp.bez_x);
+
+        signed_free(tmp.bez_x);
+        signed_free(b_tmp);
+
+        return res.val;
+    }
 }

@@ -106,29 +106,11 @@ lambda_n_d_res_t calc_lambda_n_d(MPI p, MPI q, MPI e) {
     MPI q_cpy = bi_init_and_copy(q);
     bi_dec(q_cpy);
 
-    ext_euc_res_t euc_res = ext_euc(p_cpy, q_cpy);
-    MPI gcd = to_unsigned(euc_res.gcd);
-    MPI lcm_tmp1 = bi_eucl_div(p_cpy, gcd);
-    res.lambda_n = bi_mul(lcm_tmp1, q_cpy);
-
-    signed_free(euc_res.bez_x);
-    signed_free(euc_res.bez_y);
-    signed_free(euc_res.gcd);
-
-    euc_res = ext_euc(e, res.lambda_n);
-    sMPI lambda_n = from_unsigned(res.lambda_n);
-    sMPI d_tmp = signed_mod(euc_res.bez_x, lambda_n);
-
-    res.d = to_unsigned(d_tmp);
-
-    signed_free(euc_res.bez_x);
-    signed_free(euc_res.bez_y);
-    signed_free(euc_res.gcd);
+    res.lambda_n = bi_lcm(p_cpy, q_cpy);
+    res.d = bi_mod_mult_inv(e, res.lambda_n);
     
-    bi_free(gcd);
     bi_free(p_cpy);
     bi_free(q_cpy);
-    bi_free(lcm_tmp1);
 
     return res;
 }
