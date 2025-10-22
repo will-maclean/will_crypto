@@ -1,0 +1,235 @@
+#include <stdint.h>
+
+#include <bigint/bigint.h>
+
+#include <CUnit/Basic.h>
+#include <CUnit/CUnit.h>
+
+#include "test_suites.h"
+void test_signed_sub(void) {
+    //   a_words, a[0]..,  a pos, b_words, b[0]..,  b pos expected_words, expected[0].., expected pos
+    // clang-format off
+    uint32_t tests[] = {
+        // case 1
+        1, 0x00000001, 1, 1, 0x00000001, 1, 1, 0x00000000, 1,
+        // case 2
+        1, 0x00000005, 1, 1, 0x00000003, 1, 1, 0x00000002, 1,
+        // case 3
+        1, 0x00000003, 1, 1, 0x00000005, 1, 1, 0x00000002, 0,
+        // case 4
+        1, 0x00000003, 0, 1, 0x00000005, 0, 1, 0x00000002, 1,
+        // case 5
+        1, 0x00000005, 0, 1, 0x00000003, 1, 1, 0x00000008, 0,
+        // case 6
+        1, 0x00000008, 1, 1, 0x00000002, 0, 1, 0x0000000A, 1,
+        // case 7
+        2, 0x00000000, 0x00000002, 1, 1, 0x00000001, 1, 2, 0xFFFFFFFF, 0x00000001, 1,
+        // case 8
+        2, 0xFFFFFFFF, 0x00000001, 1, 2, 0x00000005, 0x00000001, 1, 1, 0xFFFFFFFA, 1,
+        // case 9
+        2, 0x00000000, 0x00000001, 1, 2, 0x00000001, 0x00000001, 1, 1, 0x00000001, 0,
+        // case 10
+        3, 0x00000003, 0x00000000, 0x00000001, 0, 1, 0x00000005, 0, 2, 0xFFFFFFFE, 0xFFFFFFFF, 0,
+        // case 11
+        3, 0x00000001, 0x00000002, 0x00000000, 1, 3, 0x00000001, 0x00000000, 0x00000001, 0, 3, 0x00000002, 0x00000002, 0x00000001, 1,
+    };
+    // clang-format on
+
+    uint32_t curr = 0;
+    while (curr < sizeof(tests) / sizeof(uint32_t)) {
+        uint32_t a_words = tests[curr++];
+        sMPI a = signed_init(a_words);
+        for (uint32_t j = 0; j < a_words; j++)
+            a.val->data[j] = tests[curr++];
+        a.val->words = a_words;
+        a.positive = tests[curr++];
+
+        uint32_t b_words = tests[curr++];
+        sMPI b = signed_init(b_words);
+        for (uint32_t j = 0; j < b_words; j++)
+            b.val->data[j] = tests[curr++];
+        b.val->words = b_words;
+        b.positive = tests[curr++];
+
+        uint32_t e_words = tests[curr++];
+        sMPI expected = signed_init(e_words);
+        for (uint32_t j = 0; j < e_words; j++)
+            expected.val->data[j] = tests[curr++];
+        expected.val->words = e_words;
+        expected.positive = tests[curr++];
+
+        sMPI got = signed_sub(a, b);
+
+        bool pass = signed_eq(got, expected);
+        CU_ASSERT(pass);
+        if (!pass) {
+            printf("a=");
+            signed_print(a);
+            printf("\nb=");
+            signed_print(b);
+            printf("\nexpected gcd=");
+            signed_print(expected);
+            printf("\ncalculated   =");
+            signed_print(got);
+            printf("\n\n");
+        }
+
+        signed_free(a);
+        signed_free(b);
+        signed_free(expected);
+        signed_free(got);
+    }
+}
+
+void test_signed_add(void) {
+    //   a_words, a[0]..,  a pos, b_words, b[0]..,  b pos expected_words, expected[0].., expected pos
+    // clang-format off
+    uint32_t tests[] = {
+        1, 1, 1, 1, 1, 1, 1, 2, 1,
+    };
+    // clang-format on
+
+    uint32_t curr = 0;
+    while (curr < sizeof(tests) / sizeof(uint32_t)) {
+        uint32_t a_words = tests[curr++];
+        sMPI a = signed_init(a_words);
+        for (uint32_t j = 0; j < a_words; j++)
+            a.val->data[j] = tests[curr++];
+        a.positive = tests[curr++];
+
+        uint32_t b_words = tests[curr++];
+        sMPI b = signed_init(b_words);
+        for (uint32_t j = 0; j < b_words; j++)
+            b.val->data[j] = tests[curr++];
+        b.positive = tests[curr++];
+
+        uint32_t e_words = tests[curr++];
+        sMPI expected = signed_init(e_words);
+        for (uint32_t j = 0; j < e_words; j++)
+            expected.val->data[j] = tests[curr++];
+        expected.positive = tests[curr++];
+
+        sMPI got = signed_add(a, b);
+
+        bool pass = signed_eq(got, expected);
+        CU_ASSERT(pass);
+        if (!pass) {
+            printf("a=");
+            signed_print(a);
+            printf("\nb=");
+            signed_print(b);
+            printf("\nexpected gcd=");
+            signed_print(expected);
+            printf("\ncalculated   =");
+            signed_print(got);
+            printf("\n\n");
+        }
+
+        signed_free(a);
+        signed_free(b);
+        signed_free(expected);
+        signed_free(got);
+    }
+}
+
+void test_signed_eucl_div(void) {
+    //   a_words, a data..., a positive,
+    //   b_words, b data..., b positive,
+    //   expected_q_words, expected_q data..., expected_q positive,
+    //   expected_r_words, expected_r data...
+    // clang-format off
+    uint32_t tests[] = {
+        1, 0x00000007, 1, 1, 0x00000003, 1, 1, 0x00000002, 1, 1, 0x00000001,
+        1, 0x00000007, 1, 1, 0x00000003, 0, 1, 0x00000003, 0, 1, 0x00000002,
+        1, 0x00000007, 0, 1, 0x00000003, 1, 1, 0x00000003, 0, 1, 0x00000002,
+        1, 0x00000009, 0, 1, 0x00000003, 1, 1, 0x00000003, 0, 1, 0x00000000,
+        1, 0x00000006, 1, 1, 0x00000003, 0, 1, 0x00000002, 0, 1, 0x00000000,
+        1, 0x00000002, 1, 1, 0x00000005, 0, 1, 0x00000000, 1, 1, 0x00000002,
+        2, 0x00000000, 0x00000002, 1, 1, 0x00000008, 1, 1, 0x40000000, 1, 1, 0x00000000,
+        3, 0x00000010, 0x00000000, 0x00000002, 0, 2, 0x00000005, 0x00000001, 1, 2, 0xFFFFFFF7, 0x00000001, 0, 1, 0xFFFFFFC3,
+        3, 0x89ABCDEF, 0x00000000, 0x00000003, 1, 3, 0x00001000, 0x00000000, 0x00000001, 1, 1, 0x00000003, 1, 1, 0x89AB9DEF,
+        2, 0xFFFFFFFF, 0xFFFFFFFF, 1, 2, 0x12345678, 0x00000001, 1, 1, 0xEF010FEF, 1, 1, 0x919A3DF7,
+        3, 0x00000000, 0x00000000, 0x00000005, 0, 1, 0x00000002, 0, 3, 0x00000000, 0x80000000, 0x00000002, 1, 1, 0x00000000,
+        2, 0x00000001, 0x00000001, 1, 1, 0x00008000, 0, 1, 0x00020001, 0, 1, 0x00007FFF,
+        3, 0x00008000, 0x00000000, 0x00000001, 0, 1, 0x00000020, 1, 2, 0x00000400, 0x08000000, 0, 1, 0x00000000,
+        3, 0x00000000, 0x00000000, 0x00000001, 1, 2, 0x00000000, 0x00000001, 1, 2, 0x00000000, 0x00000001, 1, 1, 0x00000000,
+        3, 0x00000002, 0x00000000, 0x00000001, 1, 2, 0x00000000, 0x00000001, 0, 2, 0x00000001, 0x00000001, 0, 1, 0xFFFFFFFE,
+        4, 0x00000001, 0x00000000, 0x00000002, 0x00000000, 0, 2, 0x00001000, 0x00000000, 0, 2, 0x00000000, 0x00200000, 1, 1, 0x00000001,
+    };
+    // clang-format on
+
+    size_t curr = 0;
+    while (curr < sizeof(tests) / sizeof(uint32_t)) {
+        uint32_t a_words = tests[curr++];
+        sMPI a = signed_init(a_words);
+        for (uint32_t j = 0; j < a_words; j++)
+            a.val->data[j] = tests[curr++];
+        a.val->words = a_words;
+        a.positive = tests[curr++] != 0u;
+
+        uint32_t b_words = tests[curr++];
+        sMPI b = signed_init(b_words);
+        for (uint32_t j = 0; j < b_words; j++)
+            b.val->data[j] = tests[curr++];
+        b.val->words = b_words;
+        b.positive = tests[curr++] != 0u;
+
+        uint32_t q_words = tests[curr++];
+        MPI expected_q = bi_init(q_words);
+        for (uint32_t j = 0; j < q_words; j++)
+            expected_q->data[j] = tests[curr++];
+        expected_q->words = q_words;
+        bool expected_q_positive = tests[curr++] != 0u;
+
+        uint32_t r_words = tests[curr++];
+        MPI expected_remainder = bi_init(r_words);
+        for (uint32_t j = 0; j < r_words; j++)
+            expected_remainder->data[j] = tests[curr++];
+        expected_remainder->words = r_words;
+
+        sMPI q;
+        MPI remainder = NULL;
+
+        signed_eucl_div(a, b, &q, &remainder);
+
+        CU_ASSERT(q.positive == expected_q_positive);
+        CU_ASSERT(bi_eq(q.val, expected_q));
+        CU_ASSERT_PTR_NOT_NULL(remainder);
+        if (remainder != NULL) {
+            CU_ASSERT(bi_eq(remainder, expected_remainder));
+            bi_free(remainder);
+        }
+
+        signed_free(q);
+        signed_free(a);
+        signed_free(b);
+        bi_free(expected_q);
+        bi_free(expected_remainder);
+    }
+
+    sMPI a_only = make_small_signed(7u, true);
+    sMPI b_only = make_small_signed(3u, false);
+    sMPI q_only;
+
+    signed_eucl_div(a_only, b_only, &q_only, NULL);
+
+    CU_ASSERT(!q_only.positive);
+    CU_ASSERT(bi_eq_val(q_only.val, 3u));
+
+    signed_free(q_only);
+    signed_free(a_only);
+    signed_free(b_only);
+}
+
+CU_pSuite register_bigint_signed_tests(void) {
+    CU_pSuite suite = CU_add_suite("BIGINT_signed_suite", NULL, NULL);
+
+    if (!suite)
+        return NULL;
+
+    CU_add_test(suite, "test_signed_add", test_signed_add);
+        CU_add_test(suite, "test_signed_sub", test_signed_sub);
+    CU_add_test(suite, "signed_eucl_div", test_signed_eucl_div);
+
+    return suite;
+}

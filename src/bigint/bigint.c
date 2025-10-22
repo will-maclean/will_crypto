@@ -1241,7 +1241,7 @@ MPI bi_mod_mult_inv(MPI a, MPI b) {
 
         return tmp.bez_x.val;
     } else {
-        sMPI b_tmp = from_unsigned(b);
+        sMPI b_tmp = from_unsigned(b, true);
         sMPI res = signed_add(b_tmp, tmp.bez_x);
 
         signed_free(tmp.bez_x);

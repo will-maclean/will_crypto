@@ -1,5 +1,13 @@
 #include <bigint/bigint.h>
 
+sMPI signed_init(uint32_t words) {
+    sMPI res;
+    res.val = bi_init(words);
+    res.positive = true;
+
+    return res;
+}
+
 sMPI make_small_signed(uint32_t val, bool positive) {
     sMPI res;
     res.val = bi_init(1);
@@ -9,10 +17,10 @@ sMPI make_small_signed(uint32_t val, bool positive) {
     return res;
 }
 
-sMPI from_unsigned(MPI x) {
+sMPI from_unsigned(MPI x, bool positive) {
     sMPI res;
     res.val = bi_init_and_copy(x);
-    res.positive = true;
+    res.positive = positive;
 
     return res;
 }
@@ -32,7 +40,14 @@ sMPI signed_add(sMPI a, sMPI b) {
         }
     }
 
+    if (bi_eq_val(res.val, 0)) {
+        res.positive = true;
+    }
+
     return res;
+}
+bool signed_eq(sMPI a, sMPI b) {
+    return a.positive == b.positive && bi_eq(a.val, b.val);
 }
 
 bool signed_eq_val(sMPI x, uint32_t val, bool positive) {
@@ -61,6 +76,10 @@ sMPI signed_sub(sMPI a, sMPI b) {
     } else {
         res.val = bi_add(a.val, b.val);
         res.positive = a.positive;
+    }
+
+    if (bi_eq_val(res.val, 0)) {
+        res.positive = true;
     }
 
     return res;
@@ -152,6 +171,10 @@ ext_euc_res_t ext_euc(MPI a, MPI b) {
     }
 
     ext_euc_res_t res;
+    bi_squeeze(old_s.val);
+    bi_squeeze(old_r.val);
+    bi_squeeze(old_t.val);
+
     res.bez_x = old_s;
     res.bez_y = old_t;
     res.gcd = old_r;
@@ -162,7 +185,7 @@ ext_euc_res_t ext_euc(MPI a, MPI b) {
     return res;
 }
 
-void signed_inc(sMPI* a) {
+void signed_inc(sMPI *a) {
     if (signed_eq_val(*a, 1, false)) {
         bi_set(a->val, 0);
         a->positive = true;
@@ -172,7 +195,7 @@ void signed_inc(sMPI* a) {
         bi_dec(a->val);
     }
 }
-void signed_dec(sMPI* a) {
+void signed_dec(sMPI *a) {
     if (signed_eq_val(*a, 0, true)) {
         bi_set(a->val, 1);
         a->positive = false;
@@ -181,4 +204,14 @@ void signed_dec(sMPI* a) {
     } else {
         bi_inc(a->val);
     }
+}
+
+void signed_print(sMPI a) {
+    printf(a.positive ? "+" : "-");
+    bi_print(a.val);
+}
+
+void signed_printf(sMPI a, FILE *fp) {
+    fprintf(fp, a.positive ? "+" : "-");
+    bi_printf(a.val, fp);
 }

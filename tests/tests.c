@@ -12,6 +12,7 @@ int main(void) {
     CU_basic_set_mode(CU_BRM_VERBOSE);
 
     register_bigint_tests();
+    register_bigint_signed_tests();
     register_crypto_core_tests();
     register_rng_tests();
     register_rsa_tests();
