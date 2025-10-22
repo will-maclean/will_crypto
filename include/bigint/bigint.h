@@ -70,18 +70,11 @@ MPI bi_mod_exp(MPI x, MPI exp, MPI mod);
 MPI bi_mod_mult_inv(MPI a, MPI b);
 MPI bi_pow_imm(MPI b, uint32_t p);
 
-MPI knuth_d(MPI u, MPI v, bool return_quotient);
-/*
- * remainder of a / b
- */
-MPI bi_mod(MPI a, MPI b);
-MPI bi_mod_imm(MPI a, uint32_t b);
-
 /*
  * integer division result of a/b
  */
-MPI bi_eucl_div(MPI a, MPI b);
-MPI bi_eucl_div_imm(MPI a, uint32_t b);
+void bi_eucl_div(MPI a, MPI b, MPI *q, MPI *r);
+void bi_eucl_div_imm(MPI a, uint32_t b, MPI *q, MPI *r);
 
 bool bi_eq(MPI a, MPI b);
 bool bi_eq_val(MPI a, uint32_t b);
@@ -147,8 +140,8 @@ void signed_eucl_div(sMPI a, sMPI b, sMPI *q, MPI *r);
 sMPI signed_mul(sMPI a, sMPI b);
 sMPI signed_sub(sMPI a, sMPI b);
 ext_euc_res_t ext_euc(MPI a, MPI b);
-void signed_inc(sMPI a);
-void signed_dec(sMPI a);
+void signed_inc(sMPI* a);
+void signed_dec(sMPI* a);
 
 
 #endif

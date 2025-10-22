@@ -1,6 +1,6 @@
 #include <bigint/bigint.h>
 
-sMPI make_small_signed(uint32_t val, bool positive){
+sMPI make_small_signed(uint32_t val, bool positive) {
     sMPI res;
     res.val = bi_init(1);
     bi_set(res.val, val);
@@ -87,21 +87,20 @@ void signed_free_init_copy(sMPI src, sMPI *target) {
     *target = signed_init_copy(src);
 }
 
-void signed_eucl_div(sMPI a, sMPI b, sMPI *q, MPI *r){
-    q->val = bi_eucl_div(a.val, b.val);
+void signed_eucl_div(sMPI a, sMPI b, sMPI *q, MPI *r) {
+    MPI r_;
+    bi_eucl_div(a.val, b.val, &q->val, &r_);
     q->positive = a.positive == b.positive || bi_eq_val(q->val, 0);
 
-    MPI r_ = bi_mod(a.val, b.val);
-
-    if(!q->positive && !bi_eq_val(r_, 0)){
-        signed_dec(*q);
+    if (!q->positive && !bi_eq_val(r_, 0)) {
+        signed_dec(q);
 
         MPI r__ = bi_sub(b.val, r_);
         bi_free(r_);
         r_ = r__;
     }
 
-    if (r != NULL){
+    if (r != NULL) {
         *r = r_;
     }
 }
@@ -163,25 +162,23 @@ ext_euc_res_t ext_euc(MPI a, MPI b) {
     return res;
 }
 
-void signed_inc(sMPI a){
-    if(signed_eq_val(a, 1, false)){
-        bi_set(a.val, 0);
-        a.positive = true;
-    }
-    else if(a.positive){
-        bi_inc(a.val);
-    } else{
-        bi_dec(a.val);
+void signed_inc(sMPI* a) {
+    if (signed_eq_val(*a, 1, false)) {
+        bi_set(a->val, 0);
+        a->positive = true;
+    } else if (a->positive) {
+        bi_inc(a->val);
+    } else {
+        bi_dec(a->val);
     }
 }
-void signed_dec(sMPI a){
-        if(signed_eq_val(a, 0, true)){
-        bi_set(a.val, 1);
-        a.positive = false;
-    }
-    else if(a.positive){
-        bi_dec(a.val);
-    } else{
-        bi_inc(a.val);
+void signed_dec(sMPI* a) {
+    if (signed_eq_val(*a, 0, true)) {
+        bi_set(a->val, 1);
+        a->positive = false;
+    } else if (a->positive) {
+        bi_dec(a->val);
+    } else {
+        bi_inc(a->val);
     }
 }

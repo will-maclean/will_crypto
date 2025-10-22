@@ -14,8 +14,9 @@ struct mr_sd miller_rabin_sd(MPI n) {
     MPI d = bi_init_and_copy(n);
     bi_dec(d);
 
+    MPI tmp;
     while (bi_even(d)) {
-        MPI tmp = bi_eucl_div(d, tmp_two);
+        bi_eucl_div(d, tmp_two, &tmp, NULL);
         bi_copy(tmp, d);
         bi_free(tmp);
         bi_inc(s);
@@ -135,7 +136,7 @@ bool miller_rabin(MPI n, int k) {
 
         // for small a, it's faster to do a
         // division than an actual miller rabin test
-        res = bi_mod(n, a);
+        bi_eucl_div(n, a, NULL, &res);
 
         if (bi_eq_val(res, 0)) {
             bi_free(sd.s);

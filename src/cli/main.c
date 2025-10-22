@@ -65,11 +65,11 @@ program_inputs_t parse_args(int argc, char *argv[]) {
         strcpy(res.args.gen_keys_args.private_key_filename, "will_rsa.priv");
         strcpy(res.args.gen_keys_args.public_key_filename, "will_rsa.pub");
         res.args.gen_keys_args.seed = time(NULL);
-        res.args.gen_keys_args.rsa_mode = RSA_MODE_4096;
+        res.args.gen_keys_args.rsa_mode = RSA_MODE_1024;
     } else if (!strcmp(fn_name, "gen_prime")) {
         res.function = gen_prime_fn;
 
-        res.args.gen_prime_args.words = 128;
+        res.args.gen_prime_args.words = 32;
 
     } else if (!strcmp(fn_name, "help")) {
         print_help_and_exit(0);
@@ -121,12 +121,13 @@ void cmdline_gen_keys(gen_keys_args_t args) {
 int main(int argc, char *argv[]) {
     program_inputs_t args = parse_args(argc, argv);
 
+    MPI prime;
     switch (args.function) {
     case gen_keys:
         cmdline_gen_keys(args.args.gen_keys_args);
         break;
     case gen_prime_fn:
-        MPI prime = gen_prime(args.args.gen_prime_args.words);
+        prime = gen_prime(args.args.gen_prime_args.words);
         bi_print(prime);
         bi_free(prime);
         break;

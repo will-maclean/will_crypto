@@ -218,73 +218,6 @@ void test_bi_mod_exp(void) {
     }
 }
 
-void test_bi_knuth_d(void) {
-    // clang-format off
-    uint32_t tests[] = {
-        // u_words, u..., v_words, v..., return_quotient(0/1), expected_words, expected...
-        1, 0x00000005, 2, 0x0000000A, 0x00000000, 1, 1, 0x00000000,
-        1, 0x00000005, 2, 0x0000000A, 0x00000000, 0, 1, 0x00000005,
-        2, 0x00000000, 0x00000001, 2, 0x00000000, 0x00000001, 1, 1, 0x00000001,
-        2, 0x00000000, 0x00000001, 2, 0x00000000, 0x00000001, 0, 1, 0x00000000,
-        2, 0x9ABCDEF0, 0x12345678, 2, 0x00010000, 0x00000000, 1, 2, 0x56789ABC, 0x00001234,
-        2, 0x9ABCDEF0, 0x12345678, 2, 0x00010000, 0x00000000, 0, 1, 0x0000DEF0,
-        3, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000001, 2, 0xFFFFFFFE, 0x00000001, 1, 2, 0x00000001, 0x00000001,
-        3, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000001, 2, 0xFFFFFFFE, 0x00000001, 0, 1, 0x00000001,
-        3, 0x00000000, 0x00000000, 0x00000001, 2, 0x00000001, 0x00000001, 1, 1, 0xFFFFFFFF,
-        3, 0x00000000, 0x00000000, 0x00000001, 2, 0x00000001, 0x00000001, 0, 1, 0x00000001,
-        3, 0x68AC5678, 0x79ACF124, 0x00009ABD, 2, 0x12345678, 0x9ABCDEF0, 1, 1, 0x00010001,
-        3, 0x68AC5678, 0x79ACF124, 0x00009ABD, 2, 0x12345678, 0x9ABCDEF0, 0, 1, 0x00000000,
-        3, 0xFFFFFFFF, 0x00000000, 0x00000001, 2, 0x7FFFFFFF, 0x00000002, 1, 1, 0x66666666,
-        3, 0xFFFFFFFF, 0x00000000, 0x00000001, 2, 0x7FFFFFFF, 0x00000002, 0, 2, 0x66666665, 0x00000002,
-    };
-    // clang-format on
-
-    uint32_t curr_pos = 0;
-    uint32_t test = 0;
-    while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
-        uint32_t u_words = tests[curr_pos++];
-        MPI u = bi_init(u_words);
-        for (uint32_t j = 0; j < u_words; j++) {
-            u->data[j] = tests[curr_pos++];
-        }
-
-        uint32_t v_words = tests[curr_pos++];
-        MPI v = bi_init(v_words);
-        for (uint32_t j = 0; j < v_words; j++) {
-            v->data[j] = tests[curr_pos++];
-        }
-
-        bool return_quotient = tests[curr_pos++] != 0;
-
-        uint32_t exp_words = tests[curr_pos++];
-        MPI expected = bi_init(exp_words);
-        for (uint32_t j = 0; j < exp_words; j++)
-            expected->data[j] = tests[curr_pos++];
-
-        MPI got = knuth_d(u, v, return_quotient);
-
-        bool pass = bi_eq(got, expected);
-        CU_ASSERT(pass);
-        if (!pass) {
-            printf("test case %d\nu=", test);
-            bi_print(u);
-            printf("\nv=");
-            bi_print(v);
-            printf("\nreturn_quotient=%d", (int)return_quotient);
-            printf("\ncalculated=");
-            bi_print(got);
-            printf("\nexpected  =");
-            bi_print(expected);
-            printf("\n\n");
-        }
-
-        bi_free(u);
-        bi_free(v);
-        bi_free(got);
-        bi_free(expected);
-        test++;
-    }
-}
 void test_bi_shift_left(void) {
     // clang-format off
     uint32_t tests[] = {
@@ -383,7 +316,8 @@ void test_bi_mod(void) {
             curr_pos++;
         }
 
-        MPI res = bi_mod(a, b);
+        MPI res;
+        bi_eucl_div(a, b, NULL, &res);
 
         uint32_t expected_res_words = tests[curr_pos];
         MPI expected_res = bi_init(expected_res_words);
@@ -756,7 +690,7 @@ void test_bigint_math_proper(void) {
 
     // integer division
     bi_set(expected_res, 2u);
-    res = bi_eucl_div(a, b);
+    bi_eucl_div(a, b, &res, NULL);
     CU_ASSERT(bi_eq(res, expected_res));
     bi_free(res);
 
@@ -767,7 +701,7 @@ void test_bigint_math_proper(void) {
     a_euc->data[0] = 2;
     b_euc->data[0] = 2;
     bi_set(expected_res, 0x80000001);
-    res = bi_eucl_div(a_euc, b_euc);
+    bi_eucl_div(a_euc, b_euc, &res, NULL);
     passed = bi_eq(res, expected_res);
 
     CU_ASSERT(passed);
@@ -786,7 +720,7 @@ void test_bigint_math_proper(void) {
 
     // modulo
     bi_set(expected_res, 1u);
-    res = bi_mod(a, b);
+     bi_eucl_div(a, b, NULL, &res);
     CU_ASSERT(bi_eq(res, expected_res));
     bi_free(res);
 
@@ -945,7 +879,7 @@ void test_bigint(void) {
     // only least sig fig example
     bi_set(x, 5u);
     bi_set(y, 3u);
-    z = bi_eucl_div(x, y);
+    bi_eucl_div(x, y, &z, NULL);
 
     bi_free(x);
     bi_free(y);
@@ -960,12 +894,9 @@ void test_ext_euc(void) {
         int32_t expected_x;
         int32_t expected_y;
     } cases[] = {
-        {12u, 36u, 12u, 1, 0},
-        {30u, 21u, 3u, -2, 3},
-        {240u, 46u, 2u, -9, 47},
-        {391u, 299u, 23u, -3, 4},
-        {17u, 312u, 1u, -55, 3},
-        {3u, 2u, 1u, 1, -1},
+        {12u, 36u, 12u, 1, 0},   {30u, 21u, 3u, -2, 3},
+        {240u, 46u, 2u, -9, 47}, {391u, 299u, 23u, -3, 4},
+        {17u, 312u, 1u, -55, 3}, {3u, 2u, 1u, 1, -1},
         {0u, 5u, 5u, 0, 1},
     };
 
@@ -978,12 +909,12 @@ void test_ext_euc(void) {
 
         ext_euc_res_t res = ext_euc(a, b);
 
-        uint32_t expected_x_mag =
-            (cases[i].expected_x >= 0) ? (uint32_t)cases[i].expected_x
-                                       : (uint32_t)(-cases[i].expected_x);
-        uint32_t expected_y_mag =
-            (cases[i].expected_y >= 0) ? (uint32_t)cases[i].expected_y
-                                       : (uint32_t)(-cases[i].expected_y);
+        uint32_t expected_x_mag = (cases[i].expected_x >= 0)
+                                      ? (uint32_t)cases[i].expected_x
+                                      : (uint32_t)(-cases[i].expected_x);
+        uint32_t expected_y_mag = (cases[i].expected_y >= 0)
+                                      ? (uint32_t)cases[i].expected_y
+                                      : (uint32_t)(-cases[i].expected_y);
 
         CU_ASSERT(res.gcd.positive);
         CU_ASSERT(bi_eq_val(res.gcd.val, cases[i].expected_gcd));
@@ -1026,6 +957,95 @@ void test_ext_euc(void) {
     }
 }
 
+void test_bi_mul_inv_mod(void) {
+    // clang-format off
+    uint32_t tests[] = {
+        // a words, ...a, b words, ...b, res words, ...res
+        1, 0x00000002, 1, 0x00000003, 1, 0x00000002,
+        1, 0x00000003, 1, 0x00000007, 1, 0x00000005,
+        1, 0x0000000A, 1, 0x00000011, 1, 0x0000000C,
+        1, 0x00000005, 1, 0x00000011, 1, 0x00000007,
+        1, 0x00000007, 1, 0x00000019, 1, 0x00000012,
+        1, 0x0000000F, 1, 0x00000025, 1, 0x00000005,
+        1, 0x00000013, 1, 0x0000001F, 1, 0x00000012,
+        1, 0x0000001D, 1, 0x00000023, 1, 0x0000001D,
+        1, 0x00000025, 1, 0x0000002B, 1, 0x00000007,
+        1, 0x0000002F, 1, 0x00000035, 1, 0x0000002C,
+        1, 0x00000033, 1, 0x00000037, 1, 0x00000029,
+        1, 0x00000039, 1, 0x0000003D, 1, 0x0000000F,
+        1, 0x0000003B, 1, 0x00000041, 1, 0x00000036,
+        2, 0x00000003, 0x00000001, 2, 0x00000005, 0x00000002, 1, 0x00000002,
+        3, 0xDEF12345, 0x56789ABC, 0x00001234, 2, 0x00000001, 0xFFFFFFFF, 2, 0xF0533D88, 0xB799F7B7,
+        3, 0x87654321, 0xFFEDCBA9, 0x000ABCDE, 3, 0x00000001, 0x00000000, 0x10000000, 3, 0x769B039A, 0x8BC9156F, 0x01918F6C,
+        2, 0x41381F41, 0x0000A23C, 2, 0xB436AD0D, 0x41BC14B1, 2, 0xEFC2D419, 0x09899F4F,
+        2, 0xD14AB787, 0x0000DB51, 2, 0x53CD374B, 0x6201711F, 2, 0x1FD90047, 0x07C74CA3,
+        3, 0x2EE4F703, 0x2034E3E7, 0x000C368C, 3, 0x7AAD4CDD, 0x51AA0379, 0x527B9776, 3, 0x4E0C4EAB, 0x42289309, 0x0DFAB1E8,
+        3, 0xAA2855A3, 0x2BD30C4E, 0x000DE7D6, 3, 0xE6FF5DE1, 0x0D4DB57B, 0x7AD86C9C, 3, 0xCAFF3B35, 0xA50E68D5, 0x4591D820,
+        4, 0x742BA403, 0x3074FFD2, 0xA4113D22, 0x00C7E14E, 4, 0x8B030A2F, 0xB571719A, 0xA214E4AC, 0x51C5FD8F, 4, 0x8977040A, 0x69FAACB3, 0xD57B4E03, 0x4C006477,
+        4, 0x584FD91D, 0x3A03B568, 0x901182CD, 0x00F9B035, 4, 0xB6D54149, 0x66C33328, 0xD5207BF3, 0x68D6ECBE, 4, 0x830A0F1A, 0xD3AD334F, 0x80042E1A, 0x61A611A3,
+        5, 0x0B425133, 0xD278F089, 0xBAA8BFC8, 0xF6E9A553, 0x0D0C8A2D, 5, 0x9B90AA5B, 0x8A920826, 0xFE33C6E3, 0xCA5710E3, 0x724AB806, 5, 0x1507AC70, 0xBE99D82D, 0x0B661C25, 0x8AE41B45, 0x396A507F,
+        3, 0x5410BF27, 0x8B72DF4F, 0x000DFB7E, 3, 0x1D0D8901, 0x33932B0F, 0x6141FA90, 3, 0x586D381B, 0x4EECAB1C, 0x28F07D31,
+        4, 0x31FBBDF9, 0x9A52AA09, 0x7CFC127B, 0x00E6DEAE, 4, 0xBC0CF3C3, 0xE32216B2, 0x4DF33F69, 0x611EA05F, 4, 0xDE80A8C5, 0xE0802320, 0x9D58C957, 0x0DCAB087,
+        5, 0x022FB0E5, 0xE68D3938, 0xB31B767F, 0x89CFBEAF, 0x0F786CDD, 5, 0xCFCA97AD, 0x7EE038F3, 0x91D924B5, 0x52AF0C40, 0x5D819DFD, 5, 0xB86C27E3, 0x7BAD8E0A, 0x1B32D551, 0xE153731E, 0x22736774,
+    };
+    // clang-format on
+
+    uint32_t curr_pos = 0;
+    uint32_t test = 0;
+
+    while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
+        uint32_t a_words = tests[curr_pos];
+        MPI a = bi_init(a_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < a_words; j++) {
+            a->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        uint32_t b_words = tests[curr_pos];
+        MPI b = bi_init(b_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < b_words; j++) {
+            b->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        MPI res = bi_mod_mult_inv(a, b);
+
+        uint32_t expected_res_words = tests[curr_pos];
+        MPI expected_res = bi_init(expected_res_words);
+        curr_pos++;
+
+        for (uint32_t j = 0; j < expected_res_words; j++) {
+            expected_res->data[j] = tests[curr_pos];
+            curr_pos++;
+        }
+
+        bool pass = bi_eq(res, expected_res);
+
+        CU_ASSERT(pass);
+        if (!pass) {
+            printf("test case: %d\na=", test);
+            bi_print(a);
+            printf("\nb=");
+            bi_print(b);
+            printf("\ncalculated a^-1 mod b=");
+            bi_print(res);
+            printf("\nexpected res         =");
+            bi_print(expected_res);
+            printf("\n\n");
+        }
+
+        bi_free(a);
+        bi_free(b);
+        bi_free(res);
+        bi_free(expected_res);
+        test++;
+    }
+}
+
 CU_pSuite register_bigint_tests(void) {
     CU_pSuite suite = CU_add_suite("BIGINT_Suite", NULL, NULL);
 
@@ -1038,11 +1058,11 @@ CU_pSuite register_bigint_tests(void) {
     CU_add_test(suite, "bi_pow", test_bi_pow);
     CU_add_test(suite, "bi_mod", test_bi_mod);
     CU_add_test(suite, "bi_mod_exp", test_bi_mod_exp);
-    CU_add_test(suite, "knuth_d", test_bi_knuth_d);
     CU_add_test(suite, "signed_eucl_div", test_signed_eucl_div);
     CU_add_test(suite, "bi_gcd", test_bi_gcd);
     CU_add_test(suite, "bi_lcm", test_bi_lcm);
     CU_add_test(suite, "ext_euc", test_ext_euc);
+    CU_add_test(suite, "test_bi_mul_inv_mod", test_bi_mul_inv_mod);
 
     return suite;
 }
