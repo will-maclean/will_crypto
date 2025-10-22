@@ -1,6 +1,15 @@
 #include <bigint/bigint.h>
 
-sMPI from_unsigned(MPI x){
+sMPI make_small_signed(uint32_t val, bool positive){
+    sMPI res;
+    res.val = bi_init(1);
+    bi_set(res.val, val);
+    res.positive = positive;
+
+    return res;
+}
+
+sMPI from_unsigned(MPI x) {
     sMPI res;
     res.val = bi_init_and_copy(x);
     res.positive = true;
@@ -8,7 +17,7 @@ sMPI from_unsigned(MPI x){
     return res;
 }
 
-sMPI signed_add(sMPI a, sMPI b){
+sMPI signed_add(sMPI a, sMPI b) {
     sMPI res;
     if (a.positive == b.positive) {
         res.val = bi_add(a.val, b.val);
@@ -26,26 +35,14 @@ sMPI signed_add(sMPI a, sMPI b){
     return res;
 }
 
-bool signed_eq_val(sMPI x, uint32_t val, bool positive){
+bool signed_eq_val(sMPI x, uint32_t val, bool positive) {
     return x.positive == positive && bi_eq_val(x.val, val);
 }
 
-void signed_free(sMPI x){
-    bi_free(x.val);
-}
+void signed_free(sMPI x) { bi_free(x.val); }
 
-MPI to_unsigned(sMPI x){
+MPI to_unsigned(sMPI x) {
     MPI res = bi_init_and_copy(x.val);
-
-    return res;
-}
-
-sMPI signed_eucl_div(sMPI a, sMPI b) {
-    sMPI res;
-    res.val = bi_eucl_div(a.val, b.val);
-    res.positive = a.positive == b.positive;
-
-    //TODO: believe this is currently broken
 
     return res;
 }
@@ -90,23 +87,23 @@ void signed_free_init_copy(sMPI src, sMPI *target) {
     *target = signed_init_copy(src);
 }
 
-sMPI signed_mod(sMPI a, sMPI b){
-    sMPI adivb = signed_eucl_div(a, b);
-    sMPI tmp = signed_mul(b, adivb);
-    sMPI res = signed_sub(a, tmp);
-    signed_free(adivb);
-    signed_free(tmp);
+void signed_eucl_div(sMPI a, sMPI b, sMPI *q, MPI *r){
+    q->val = bi_eucl_div(a.val, b.val);
+    q->positive = a.positive == b.positive || bi_eq_val(q->val, 0);
 
-    if (!res.positive && !signed_eq_val(res, 0, true)) {
-    sMPI b_copy = signed_init_copy(b);
-    b_copy.positive = true;
-    sMPI tmp = signed_add(res, b_copy);
-    signed_free(res);
-    res = tmp;
-}
+    MPI r_ = bi_mod(a.val, b.val);
 
-    return res;
+    if(!q->positive && !bi_eq_val(r_, 0)){
+        signed_dec(*q);
 
+        MPI r__ = bi_sub(b.val, r_);
+        bi_free(r_);
+        r_ = r__;
+    }
+
+    if (r != NULL){
+        *r = r_;
+    }
 }
 
 ext_euc_res_t ext_euc(MPI a, MPI b) {
@@ -124,7 +121,7 @@ ext_euc_res_t ext_euc(MPI a, MPI b) {
     bi_set(t.val, 1);
 
     while (!bi_eq_val(r.val, 0)) {
-        quotient = signed_eucl_div(old_r, r);
+        signed_eucl_div(old_r, r, &quotient, NULL);
 
         // (old_r, r) := (r, old_r − quotient × r)
         tmp1 = signed_init_copy(r);
@@ -136,7 +133,7 @@ ext_euc_res_t ext_euc(MPI a, MPI b) {
         bi_free(tmp2.val);
 
         // (old_s, s) := (s, old_s − quotient × s)
-        tmp1 =signed_init_copy(s);
+        tmp1 = signed_init_copy(s);
         tmp2 = signed_mul(quotient, s);
         bi_free(s.val);
         s = signed_sub(old_s, tmp2);
@@ -164,4 +161,27 @@ ext_euc_res_t ext_euc(MPI a, MPI b) {
     bi_free(s.val);
     bi_free(t.val);
     return res;
+}
+
+void signed_inc(sMPI a){
+    if(signed_eq_val(a, 1, false)){
+        bi_set(a.val, 0);
+        a.positive = true;
+    }
+    else if(a.positive){
+        bi_inc(a.val);
+    } else{
+        bi_dec(a.val);
+    }
+}
+void signed_dec(sMPI a){
+        if(signed_eq_val(a, 0, true)){
+        bi_set(a.val, 1);
+        a.positive = false;
+    }
+    else if(a.positive){
+        bi_dec(a.val);
+    } else{
+        bi_inc(a.val);
+    }
 }

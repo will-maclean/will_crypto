@@ -128,6 +128,7 @@ typedef struct {
     bool positive;
 } sMPI;
 
+sMPI make_small_signed(uint32_t val, bool positive);
 sMPI signed_init_copy(sMPI src);
 void signed_free_init_copy(sMPI src, sMPI *target);
 void signed_free(sMPI x);
@@ -142,11 +143,12 @@ typedef struct  {
 } ext_euc_res_t;
 
 sMPI signed_add(sMPI a, sMPI b);
-sMPI signed_eucl_div(sMPI a, sMPI b);
+void signed_eucl_div(sMPI a, sMPI b, sMPI *q, MPI *r);
 sMPI signed_mul(sMPI a, sMPI b);
 sMPI signed_sub(sMPI a, sMPI b);
-sMPI signed_mod(sMPI a, sMPI b);
 ext_euc_res_t ext_euc(MPI a, MPI b);
+void signed_inc(sMPI a);
+void signed_dec(sMPI a);
 
 
 #endif

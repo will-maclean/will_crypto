@@ -15,7 +15,6 @@
 #include "test_suites.h"
 
 
-
 void test_bi_gcd(void) {
     //   a_words, a[0]..,  b_words, b[0]..,  expected_words, expected[0]..
     // clang-format off
@@ -622,6 +621,61 @@ void test_bi_shift_right(void) {
     }
 }
 
+void test_signed_eucl_div(void) {
+    struct {
+        uint32_t a_mag;
+        bool a_positive;
+        uint32_t b_mag;
+        bool b_positive;
+        uint32_t expected_q_mag;
+        bool expected_q_positive;
+        uint32_t expected_r_mag;
+    } cases[] = {
+        {7u, true, 3u, true, 2u, true, 1u},
+        {7u, true, 3u, false, 3u, false, 2u},
+        {7u, false, 3u, true, 3u, false, 2u},
+        {9u, false, 3u, true, 3u, false, 0u},
+        {6u, true, 3u, false, 2u, false, 0u},
+        {2u, true, 5u, false, 0u, true, 2u},
+    };
+
+    size_t n_cases = sizeof(cases) / sizeof(cases[0]);
+    for (size_t i = 0; i < n_cases; i++) {
+        sMPI a = make_small_signed(cases[i].a_mag, cases[i].a_positive);
+        sMPI b = make_small_signed(cases[i].b_mag, cases[i].b_positive);
+
+        sMPI q;
+        MPI remainder = NULL;
+
+        signed_eucl_div(a, b, &q, &remainder);
+
+        CU_ASSERT(q.positive == cases[i].expected_q_positive);
+        CU_ASSERT(bi_eq_val(q.val, cases[i].expected_q_mag));
+        CU_ASSERT_PTR_NOT_NULL(remainder);
+        if (remainder != NULL) {
+            CU_ASSERT(bi_eq_val(remainder, cases[i].expected_r_mag));
+            bi_free(remainder);
+        }
+
+        signed_free(q);
+        signed_free(a);
+        signed_free(b);
+    }
+
+    sMPI a_only = make_small_signed(7u, true);
+    sMPI b_only = make_small_signed(3u, false);
+    sMPI q_only;
+
+    signed_eucl_div(a_only, b_only, &q_only, NULL);
+
+    CU_ASSERT(!q_only.positive);
+    CU_ASSERT(bi_eq_val(q_only.val, 3u));
+
+    signed_free(q_only);
+    signed_free(a_only);
+    signed_free(b_only);
+}
+
 void test_bigint_math_proper(void) {
     // start with one word tests
 
@@ -912,6 +966,7 @@ CU_pSuite register_bigint_tests(void) {
     CU_add_test(suite, "bi_mod", test_bi_mod);
     CU_add_test(suite, "bi_mod_exp", test_bi_mod_exp);
     CU_add_test(suite, "knuth_d", test_bi_knuth_d);
+    CU_add_test(suite, "signed_eucl_div", test_signed_eucl_div);
     CU_add_test(suite, "bi_gcd", test_bi_gcd);
     CU_add_test(suite, "bi_lcm", test_bi_lcm);
 
