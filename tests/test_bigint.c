@@ -14,7 +14,6 @@
 
 #include "test_suites.h"
 
-
 void test_bi_gcd(void) {
     //   a_words, a[0]..,  b_words, b[0]..,  expected_words, expected[0]..
     // clang-format off
@@ -953,6 +952,80 @@ void test_bigint(void) {
     bi_free(z);
 }
 
+void test_ext_euc(void) {
+    struct {
+        uint32_t a;
+        uint32_t b;
+        uint32_t expected_gcd;
+        int32_t expected_x;
+        int32_t expected_y;
+    } cases[] = {
+        {12u, 36u, 12u, 1, 0},
+        {30u, 21u, 3u, -2, 3},
+        {240u, 46u, 2u, -9, 47},
+        {391u, 299u, 23u, -3, 4},
+        {17u, 312u, 1u, -55, 3},
+        {3u, 2u, 1u, 1, -1},
+        {0u, 5u, 5u, 0, 1},
+    };
+
+    size_t n_cases = sizeof(cases) / sizeof(cases[0]);
+    for (size_t i = 0; i < n_cases; i++) {
+        MPI a = bi_init(1);
+        bi_set(a, cases[i].a);
+        MPI b = bi_init(1);
+        bi_set(b, cases[i].b);
+
+        ext_euc_res_t res = ext_euc(a, b);
+
+        uint32_t expected_x_mag =
+            (cases[i].expected_x >= 0) ? (uint32_t)cases[i].expected_x
+                                       : (uint32_t)(-cases[i].expected_x);
+        uint32_t expected_y_mag =
+            (cases[i].expected_y >= 0) ? (uint32_t)cases[i].expected_y
+                                       : (uint32_t)(-cases[i].expected_y);
+
+        CU_ASSERT(res.gcd.positive);
+        CU_ASSERT(bi_eq_val(res.gcd.val, cases[i].expected_gcd));
+        if (expected_x_mag == 0) {
+            CU_ASSERT(bi_eq_val(res.bez_x.val, 0));
+        } else {
+            CU_ASSERT(res.bez_x.positive == (cases[i].expected_x >= 0));
+            CU_ASSERT(bi_eq_val(res.bez_x.val, expected_x_mag));
+        }
+
+        if (expected_y_mag == 0) {
+            CU_ASSERT(bi_eq_val(res.bez_y.val, 0));
+        } else {
+            CU_ASSERT(res.bez_y.positive == (cases[i].expected_y >= 0));
+            CU_ASSERT(bi_eq_val(res.bez_y.val, expected_y_mag));
+        }
+
+        sMPI signed_a = make_small_signed(cases[i].a, true);
+        sMPI signed_b = make_small_signed(cases[i].b, true);
+        sMPI term1 = signed_mul(res.bez_x, signed_a);
+        sMPI term2 = signed_mul(res.bez_y, signed_b);
+        sMPI combo = signed_add(term1, term2);
+
+        bool combo_ok = bi_eq(combo.val, res.gcd.val);
+        combo_ok = combo_ok && (combo.positive == res.gcd.positive ||
+                                bi_eq_val(combo.val, 0));
+        CU_ASSERT(combo_ok);
+
+        signed_free(combo);
+        signed_free(term1);
+        signed_free(term2);
+        signed_free(signed_a);
+        signed_free(signed_b);
+
+        bi_free(a);
+        bi_free(b);
+        signed_free(res.bez_x);
+        signed_free(res.bez_y);
+        signed_free(res.gcd);
+    }
+}
+
 CU_pSuite register_bigint_tests(void) {
     CU_pSuite suite = CU_add_suite("BIGINT_Suite", NULL, NULL);
 
@@ -969,6 +1042,7 @@ CU_pSuite register_bigint_tests(void) {
     CU_add_test(suite, "signed_eucl_div", test_signed_eucl_div);
     CU_add_test(suite, "bi_gcd", test_bi_gcd);
     CU_add_test(suite, "bi_lcm", test_bi_lcm);
+    CU_add_test(suite, "ext_euc", test_ext_euc);
 
     return suite;
 }

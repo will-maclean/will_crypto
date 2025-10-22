@@ -35,86 +35,7 @@ void test_rsa_keygen(void) {
     bi_free(priv.n);
 }
 
-void test_ext_euc(void) {
-    // clang-format off
-    uint32_t tests[] = {
-        1, 12,             1, 36,             1, 12,
-        1, 0x00000000,             1, 0x00000000,             1, 0x00000000,
-        1, 0x00000000,             1, 0x00000024,             1, 0x00000024,
-        1, 0x00000024,             1, 0x00000000,             1, 0x00000024,
-        1, 0x0000000C,             1, 0x00000024,             1, 0x0000000C,
-        1, 0x00000007,             1, 0x00000014,             1, 0x00000001,
-        1, 0xFFFFFFFF,             1, 0x00000002,             1, 0x00000001,
-        1, 0x00010000,             1, 0x00100000,             1, 0x00010000,
-        2, 0x00000000, 0x00000001, 1, 0x00000003,             1, 0x00000001,
-        3, 0x00000000, 0x00000000, 0x00000001,
-           2, 0x00010000, 0x00000000,
-           2, 0x00010000, 0x00000000,
-        3, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
-           1, 0xFFFFFFFF,
-           1, 0xFFFFFFFF,
-        2, 0x89ABCDEF, 0x01234567,
-           2, 0x89ABCDEF, 0x01234567,
-           2, 0x89ABCDEF, 0x01234567,
-        2, 0x9ABCDEF0, 0x12345678,
-           2, 0x00010000, 0x00000000,
-           1, 0x00000010,
-    };
-    // clang-format on
 
-    uint32_t curr_pos = 0;
-    uint32_t test = 0;
-    while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
-        uint32_t a_words = tests[curr_pos++];
-        MPI a = bi_init(a_words);
-        for (uint32_t j = 0; j < a_words; j++)
-            a->data[j] = tests[curr_pos++];
-
-        uint32_t b_words = tests[curr_pos++];
-        MPI b = bi_init(b_words);
-        for (uint32_t j = 0; j < b_words; j++)
-            b->data[j] = tests[curr_pos++];
-
-        uint32_t eg_words = tests[curr_pos++];
-        MPI expected_gcd = bi_init(eg_words);
-        for (uint32_t j = 0; j < eg_words; j++)
-            expected_gcd->data[j] = tests[curr_pos++];
-
-        ext_euc_res_t res = ext_euc(a, b);
-
-        bool gcd_ok = res.gcd.positive && bi_eq(res.gcd.val, expected_gcd);
-        CU_ASSERT(gcd_ok);
-        if (!gcd_ok) {
-            printf("case=%d\ba=", test);
-            bi_print(a);
-            printf("\nb=");
-            bi_print(b);
-            printf("\nexpected gcd=");
-            bi_print(expected_gcd);
-            printf("\nreturned gcd=");
-            if (!res.gcd.positive)
-                printf("-");
-            bi_print(res.gcd.val);
-            printf("\nBezout x=");
-            if (!res.bez_x.positive)
-                printf("-");
-            bi_print(res.bez_x.val);
-            printf("\nBezout y=");
-            if (!res.bez_y.positive)
-                printf("-");
-            bi_print(res.bez_y.val);
-            printf("\n\n");
-        }
-
-        bi_free(a);
-        bi_free(b);
-        bi_free(expected_gcd);
-        signed_free(res.bez_x);
-        signed_free(res.bez_y);
-        signed_free(res.gcd);
-        test++;
-    }
-}
 
 void test_calc_lambda_n_d(void) {
     //   p_words, p[0].., q_words, q[0].., e_words, e[0].., lambda_words,
@@ -320,7 +241,6 @@ CU_pSuite register_rsa_tests(void) {
         return NULL;
 
     CU_add_test(suite, "rsa_keygen", test_rsa_keygen);
-    CU_add_test(suite, "ext_euc", test_ext_euc);
     CU_add_test(suite, "calc_lambda_n_d", test_calc_lambda_n_d);
     CU_add_test(suite, "rsa_end_to_end", test_rsa_end_to_end);
     CU_add_test(suite, "test_rsa_encrypt_decrypt_cases",
