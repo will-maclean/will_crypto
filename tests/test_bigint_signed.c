@@ -7,30 +7,20 @@
 
 #include "test_suites.h"
 void test_signed_sub(void) {
-    //   a_words, a[0]..,  a pos, b_words, b[0]..,  b pos expected_words, expected[0].., expected pos
+    //   a_words, a[0]..,  a pos, b_words, b[0]..,  b pos expected_words,
+    //   expected[0].., expected pos
     // clang-format off
     uint32_t tests[] = {
-        // case 1
         1, 0x00000001, 1, 1, 0x00000001, 1, 1, 0x00000000, 1,
-        // case 2
         1, 0x00000005, 1, 1, 0x00000003, 1, 1, 0x00000002, 1,
-        // case 3
         1, 0x00000003, 1, 1, 0x00000005, 1, 1, 0x00000002, 0,
-        // case 4
         1, 0x00000003, 0, 1, 0x00000005, 0, 1, 0x00000002, 1,
-        // case 5
         1, 0x00000005, 0, 1, 0x00000003, 1, 1, 0x00000008, 0,
-        // case 6
         1, 0x00000008, 1, 1, 0x00000002, 0, 1, 0x0000000A, 1,
-        // case 7
         2, 0x00000000, 0x00000002, 1, 1, 0x00000001, 1, 2, 0xFFFFFFFF, 0x00000001, 1,
-        // case 8
         2, 0xFFFFFFFF, 0x00000001, 1, 2, 0x00000005, 0x00000001, 1, 1, 0xFFFFFFFA, 1,
-        // case 9
         2, 0x00000000, 0x00000001, 1, 2, 0x00000001, 0x00000001, 1, 1, 0x00000001, 0,
-        // case 10
         3, 0x00000003, 0x00000000, 0x00000001, 0, 1, 0x00000005, 0, 2, 0xFFFFFFFE, 0xFFFFFFFF, 0,
-        // case 11
         3, 0x00000001, 0x00000002, 0x00000000, 1, 3, 0x00000001, 0x00000000, 0x00000001, 0, 3, 0x00000002, 0x00000002, 0x00000001, 1,
     };
     // clang-format on
@@ -82,7 +72,8 @@ void test_signed_sub(void) {
 }
 
 void test_signed_add(void) {
-    //   a_words, a[0]..,  a pos, b_words, b[0]..,  b pos expected_words, expected[0].., expected pos
+    //   a_words, a[0]..,  a pos, b_words, b[0]..,  b pos expected_words,
+    //   expected[0].., expected pos
     // clang-format off
     uint32_t tests[] = {
         1, 1, 1, 1, 1, 1, 1, 2, 1,
@@ -139,26 +130,48 @@ void test_signed_eucl_div(void) {
     //   expected_r_words, expected_r data...
     // clang-format off
     uint32_t tests[] = {
-        1, 0x00000007, 1, 1, 0x00000003, 1, 1, 0x00000002, 1, 1, 0x00000001,
-        1, 0x00000007, 1, 1, 0x00000003, 0, 1, 0x00000003, 0, 1, 0x00000002,
+        // a = 7, b = 3, q = 2, r = 1
+        1, 7, 1, 1, 3, 1, 1, 2, 1, 1, 1,
+        // a = 7, b = -3, q = -2, r = 1
+        1, 7, 1, 1, 3, 0, 1, 2, 0, 1, 1,
+        // a = -7, b = 3, q = -3, r = 2
+        1, 7, 0, 1, 3, 1, 1, 3, 0, 1, 2,
+        // a = -7, b = -3, q = 3, r = 2
+        1, 7, 0, 1, 3, 0, 1, 3, 1, 1, 2,
+        // a = -7, b = 3, q = -3, r = 2
         1, 0x00000007, 0, 1, 0x00000003, 1, 1, 0x00000003, 0, 1, 0x00000002,
+        // a = -9, b = 3, q = -3, r = 0
         1, 0x00000009, 0, 1, 0x00000003, 1, 1, 0x00000003, 0, 1, 0x00000000,
+        // a = 6, b = -3, q = -2, r = 0
         1, 0x00000006, 1, 1, 0x00000003, 0, 1, 0x00000002, 0, 1, 0x00000000,
+        // a = 2, b = -5, q = 0, r = 2
         1, 0x00000002, 1, 1, 0x00000005, 0, 1, 0x00000000, 1, 1, 0x00000002,
+        // a = 8589934592, b = 8, q = 1073741824, r = 0
         2, 0x00000000, 0x00000002, 1, 1, 0x00000008, 1, 1, 0x40000000, 1, 1, 0x00000000,
+        // a = -36893488147419103248, b = 4294967301, q = -8589934583, r = 4294967235
         3, 0x00000010, 0x00000000, 0x00000002, 0, 2, 0x00000005, 0x00000001, 1, 2, 0xFFFFFFF7, 0x00000001, 0, 1, 0xFFFFFFC3,
+        // a = 55340232223438392815, b = 18446744073709555712, q = 3, r = 2309725679
         3, 0x89ABCDEF, 0x00000000, 0x00000003, 1, 3, 0x00001000, 0x00000000, 0x00000001, 1, 1, 0x00000003, 1, 1, 0x89AB9DEF,
+        // a = 18446744073709551615, b = 4600387192, q = 4009824239, r = 2442804727
         2, 0xFFFFFFFF, 0xFFFFFFFF, 1, 2, 0x12345678, 0x00000001, 1, 1, 0xEF010FEF, 1, 1, 0x919A3DF7,
+        // a = -92233720368547758080, b = -2, q = 46116860184273879040, r = 0
         3, 0x00000000, 0x00000000, 0x00000005, 0, 1, 0x00000002, 0, 3, 0x00000000, 0x80000000, 0x00000002, 1, 1, 0x00000000,
-        2, 0x00000001, 0x00000001, 1, 1, 0x00008000, 0, 1, 0x00020001, 0, 1, 0x00007FFF,
+        // a = 4294967297, b = -32768, q = -131072, r = 1
+        2, 0x00000001, 0x00000001, 1, 1, 0x00008000, 0, 1, 0x00020000, 0, 1, 0x00000001,
+        // a = -18446744073709584384, b = 32, q = -576460752303424512, r = 0
         3, 0x00008000, 0x00000000, 0x00000001, 0, 1, 0x00000020, 1, 2, 0x00000400, 0x08000000, 0, 1, 0x00000000,
+        // a = 18446744073709551616, b = 4294967296, q = 4294967296, r = 0
         3, 0x00000000, 0x00000000, 0x00000001, 1, 2, 0x00000000, 0x00000001, 1, 2, 0x00000000, 0x00000001, 1, 1, 0x00000000,
-        3, 0x00000002, 0x00000000, 0x00000001, 1, 2, 0x00000000, 0x00000001, 0, 2, 0x00000001, 0x00000001, 0, 1, 0xFFFFFFFE,
-        4, 0x00000001, 0x00000000, 0x00000002, 0x00000000, 0, 2, 0x00001000, 0x00000000, 0, 2, 0x00000000, 0x00200000, 1, 1, 0x00000001,
+        // a = 18446744073709551618, b = -4294967296, q = -4294967296, r = 2
+        3, 0x00000002, 0x00000000, 0x00000001, 1, 2, 0x00000000, 0x00000001, 0, 2, 0x00000000, 0x00000001, 0, 1, 0x00000002,
+        // a = -36893488147419103233, b = -4096, q = 9007199254740993, r = 4095
+        4, 0x00000001, 0x00000000, 0x00000002, 0x00000000, 0, 2, 0x00001000, 0x00000000, 0, 2, 0x00000001, 0x00200000, 1, 1, 0x00000FFF,
     };
     // clang-format on
 
+
     size_t curr = 0;
+    uint32_t test = 0;
     while (curr < sizeof(tests) / sizeof(uint32_t)) {
         uint32_t a_words = tests[curr++];
         sMPI a = signed_init(a_words);
@@ -195,9 +208,17 @@ void test_signed_eucl_div(void) {
         CU_ASSERT(q.positive == expected_q_positive);
         CU_ASSERT(bi_eq(q.val, expected_q));
         CU_ASSERT_PTR_NOT_NULL(remainder);
+        bool pass = (q.positive == expected_q_positive) &&
+                    bi_eq(q.val, expected_q) &&
+                    bi_eq(remainder, expected_remainder);
         if (remainder != NULL) {
             CU_ASSERT(bi_eq(remainder, expected_remainder));
             bi_free(remainder);
+        }
+
+
+        if (!pass){
+            printf("\nsigned_eucl_div: failed test %d\n\n",test);
         }
 
         signed_free(q);
@@ -205,6 +226,8 @@ void test_signed_eucl_div(void) {
         signed_free(b);
         bi_free(expected_q);
         bi_free(expected_remainder);
+
+        test++;
     }
 
     sMPI a_only = make_small_signed(7u, true);
@@ -214,7 +237,7 @@ void test_signed_eucl_div(void) {
     signed_eucl_div(a_only, b_only, &q_only, NULL);
 
     CU_ASSERT(!q_only.positive);
-    CU_ASSERT(bi_eq_val(q_only.val, 3u));
+    CU_ASSERT(bi_eq_val(q_only.val, 2u));
 
     signed_free(q_only);
     signed_free(a_only);
@@ -228,7 +251,7 @@ CU_pSuite register_bigint_signed_tests(void) {
         return NULL;
 
     CU_add_test(suite, "test_signed_add", test_signed_add);
-        CU_add_test(suite, "test_signed_sub", test_signed_sub);
+    CU_add_test(suite, "test_signed_sub", test_signed_sub);
     CU_add_test(suite, "signed_eucl_div", test_signed_eucl_div);
 
     return suite;

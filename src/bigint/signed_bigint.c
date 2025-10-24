@@ -111,8 +111,8 @@ void signed_eucl_div(sMPI a, sMPI b, sMPI *q, MPI *r) {
     bi_eucl_div(a.val, b.val, &q->val, &r_);
     q->positive = a.positive == b.positive || bi_eq_val(q->val, 0);
 
-    if (!q->positive && !bi_eq_val(r_, 0)) {
-        signed_dec(q);
+    if (!a.positive && !bi_eq_val(r_, 0)) {
+        bi_inc(q->val);
 
         MPI r__ = bi_sub(b.val, r_);
         bi_free(r_);

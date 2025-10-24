@@ -212,29 +212,22 @@ MPI bi_sub(MPI a, MPI b) {
         return res;
     }
 
-    // There may be scenarios where, even though a >= b,
-    // b.words > a.words. So, to catch this, we'll pad
-    // a to the size of b
-    MPI tmp = bi_init_and_copy(a);
-    MPI a_copy =
-        bi_pad_words(tmp, b->words > a->words ? b->words - a->words : 0);
-    MPI res = bi_init_like(a_copy);
-
     // invariant: a >= b
-
-    uint32_t n = b->words;
-
+    MPI res = bi_init(max(a->words, b->words));
     uint64_t base = 1LL << 32;
     uint64_t carry = base;
-    for (uint32_t i = 0; i < n; i++) {
+    uint32_t a_word;
+    uint32_t b_word;
+    for (uint32_t i = 0; i < max(a->words, b->words); i++) {
+        a_word = i < a->words ? a->data[i] : 0;
+        b_word = i < b->words ? b->data[i] : 0;
 
-        carry = base - 1 + a_copy->data[i] - b->data[i] + carry / base;
+        carry = base - 1 + a_word - b_word + carry / base;
 
         res->data[i] = carry % base;
     }
 
-    bi_free(tmp);
-    bi_free(a_copy);
+    bi_squeeze(res);
 
     return res;
 }
@@ -1231,8 +1224,8 @@ MPI bi_mod_mult_inv(MPI a, MPI b) {
         printf("\nb=");
         bi_print(b);
 
-        //TODO: re-enable this failure once the bug is found
-        // exit(1);
+        // TODO: re-enable this failure once the bug is found
+        //  exit(1);
     }
 
     signed_free(tmp.bez_y);
