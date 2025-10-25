@@ -25,7 +25,7 @@ make
 ```
 
 ## Usage: `will_crypto demo`
-Shows a demonstratino of RSA keygen, encryption, and decryption.
+Shows a demonstration of RSA keygen, encryption, and decryption.
 
 Run: `./bin/will_crypto demo`
 Sample output:
