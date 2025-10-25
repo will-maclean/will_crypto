@@ -22,6 +22,11 @@ void test_signed_sub(void) {
         2, 0x00000000, 0x00000001, 1, 2, 0x00000001, 0x00000001, 1, 1, 0x00000001, 0,
         3, 0x00000003, 0x00000000, 0x00000001, 0, 1, 0x00000005, 0, 2, 0xFFFFFFFE, 0xFFFFFFFF, 0,
         3, 0x00000001, 0x00000002, 0x00000000, 1, 3, 0x00000001, 0x00000000, 0x00000001, 0, 3, 0x00000002, 0x00000002, 0x00000001, 1,
+        3, 0x00000000, 0x00000002, 0x00000001, 1,  3, 0xFFFFFFFF, 0x00000000, 0x00000001, 1,
+        3, 0x0000ABCD, 0x00000000, 0x80000000, 1, 2, 0x0000DCDF, 0x00000000, 1, 3, 0xFFFFCEEE, 0xFFFFFFFF, 0x7FFFFFFF, 1,
+        3, 0x00000000, 0x00000002, 0x00000001, 0, 2, 0x00000001, 0x00000001, 0, 3, 0xFFFFFFFF, 0x00000000, 0x00000001, 0,
+        3, 0x00000010, 0x00000000, 0x00000001, 0, 3, 0x00000020, 0x00000000, 0x00000000, 1, 3, 0x00000030, 0x00000000, 0x00000001, 0,
+        3, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 1, 3, 0x00000001, 0x00000000, 0x00000001, 0, 3, 0x00000000, 0x00000000, 0x00000002, 1,
     };
     // clang-format on
 
@@ -57,7 +62,7 @@ void test_signed_sub(void) {
             signed_print(a);
             printf("\nb=");
             signed_print(b);
-            printf("\nexpected gcd=");
+            printf("\na-b=");
             signed_print(expected);
             printf("\ncalculated   =");
             signed_print(got);
@@ -169,7 +174,6 @@ void test_signed_eucl_div(void) {
     };
     // clang-format on
 
-
     size_t curr = 0;
     uint32_t test = 0;
     while (curr < sizeof(tests) / sizeof(uint32_t)) {
@@ -216,9 +220,8 @@ void test_signed_eucl_div(void) {
             bi_free(remainder);
         }
 
-
-        if (!pass){
-            printf("\nsigned_eucl_div: failed test %d\n\n",test);
+        if (!pass) {
+            printf("\nsigned_eucl_div: failed test %d\n\n", test);
         }
 
         signed_free(q);

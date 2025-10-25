@@ -124,64 +124,215 @@ void signed_eucl_div(sMPI a, sMPI b, sMPI *q, MPI *r) {
     }
 }
 
+sMPI safe_signed_half(sMPI a) {
+    sMPI res;
+    if(signed_eq_val(a, 0, true)){
+        return make_small_signed(0, true);
+    } else if (a.positive) {
+        res.val = bi_shift_right(a.val, 1);
+        res.positive = true;
+
+        return res;
+    } else {
+        sMPI a_cpy = signed_init_copy(a);
+
+        bi_inc(a_cpy.val);
+
+        res.val = bi_shift_right(a_cpy.val, 1);
+        res.positive = false;
+
+        signed_free(a_cpy);
+
+        return res;
+    }
+}
+
 ext_euc_res_t ext_euc(MPI a, MPI b) {
-    sMPI r = {NULL, true}, s = {NULL, true}, t = {NULL, true},
-         old_r = {NULL, true}, old_s = {NULL, true}, old_t = {NULL, true},
-         quotient = {NULL, true}, tmp1 = {NULL, true}, tmp2 = {NULL, true};
+    if (bi_eq(a, b)) {
+        ext_euc_res_t res;
 
-    old_r.val = bi_init_and_copy(a);
-    r.val = bi_init_and_copy(b);
-    old_s.val = bi_init_like(a);
-    bi_set(old_s.val, 1);
-    s.val = bi_init_like(a);
-    old_t.val = bi_init_like(a);
-    t.val = bi_init_like(a);
-    bi_set(t.val, 1);
+        res.gcd = from_unsigned(a, true);
+        res.bez_x = make_small_signed(1, true);
+        res.bez_y = make_small_signed(0, true);
 
-    while (!bi_eq_val(r.val, 0)) {
-        signed_eucl_div(old_r, r, &quotient, NULL);
+        return res;
+    }
 
-        // (old_r, r) := (r, old_r − quotient × r)
-        tmp1 = signed_init_copy(r);
-        tmp2 = signed_mul(quotient, r);
-        signed_free(r);
-        r = signed_sub(old_r, tmp2);
-        signed_free_init_copy(tmp1, &old_r);
-        bi_free(tmp1.val);
-        bi_free(tmp2.val);
+    sMPI x = from_unsigned(a, true);
+    sMPI y = from_unsigned(b, true);
 
-        // (old_s, s) := (s, old_s − quotient × s)
-        tmp1 = signed_init_copy(s);
-        tmp2 = signed_mul(quotient, s);
-        bi_free(s.val);
-        s = signed_sub(old_s, tmp2);
-        signed_free_init_copy(tmp1, &old_s);
-        bi_free(tmp1.val);
-        bi_free(tmp2.val);
+    sMPI g = make_small_signed(1, true);
 
-        // (old_t, t) := (t, old_t − quotient × t)
-        tmp1 = signed_init_copy(t);
-        tmp2 = signed_mul(quotient, t);
-        bi_free(t.val);
-        t = signed_sub(old_t, tmp2);
-        signed_free_init_copy(tmp1, &old_t);
-        bi_free(tmp1.val);
-        bi_free(tmp2.val);
-        bi_free(quotient.val);
+    MPI tmp;
+    sMPI stmp;
+    uint32_t xy_iter = 0;
+    while (signed_even(x) && signed_even(y)) {
+        // x /= 2
+        stmp = safe_signed_half(x);
+        signed_free_init_copy(stmp, &x);
+
+        // y /= 2
+        stmp = safe_signed_half(y);
+        signed_free_init_copy(stmp, &y);
+
+        // g *= 2
+        tmp = bi_shift_left(g.val, 1);
+        bi_free(g.val);
+        g.val = bi_init_and_copy(tmp);
+        bi_free(tmp);
+
+        // printf("xy iter %d\n\tx=", xy_iter++);
+        // signed_print(x);
+        // printf("\n\ty=");
+        // signed_print(y);
+        // printf("\n\tg=");
+        // signed_print(g);
+        // printf("\n");
+    }
+
+    sMPI u = signed_init_copy(x);
+    sMPI v = signed_init_copy(y);
+    sMPI A = make_small_signed(1, true);
+    sMPI B = make_small_signed(0, true);
+    sMPI C = make_small_signed(0, true);
+    sMPI D = make_small_signed(1, true);
+
+    uint32_t outer_loop = 0;
+    while (!signed_eq_val(u, 0, true)) {
+        while (signed_even(u)) {
+            // u /= 2
+            stmp = safe_signed_half(u);
+            signed_free_init_copy(stmp, &u);
+            signed_free(stmp);
+
+            if (signed_even(A) && signed_even(B)) {
+                // A /= 2
+                stmp = safe_signed_half(A);
+                signed_free_init_copy(stmp, &A);
+                signed_free(stmp);
+
+                // B /= 2
+                stmp = safe_signed_half(B);
+                signed_free_init_copy(stmp, &B);
+                signed_free(stmp);
+
+            } else {
+                // A = (A + y) / 2
+                sMPI aplusy = signed_add(A, y);
+                stmp = safe_signed_half(aplusy);
+                signed_free_init_copy(stmp, &A);
+                signed_free(aplusy);
+                signed_free(stmp);
+
+                // B = (B - x) / 2
+                sMPI bminusx = signed_sub(B, x);
+                stmp = safe_signed_half(bminusx);
+                signed_free_init_copy(stmp, &B);
+                signed_free(bminusx);
+                signed_free(stmp);
+            }
+        }
+
+        while (signed_even(v)) {
+            // v /= 2
+            stmp = safe_signed_half(v);
+            signed_free_init_copy(stmp, &v);
+            signed_free(stmp);
+
+            if (signed_even(C) && signed_even(D)) {
+                // C /= 2
+                stmp = safe_signed_half(C);
+                signed_free_init_copy(stmp, &C);
+                signed_free(stmp);
+
+                // D /= 2
+                stmp = safe_signed_half(D);
+                signed_free_init_copy(stmp, &D);
+                signed_free(stmp);
+            } else {
+                // C = (C + y) / 2
+                sMPI cplusy = signed_add(C, y);
+                stmp = safe_signed_half(cplusy);
+                signed_free_init_copy(stmp, &C);
+                signed_free(stmp);
+
+                // D = (D - x) / 2
+                sMPI dminusx = signed_sub(D, x);
+                stmp = safe_signed_half(dminusx);
+                signed_free_init_copy(stmp, &D);
+                signed_free(stmp);
+            }
+        }
+
+        if (signed_ge(u, v)) {
+            // u -= v
+            stmp = signed_sub(u, v);
+            signed_free_init_copy(stmp, &u);
+            signed_free(stmp);
+
+            // A -= C
+            stmp = signed_sub(A, C);
+            signed_free_init_copy(stmp, &A);
+            signed_free(stmp);
+
+            // B -= D
+            stmp = signed_sub(B, D);
+            signed_free_init_copy(stmp, &B);
+            signed_free(stmp);
+        } else {
+
+            // v -= u
+            sMPI stmp = signed_sub(v, u);
+            signed_free_init_copy(stmp, &v);
+            signed_free(stmp);
+
+            //  C -= A
+            stmp = signed_sub(C, A);
+            signed_free_init_copy(stmp, &C);
+            signed_free(stmp);
+
+            //  D -= B
+            stmp = signed_sub(D, B);
+            signed_free_init_copy(stmp, &D);
+            signed_free(stmp);
+        }
+
+        // printf("u outer iter %d\n\tu=", outer_loop++);
+        // signed_print(u);
+        // printf("\n\tv=");
+        // signed_print(v);
+        // printf("\n\tA=");
+        // signed_print(A);
+        // printf("\n\tB=");
+        // signed_print(B);
+        // printf("\n\tC=");
+        // signed_print(C);
+        // printf("\n\tD=");
+        // signed_print(D);
+        // printf("\n");
     }
 
     ext_euc_res_t res;
-    bi_squeeze(old_s.val);
-    bi_squeeze(old_r.val);
-    bi_squeeze(old_t.val);
+    res.bez_x = signed_init_copy(C);
+    res.bez_y = signed_init_copy(D);
+    res.gcd = signed_mul(g, v);
 
-    res.bez_x = old_s;
-    res.bez_y = old_t;
-    res.gcd = old_r;
+    // printf("gcd=");
+    // signed_print(res.gcd);
+    // printf("\nbez_x=");
+    // signed_print(res.bez_x);
+    // printf("\nbez_y=");
+    // signed_print(res.bez_y);
 
-    bi_free(r.val);
-    bi_free(s.val);
-    bi_free(t.val);
+    signed_free(x);
+    signed_free(y);
+    signed_free(u);
+    signed_free(v);
+    signed_free(A);
+    signed_free(B);
+    signed_free(C);
+    signed_free(D);
+
     return res;
 }
 
@@ -214,4 +365,18 @@ void signed_print(sMPI a) {
 void signed_printf(sMPI a, FILE *fp) {
     fprintf(fp, a.positive ? "+" : "-");
     bi_printf(a.val, fp);
+}
+
+bool signed_even(sMPI a) { return bi_even(a.val); }
+
+bool signed_ge(sMPI a, sMPI b) {
+    if (a.positive && !b.positive) {
+        return true;
+    } else if (!a.positive && b.positive) {
+        return false;
+    } else if (a.positive && b.positive) {
+        return bi_ge(a.val, b.val);
+    } else {
+        return bi_ge(b.val, a.val);
+    }
 }

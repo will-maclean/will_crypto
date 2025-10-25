@@ -218,6 +218,116 @@ void test_bi_mod_exp(void) {
     }
 }
 
+void test_bi_add(void) {
+    // clang-format off
+    uint32_t tests[] = {
+        // a words, ...a, b words, ...b, res words, ...res
+        1, 0xFFFFFFFFu, 1, 0x00000001u, 2, 0x00000000u, 0x00000001u,
+        2, 0xFFFFFFFFu, 0x00000001u,   1, 0x00000001u, 2, 0x00000000u, 0x00000002u,
+        3, 0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 3, 0x00000001u, 0x00000000u, 0x00000001u, 3, 0x00000000u, 0x00000000u, 0x00000002u,
+        3, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 3, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 4, 0xFFFFFFFEu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000001u,
+        3, 0xFFFFFFFFu, 0x00000000u, 0xFFFFFFFFu, 3, 0x00000001u, 0xFFFFFFFFu, 0x00000000u, 4, 0x00000000u, 0x00000000u, 0x00000000u, 0x00000001u,
+    };
+    // clang-format on
+
+    uint32_t curr_pos = 0;
+    uint32_t test = 0;
+    while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
+        uint32_t a_words = tests[curr_pos++];
+        MPI a = bi_init(a_words);
+        for (uint32_t j = 0; j < a_words; j++)
+            a->data[j] = tests[curr_pos++];
+
+        uint32_t b_words = tests[curr_pos++];
+        MPI b = bi_init(b_words);
+        for (uint32_t j = 0; j < b_words; j++)
+            b->data[j] = tests[curr_pos++];
+
+        uint32_t exp_words = tests[curr_pos++];
+        MPI expected = bi_init(exp_words);
+        for (uint32_t j = 0; j < exp_words; j++)
+            expected->data[j] = tests[curr_pos++];
+
+        MPI got = bi_add(a, b);
+
+        bool pass = bi_eq(got, expected);
+        CU_ASSERT(pass);
+        if (!pass) {
+            printf("case %d\na=", test);
+            bi_print(a);
+            printf("\nb=");
+            bi_print(b);
+            printf("\ncalculated a+b=");
+            bi_print(got);
+            printf("\nexpected      =");
+            bi_print(expected);
+            printf("\n\n");
+        }
+
+        bi_free(a);
+        bi_free(got);
+        bi_free(expected);
+
+        test++;
+    }
+}
+
+void test_bi_sub(void) {
+    // clang-format off
+    uint32_t tests[] = {
+        // a words, ...a, b words, ...b, res words, ...res
+        3, 0xFFFFFFFFu, 0x7FFFFFFFu, 0x08400000u, 1, 1, 3, 0xFFFFFFFEu, 0x7FFFFFFFu, 0x08400000u,
+        3, 0, 0, 0x840, 1, 1, 3, 0xffffffff, 0xffffffff,0x83f,
+        3, 0x00000000u, 0x00000000u, 0x00000001u, 1, 1, 3, 0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u,
+        3, 0x00000000u, 0x00000002u, 0x00000001u, 2, 0x00000001u, 0x00000001u, 3, 0xFFFFFFFFu, 0x00000000u, 0x00000001u,
+        4, 0x00000000u, 0x00000000u, 0x00000000u, 0x00000001u, 1, 1, 4, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u,
+        4, 0x00000000u, 0x12345678u, 0x00000001u, 0x00000001u, 1, 1, 4, 0xFFFFFFFFu, 0x12345677u, 0x00000001u, 0x00000001u,
+        4, 0x00000010u, 0x00000000u, 0x00000001u, 0x00000001u, 4, 0x00000020u, 0x00000000u, 0x00000000u, 0x00000000u, 4, 0xFFFFFFF0u, 0xFFFFFFFFu, 0x00000000u, 0x00000001u,
+    };
+    // clang-format on
+
+    uint32_t curr_pos = 0;
+    uint32_t test = 0;
+    while (curr_pos < sizeof(tests) / sizeof(uint32_t)) {
+        uint32_t a_words = tests[curr_pos++];
+        MPI a = bi_init(a_words);
+        for (uint32_t j = 0; j < a_words; j++)
+            a->data[j] = tests[curr_pos++];
+
+        uint32_t b_words = tests[curr_pos++];
+        MPI b = bi_init(b_words);
+        for (uint32_t j = 0; j < b_words; j++)
+            b->data[j] = tests[curr_pos++];
+
+        uint32_t exp_words = tests[curr_pos++];
+        MPI expected = bi_init(exp_words);
+        for (uint32_t j = 0; j < exp_words; j++)
+            expected->data[j] = tests[curr_pos++];
+
+        MPI got = bi_sub(a, b);
+
+        bool pass = bi_eq(got, expected);
+        CU_ASSERT(pass);
+        if (!pass) {
+            printf("case %d\na=", test);
+            bi_print(a);
+            printf("\nb=");
+            bi_print(b);
+            printf("\ncalculated a-b=");
+            bi_print(got);
+            printf("\nexpected       =");
+            bi_print(expected);
+            printf("\n\n");
+        }
+
+        bi_free(a);
+        bi_free(got);
+        bi_free(expected);
+
+        test++;
+    }
+}
+
 void test_bi_shift_left(void) {
     // clang-format off
     uint32_t tests[] = {
@@ -665,7 +775,7 @@ void test_bigint_math_proper(void) {
 
     // modulo
     bi_set(expected_res, 1u);
-     bi_eucl_div(a, b, NULL, &res);
+    bi_eucl_div(a, b, NULL, &res);
     CU_ASSERT(bi_eq(res, expected_res));
     bi_free(res);
 
@@ -832,49 +942,31 @@ void test_bigint(void) {
 }
 
 void test_ext_euc(void) {
-    //   a_words, a data..., b_words, b data..., gcd_words, gcd data...,
-    //   expected_x_positive, x_words, x data..., expected_y_positive,
-    //   y_words, y data...
+    //   a_words, a data..., b_words, b data..., gcd_words, gcd data...
     // clang-format off
     uint32_t tests[] = {
-        // case 1
-        1, 0x0000000C, 1, 0x00000024, 1, 0x0000000C, 1, 1, 0x00000001, 1, 1, 0x00000000,
-        // case 2
-        1, 0x0000001E, 1, 0x00000015, 1, 0x00000003, 0, 1, 0x00000002, 1, 1, 0x00000003,
-        // case 3
-        1, 0x000000F0, 1, 0x0000002E, 1, 0x00000002, 0, 1, 0x00000009, 1, 1, 0x0000002F,
-        // case 4
-        1, 0x00000187, 1, 0x0000012B, 1, 0x00000017, 0, 1, 0x00000003, 1, 1, 0x00000004,
-        // case 5
-        1, 0x00000011, 1, 0x00000138, 1, 0x00000001, 0, 1, 0x00000037, 1, 1, 0x00000003,
-        // case 6
-        1, 0x00000003, 1, 0x00000002, 1, 0x00000001, 1, 1, 0x00000001, 0, 1, 0x00000001,
-        // case 7
-        1, 0x00000000, 1, 0x00000005, 1, 0x00000005, 1, 1, 0x00000000, 1, 1, 0x00000001,
-        // case 8
-        2, 0x00000000, 0x00000003, 2, 0x00000000, 0x00000002, 2, 0x00000000, 0x00000001, 1, 1, 0x00000001, 0, 1, 0x00000001,
-        // case 9
-        2, 0x12345678, 0x00000005, 2, 0x00001000, 0x00000003, 1, 0x00000008, 1, 1, 0x2FB55C2F, 0, 1, 0x50A51870,
-        // case 10
-        3, 0x00001234, 0x00000000, 0x00000001, 2, 0x00005678, 0x00000001, 1, 0x00000004, 1, 1, 0x1464A625, 0, 2, 0xA3554DD0, 0x14649F41,
-        // case 11
-        3, 0x00000000, 0x00000000, 0x00000005, 3, 0x00000000, 0x00000000, 0x00000002, 3, 0x00000000, 0x00000000, 0x00000001, 1, 1, 0x00000001, 0, 1, 0x00000002,
-        // case 12
-        1, 0x00000015, 3, 0x000000FF, 0x00000000, 0x00000001, 1, 0x00000001, 0, 2, 0xE79E7A61, 0x79E79E79, 1, 1, 0x0000000A,
-        // case 13
-        2, 0x00008000, 0x00000004, 2, 0x00004000, 0x00000002, 2, 0x00004000, 0x00000002, 1, 1, 0x00000000, 1, 1, 0x00000001,
-        // case 14
-        3, 0x34567890, 0x00001234, 0x00000002, 2, 0x0000FEDC, 0x00000001, 1, 0x00000004, 0, 1, 0x0A6CF051, 1, 2, 0xC4F7C7C3, 0x14D9CC9D,
-        // case 15
-        2, 0x00008000, 0x00000001, 1, 0x00020000, 1, 0x00008000, 1, 1, 0x00000001, 0, 1, 0x00008000,
-        // case 16
-        3, 0x00000005, 0x00000000, 0x00000005, 3, 0x00000007, 0x00000000, 0x00000007, 3, 0x00000001, 0x00000000, 0x00000001, 1, 1, 0x00000003, 0, 1, 0x00000002,
-        // case 17
-        2, 0x00000010, 0x00000001, 2, 0x00000020, 0x00000001, 1, 0x00000010, 0, 1, 0x00000001, 1, 1, 0x00000001,
+        1, 0x0000000C, 1, 0x00000024, 1, 0x0000000C,
+        1, 0x0000001E, 1, 0x00000015, 1, 0x00000003,
+        1, 0x000000F0, 1, 0x0000002E, 1, 0x00000002,
+        1, 0x00000187, 1, 0x0000012B, 1, 0x00000017,
+        1, 0x00000011, 1, 0x00000138, 1, 0x00000001,
+        1, 0x00000003, 1, 0x00000002, 1, 0x00000001,
+        1, 0x00000000, 1, 0x00000005, 1, 0x00000005,
+        2, 0x00000000, 0x00000003, 2, 0x00000000, 0x00000002, 2, 0x00000000, 0x00000001,
+        2, 0x12345678, 0x00000005, 2, 0x00001000, 0x00000003, 1, 0x00000008,
+        3, 0x00001234, 0x00000000, 0x00000001, 2, 0x00005678, 0x00000001, 1, 0x00000004,
+        3, 0x00000000, 0x00000000, 0x00000005, 3, 0x00000000, 0x00000000, 0x00000002, 3, 0x00000000, 0x00000000, 0x00000001,
+        1, 0x00000015, 3, 0x000000FF, 0x00000000, 0x00000001, 1, 0x00000001,
+        2, 0x00008000, 0x00000004, 2, 0x00004000, 0x00000002, 2, 0x00004000, 0x00000002,
+        3, 0x34567890, 0x00001234, 0x00000002, 2, 0x0000FEDC, 0x00000001, 1, 0x00000004,
+        2, 0x00008000, 0x00000001, 1, 0x00020000, 1, 0x00008000,
+        3, 0x00000005, 0x00000000, 0x00000005, 3, 0x00000007, 0x00000000, 0x00000007, 3, 0x00000001, 0x00000000, 0x00000001,
+        2, 0x00000010, 0x00000001, 2, 0x00000020, 0x00000001, 1, 0x00000010,
     };
     // clang-format on
 
     size_t curr = 0;
+    size_t case_idx = 1;
     while (curr < sizeof(tests) / sizeof(uint32_t)) {
         uint32_t a_words = tests[curr++];
         MPI a = bi_init(a_words);
@@ -891,38 +983,24 @@ void test_ext_euc(void) {
         for (uint32_t j = 0; j < g_words; j++)
             expected_gcd->data[j] = tests[curr++];
 
-        bool expected_x_positive = tests[curr++] != 0u;
-        uint32_t x_words = tests[curr++];
-        MPI expected_x = bi_init(x_words);
-        for (uint32_t j = 0; j < x_words; j++)
-            expected_x->data[j] = tests[curr++];
-
-        bool expected_y_positive = tests[curr++] != 0u;
-        uint32_t y_words = tests[curr++];
-        MPI expected_y = bi_init(y_words);
-        for (uint32_t j = 0; j < y_words; j++)
-            expected_y->data[j] = tests[curr++];
-
         ext_euc_res_t res = ext_euc(a, b);
 
-        CU_ASSERT(res.gcd.positive);
-        CU_ASSERT(bi_eq(res.gcd.val, expected_gcd));
-
-        bool expected_x_zero = bi_eq_val(expected_x, 0u);
-        if (expected_x_zero) {
-            CU_ASSERT(bi_eq_val(res.bez_x.val, 0u));
-        } else {
-            CU_ASSERT(res.bez_x.positive == expected_x_positive);
-            CU_ASSERT(bi_eq(res.bez_x.val, expected_x));
+        bool gcd_sign_ok = res.gcd.positive;
+        bool gcd_val_ok = bi_eq(res.gcd.val, expected_gcd);
+        if (!gcd_sign_ok || !gcd_val_ok) {
+            printf("ext_euc gcd failure (case %zu)\n", case_idx);
+            printf("a=");
+            bi_print(a);
+            printf("\nb=");
+            bi_print(b);
+            printf("\nexpected gcd=");
+            bi_print(expected_gcd);
+            printf("\nactual gcd (sign=%d)=", res.gcd.positive ? 1 : 0);
+            bi_print(res.gcd.val);
+            printf("\n\n");
         }
-
-        bool expected_y_zero = bi_eq_val(expected_y, 0u);
-        if (expected_y_zero) {
-            CU_ASSERT(bi_eq_val(res.bez_y.val, 0u));
-        } else {
-            CU_ASSERT(res.bez_y.positive == expected_y_positive);
-            CU_ASSERT(bi_eq(res.bez_y.val, expected_y));
-        }
+        CU_ASSERT(gcd_sign_ok);
+        CU_ASSERT(gcd_val_ok);
 
         sMPI signed_a = from_unsigned(a, true);
         sMPI signed_b = from_unsigned(b, true);
@@ -930,10 +1008,29 @@ void test_ext_euc(void) {
         sMPI term2 = signed_mul(res.bez_y, signed_b);
         sMPI combo = signed_add(term1, term2);
 
-        bool combo_ok = bi_eq(combo.val, res.gcd.val);
-        combo_ok = combo_ok && (combo.positive == res.gcd.positive ||
-                                bi_eq_val(combo.val, 0));
-        CU_ASSERT(combo_ok);
+        bool identity_mag_ok = bi_eq(combo.val, res.gcd.val);
+        bool identity_sign_ok =
+            combo.positive == res.gcd.positive || bi_eq_val(combo.val, 0);
+        bool identity_ok = identity_mag_ok && identity_sign_ok;
+        if (!identity_ok) {
+            printf("ext_euc identity failure (case %zu)\n", case_idx);
+            printf("a=");
+            bi_print(a);
+            printf("\nb=");
+            bi_print(b);
+            printf("\nbez_x (sign=%d)=", res.bez_x.positive ? 1 : 0);
+            bi_print(res.bez_x.val);
+            printf("\nbez_y (sign=%d)=", res.bez_y.positive ? 1 : 0);
+            bi_print(res.bez_y.val);
+            printf("\na*x + b*y (sign=%d)=", combo.positive ? 1 : 0);
+            bi_print(combo.val);
+            printf("\ncomputed gcd (sign=%d)=", res.gcd.positive ? 1 : 0);
+            bi_print(res.gcd.val);
+            printf("\nexpected gcd=");
+            bi_print(expected_gcd);
+            printf("\n\n");
+        }
+        CU_ASSERT(identity_ok);
 
         signed_free(combo);
         signed_free(term1);
@@ -944,11 +1041,11 @@ void test_ext_euc(void) {
         bi_free(a);
         bi_free(b);
         bi_free(expected_gcd);
-        bi_free(expected_x);
-        bi_free(expected_y);
         signed_free(res.bez_x);
         signed_free(res.bez_y);
         signed_free(res.gcd);
+
+        case_idx++;
     }
 }
 
@@ -956,6 +1053,11 @@ void test_bi_mul_inv_mod(void) {
     // clang-format off
     uint32_t tests[] = {
         // a words, ...a, b words, ...b, res words, ...res
+        3, 1, 0, 1, 3, 1, 0, 2, 1, 2,
+        3, 3, 0, 1, 3, 1, 1, 1, 2, 0x4924924a, 0x6db6db6e,
+        3, 5, 2, 1, 3, 1, 3, 1, 2, 0xe58469ef, 0x69ee5847,
+        3, 7, 4, 1, 3, 1, 5, 1, 2, 0x2dd9ca83, 0xece540f9,
+        3, 9, 6, 1, 3, 1, 7, 1, 2, 0xa50658dd, 0xd7cd3925,
         1, 0x00000002, 1, 0x00000003, 1, 0x00000002,
         1, 0x00000003, 1, 0x00000007, 1, 0x00000005,
         1, 0x0000000A, 1, 0x00000011, 1, 0x0000000C,
@@ -1047,6 +1149,8 @@ CU_pSuite register_bigint_tests(void) {
     if (!suite)
         return NULL;
 
+    CU_add_test(suite, "bi_add", test_bi_add);
+    CU_add_test(suite, "bi_sub", test_bi_sub);
     CU_add_test(suite, "bi_shift_right", test_bi_shift_right);
     CU_add_test(suite, "bi_shift_left", test_bi_shift_left);
     CU_add_test(suite, "bi_mul", test_bi_mul);

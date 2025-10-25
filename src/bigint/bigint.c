@@ -141,43 +141,25 @@ void bi_set(MPI a, uint32_t val) {
 }
 
 MPI bi_add(MPI a, MPI b) {
+
+    bi_squeeze(a);
+    bi_squeeze(b);
+
     MPI res = bi_init(max(a->words, b->words) + 1);
+    uint64_t B = 1ull << 32;
+    uint64_t carry = 0;
+    for (int i = 0; i < max(a->words, b->words); i++) {
+        uint64_t a_word = i < a->words ? a->data[i] : 0;
+        uint64_t b_word = i < b->words ? b->data[i] : 0;
 
-    uint32_t carry = 0;
-    unsigned long sum;
-    for (uint32_t i = 0; i < min(a->words, b->words); i++) {
-        sum = (unsigned long)(a->data[i]) + (unsigned long)b->data[i] +
-              res->data[i] + carry;
-        res->data[i] = (uint32_t)(sum & 0xFFFFFFFF);
-
-        /*
-        printf("step: %d. a->data[i]=%u, b->data[i]=%u, res->data[i]=%u,
-        carry=%u. sum=%lu\nres=", i, a->data[i], b->data[i], (*res)->data[i],
-        carry, sum); bi_printf(*res); printf("\n");
-        */
-
-        carry = (uint32_t)(sum >> 32);
-
-        if (carry && i > 0) {
-            res->data[i + 1] += carry;
-        }
+        res->data[i] = (a_word + b_word + carry) % B;
+        carry = (a_word + b_word + carry) / B;
     }
 
-    if (a->words > b->words) {
-        res->data[b->words] = carry + a->data[b->words];
-        for (uint32_t i = b->words + 1; i < a->words; i++) {
-            res->data[i] = a->data[i];
-        }
-    } else if (b->words > a->words) {
-        res->data[a->words] = carry + b->data[a->words];
-        for (uint32_t i = a->words + 1; i < b->words; i++) {
-            res->data[i] = b->data[i];
-        }
-    } else {
-        res->data[res->words - 1] = carry;
-    }
+    res->data[res->words - 1] = carry;
 
     bi_squeeze(res);
+
     return res;
 }
 
@@ -203,6 +185,9 @@ void bi_add_in_place(MPI a, MPI b) {
 }
 
 MPI bi_sub(MPI a, MPI b) {
+
+    bi_squeeze(a);
+    bi_squeeze(b);
 
     // we're working with uint32_ts, so if b is greater than a, we'll
     // set the result to 0 and return early
@@ -1225,21 +1210,32 @@ MPI bi_mod_mult_inv(MPI a, MPI b) {
         bi_print(b);
 
         // TODO: re-enable this failure once the bug is found
-        //  exit(1);
+        exit(1);
     }
 
     signed_free(tmp.bez_y);
     signed_free(tmp.gcd);
-    if (tmp.bez_x.positive) {
 
-        return tmp.bez_x.val;
-    } else {
-        sMPI b_tmp = from_unsigned(b, true);
-        sMPI res = signed_add(b_tmp, tmp.bez_x);
+    sMPI btmp = from_unsigned(b, true);
+    MPI res;
+    sMPI q;
+    signed_eucl_div(tmp.bez_x, btmp, &q, &res);
 
-        signed_free(tmp.bez_x);
-        signed_free(b_tmp);
+    signed_free(btmp);
+    signed_free(q);
 
-        return res.val;
-    }
+    return res;
+
+    // if (tmp.bez_x.positive) {
+
+    //     return tmp.bez_x.val;
+    // } else {
+    //     sMPI b_tmp = from_unsigned(b, true);
+    //     sMPI res = signed_add(b_tmp, tmp.bez_x);
+
+    //     signed_free(tmp.bez_x);
+    //     signed_free(b_tmp);
+
+    //     return res.val;
+    // }
 }

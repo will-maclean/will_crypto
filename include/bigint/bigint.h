@@ -114,7 +114,6 @@ MPI bi_gcd(MPI a, MPI b);
 
 MPI from_hex_str(char *str);
 
-
 // ------ SIGNED OPs -----
 typedef struct {
     MPI val;
@@ -130,8 +129,11 @@ sMPI from_unsigned(MPI x, bool positive);
 MPI to_unsigned(sMPI x);
 bool signed_eq(sMPI a, sMPI b);
 bool signed_eq_val(sMPI a, uint32_t x, bool positive);
+bool signed_even(sMPI a);
 
-typedef struct  {
+bool signed_ge(sMPI a, sMPI b);
+
+typedef struct {
     sMPI bez_x;
     sMPI bez_y;
     sMPI gcd;
@@ -142,10 +144,9 @@ void signed_eucl_div(sMPI a, sMPI b, sMPI *q, MPI *r);
 sMPI signed_mul(sMPI a, sMPI b);
 sMPI signed_sub(sMPI a, sMPI b);
 ext_euc_res_t ext_euc(MPI a, MPI b);
-void signed_inc(sMPI* a);
-void signed_dec(sMPI* a);
+void signed_inc(sMPI *a);
+void signed_dec(sMPI *a);
 void signed_print(sMPI a);
 void signed_printf(sMPI a, FILE *fp);
-
 
 #endif
