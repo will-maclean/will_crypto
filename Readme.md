@@ -2,14 +2,13 @@
 _Will Maclean_
 
 My own little crypto library, mainly to get a better understanding of the
-different components required in a crypto library. Includes, in various states
-of functionality:
-- Big integer support (working)
-- RNG (ideally, cryptographically secure) (working)
-- Prime number generation (working)
-- RSA keygen (in progress)
-- RSA encryption/decryption, including padding scheme (in progress)
-- CLI (supports RSA keygen)
+different components required in a crypto library. Includes:
+- Big integer support (unsigned and signed)
+- RNG (ChaCha 16)
+- Prime number generation (Probabilistic Miller-Rabin with optimisations)
+- RSA keygen (512, 1024, 2048, 4096 bit keys)
+- RSA encryption/decryption (no padding)
+- CLI (simple, no cli args yet)
 
 Note - this is a hobby project, and as such will probably contain bugs. Please
 don't use this in production systems!
@@ -25,8 +24,37 @@ make
 # binaries are now available in will_crypto/bin
 ```
 
-## Usage: `will_crypto`
-RSA keygen: `./bin/will_crypto gen_keys`
+## Usage: `will_crypto demo`
+Shows a demonstratino of RSA keygen, encryption, and decryption.
+
+Run: `./bin/will_crypto demo`
+Sample output:
+```
+Running RSA keygen, encryption, decryption demo
+
+----------
+Generated public key, where 
+        n=0x6371a916b8ab9209a23c086e762561ecb8c531530016ade3a0b1f75ab92b0923be077ab992ad33e645f3cac11b7b70a30fd61e1d86f55948f0d1943b9b2c8c01
+
+        e=0x00010001
+----------
+
+----------
+Generated private key, where
+        d=0x02dddfaf3b3f1cec60ac24dd1454530c992dfc1445b421aaa67302ebaf5b557dd4337afa7222657851af82298220d99ddd5b57639bea607e44684120303c4cdd
+----------
+
+Encrypting message=0x12345678
+
+Encrypted cyphertext=0x4f2769275f60825801b0989f5de4ba022216223489bf27634a8bdf2a6075df976adf1d1db92eb4be42bcee17aa10a070ae00271e047159102bbd6b51569d3a54
+
+Decrypted message=0x12345678
+```
+
+## Usage: `will_crypto gen_keys`
+Generates RSA keys and saves to file.
+
+Run: `./bin/will_crypto gen_keys`
 Sample output:
 ```
 Generating keys for will_rsa
@@ -47,6 +75,14 @@ will_rsa(public)
 will_rsa(private)
 ```
 
+## Usage: `will_crypto gen_prime`
+Generates and prints a prime.
+
+Run: `./bin/will_crypto gen_prime`
+Sample output:
+```
+0x1a688433470372be645f517505de63ab6acf56a597cd22d97424afe85770966539995b70baf88311fc2fcfc7dbdb8b8c89afc3378835c7b1db8e805b5ca6a592d9a7a86ab5867f62e69036d414b1d0587d359b1387663bcc79e97f63ae1cdd02c48a9a41f8c227eb6b5eb93c71f84ae242edb0a82bb1b54e5accdefcfe1c20d3
+```
 
 ## Testing
 Testing is done with CUnit, managed in CTest. This requires CUnit to be installed.
@@ -60,46 +96,52 @@ Run tests:
 Sample output:
 ```
 1: Suite: BIGINT_Suite
+1:   Test: bi_add ...passed
+1:   Test: bi_sub ...passed
 1:   Test: bi_shift_right ...passed
 1:   Test: bi_shift_left ...passed
 1:   Test: bi_mul ...passed
 1:   Test: bi_pow ...passed
 1:   Test: bi_mod ...passed
 1:   Test: bi_mod_exp ...passed
-1:   Test: knuth_d ...passed
 1:   Test: bi_gcd ...passed
 1:   Test: bi_lcm ...passed
+1:   Test: ext_euc ...passed
+1:   Test: test_bi_mul_inv_mod ...passed
+1: Suite: BIGINT_signed_suite
+1:   Test: test_signed_add ...passed
+1:   Test: test_signed_sub ...passed
+1:   Test: signed_eucl_div ...passed
 1: Suite: CRYPTO_CORE_Suite
-1:   Test: primality ...Prime number gen took 43648.183594 milliseconds
-1: Generated prime:
-1: 
-1: 0x7fb20cb7902acfae4d00541aafff63afc435702d85b6c4e034f67ff489094dda38babc3d7be64ad8abd511b0de5490889e6cbf8d98e328bb39a500f09608daf16ce64173b296d052225dc17c09bbc84fa60460248a1fab6c4d575377f063ab291f23a78c9c650fd9d84f6191d7c68e9c29ab2da697183f729f9402e22a192b23passed
+1:   Test: primality ...passed
 1: Suite: RNG_Suite
-1:   Test: rng ...In one sec, for 32-word numbers, generated 399250 nums
+1:   Test: rng ...In one sec, for 32-word numbers, generated 650465 nums
 1: passed
 1:   Test: chacha ...passed
 1: Suite: RSA_Suite
-1:   Test: rsa ...Generated public and private keys for RSA (512 bit key)
+1:   Test: rsa_keygen ...Generated public and private keys for RSA (512 bit key)
 1: n:
-1: 0x2ce77453cb02f474b69dc850de3d624f5d8a4576308198de49c7e284d88b1de72c4d5ad3d21bc85a330b19abc186198440cf4bb42c84270f2606eaa1c810d77d
+1: 0x6371a916b8ab9209a23c086e762561ecb8c531530016ade3a0b1f75ab92b0923be077ab992ad33e645f3cac11b7b70a30fd61e1d86f55948f0d1943b9b2c8c01
 1: e:
 1: 0x00010001
 1: d:
-1: 0x000006a1965f321b
+1: 0x02dddfaf3b3f1cec60ac24dd1454530c992dfc1445b421aaa67302ebaf5b557dd4337afa7222657851af82298220d99ddd5b57639bea607e44684120303c4cdd
 1: passed
-1:   Test: ext_euc ...passed
+1:   Test: calc_lambda_n_d ...passed
+1:   Test: rsa_end_to_end ...passed
+1:   Test: test_rsa_encrypt_decrypt_cases ...passed
 1: 
 1: Run Summary:    Type  Total    Ran Passed Failed Inactive
-1:               suites      4      4    n/a      0        0
-1:                tests     14     14     14      0        0
-1:              asserts    154    154    154      0      n/a
+1:               suites      5      5    n/a      0        0
+1:                tests     22     22     22      0        0
+1:              asserts    321    321    321      0      n/a
 1: 
-1: Elapsed time =   44.810 seconds
-1/1 Test #1: tests ............................   Passed   49.35 sec
+1: Elapsed time =    3.650 seconds
+1/1 Test #1: tests ............................   Passed    4.80 sec
 
 100% tests passed, 0 tests failed out of 1
 
-Total Test time (real) =  49.36 sec
+Total Test time (real) =  4.80 sec
 ```
 
 ## Benchmarking

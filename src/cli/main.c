@@ -14,7 +14,9 @@ void print_help_and_exit(int exit_code) {
                          "Usage: will_crypto [function]\n"
                          "Functions:\n"
                          "\thelp: prints help and usage message\n"
-                         "\tgen_keys: generates and saves keys\n";
+                         "\tgen_keys: generates and saves keys\n"
+                         "\tgen_prime: generates and prints a prime"
+                         "\tdemo: demo of rsa keygen, encryption, decryption";
 
     printf("%s", help_message);
     exit(exit_code);
@@ -23,6 +25,7 @@ void print_help_and_exit(int exit_code) {
 typedef enum program_function_t {
     gen_keys,
     gen_prime_fn,
+    demo,
 } program_function_t;
 
 typedef struct {
@@ -71,6 +74,9 @@ program_inputs_t parse_args(int argc, char *argv[]) {
 
         res.args.gen_prime_args.words = 32;
 
+    }else if (!strcmp(fn_name, "demo")) {
+        res.function = demo;
+
     } else if (!strcmp(fn_name, "help")) {
         print_help_and_exit(0);
         exit(0);
@@ -118,6 +124,43 @@ void cmdline_gen_keys(gen_keys_args_t args) {
     bi_free(priv.d);
 }
 
+void run_demo(){
+    printf("Running RSA keygen, encryption, decryption demo\n\n");
+
+    rsa_public_token_t pub;
+    rsa_private_token_t priv;
+    gen_pub_priv_keys(1234, &pub, &priv, RSA_MODE_512);
+
+    printf("----------\nGenerated public key, where \n\tn=");
+    bi_print(pub.n);
+    printf("\n\n\te=");
+    bi_print(pub.e);
+    printf("\n----------\n\n----------\nGenerated private key, where\n\td=");
+    bi_print(priv.d);
+
+    MPI msg = bi_init(1);
+    bi_set(msg, 0x12345678);
+
+    MPI c = will_rsa_encrypt_num(msg, &pub);
+    MPI msg_ = will_rsa_decrypt_num(c, &priv);
+
+    printf("\n----------\n\nEncrypting message=");
+    bi_print(msg);
+    printf("\n\nEncrypted cyphertext=");
+    bi_print(c);
+    printf("\n\nDecrypted message=");
+    bi_print(msg_);
+    printf("\n");
+
+    bi_free(pub.n);
+    bi_free(priv.n);
+    bi_free(pub.e);
+    bi_free(priv.d);
+    bi_free(msg);
+    bi_free(c);
+    bi_free(msg_);
+}
+
 int main(int argc, char *argv[]) {
     program_inputs_t args = parse_args(argc, argv);
 
@@ -131,6 +174,8 @@ int main(int argc, char *argv[]) {
         bi_print(prime);
         bi_free(prime);
         break;
+    case demo:
+        run_demo();
     }
 
     return 0;

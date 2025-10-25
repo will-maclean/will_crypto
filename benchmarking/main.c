@@ -8,10 +8,11 @@
 
 static const uint32_t SEED = 1234u;
 
-typedef enum { basic_a_b, void_uint32 } fn_type_t;
+typedef enum { basic_a_b, void_uint32, bi_eucl_div_format_type } fn_type_t;
 
 typedef MPI (*basic_fn)(MPI a, MPI b);
 typedef MPI (*void_uint32_fn)(uint32_t);
+typedef void (*bi_eucl_div_format)(MPI a, MPI b, MPI *c, MPI *d);
 
 typedef struct {
     char trial_name[64];
@@ -19,6 +20,7 @@ typedef struct {
     union {
         basic_fn _basic_fn;
         void_uint32_fn _void_uint32_fn;
+        bi_eucl_div_format _bi_eucl_div_format_fn;
     } fn;
     uint32_t n_trials;
     uint32_t n_words;
@@ -40,7 +42,7 @@ fn_benchmark_res_t bench_basic(test_config_t *config) {
 
     // Define some MPIs for the inner loops to use
     MPI a, b, c;
-    volatile MPI r;
+    volatile MPI r, s, t;
     for (uint32_t i = 0; i < config->n_trials; i++) {
         switch (config->fn_type) {
         case basic_a_b:
@@ -62,6 +64,22 @@ fn_benchmark_res_t bench_basic(test_config_t *config) {
             mean_exe_time += (float)(clock() - start) / (float)CLOCKS_PER_SEC;
 
             bi_free(r);
+            break;
+        case bi_eucl_div_format_type:
+            a = will_rng_next(config->n_words);
+            b = will_rng_next(config->n_words);
+            if(bi_eq_val(b, 0)){
+                // just make sure b != 0
+                b->data[0] = 1;
+            }
+            start = clock();
+            config->fn._bi_eucl_div_format_fn(a, b, &r, &s);
+            mean_exe_time += (float)(clock() - start) / (float)CLOCKS_PER_SEC;
+
+            bi_free(a);
+            bi_free(b);
+            bi_free(r);
+            bi_free(s);
             break;
         }
     }
@@ -110,20 +128,20 @@ int main(void) {
         {"bi_mul", basic_a_b, .fn._basic_fn = bi_mul, 100, 32},
         {"bi_mul", basic_a_b, .fn._basic_fn = bi_mul, 100, 64},
         {"bi_mul", basic_a_b, .fn._basic_fn = bi_mul, 100, 128},
-        // {"bi_eucl_div", basic_a_b, .fn._basic_fn = bi_eucl_div, 100, 1},
-        // {"bi_eucl_div", basic_a_b, .fn._basic_fn = bi_eucl_div, 100, 2},
-        // {"bi_eucl_div", basic_a_b, .fn._basic_fn = bi_eucl_div, 100, 4},
-        // {"bi_eucl_div", basic_a_b, .fn._basic_fn = bi_eucl_div, 100, 8},
-        // {"bi_eucl_div", basic_a_b, .fn._basic_fn = bi_eucl_div, 100, 32},
-        // {"bi_eucl_div", basic_a_b, .fn._basic_fn = bi_eucl_div, 100, 64},
-        // {"bi_eucl_div", basic_a_b, .fn._basic_fn = bi_eucl_div, 100, 128},
-        // {"bi_mod", basic_a_b, .fn._basic_fn = bi_mod, 100, 1},
-        // {"bi_mod", basic_a_b, .fn._basic_fn = bi_mod, 100, 2},
-        // {"bi_mod", basic_a_b, .fn._basic_fn = bi_mod, 100, 4},
-        // {"bi_mod", basic_a_b, .fn._basic_fn = bi_mod, 100, 8},
-        // {"bi_mod", basic_a_b, .fn._basic_fn = bi_mod, 100, 32},
-        // {"bi_mod", basic_a_b, .fn._basic_fn = bi_mod, 100, 64},
-        // {"bi_mod", basic_a_b, .fn._basic_fn = bi_mod, 100, 128},
+        {"bi_eucl_div", bi_eucl_div_format_type,
+         .fn._bi_eucl_div_format_fn = bi_eucl_div, 100, 1},
+        {"bi_eucl_div", bi_eucl_div_format_type,
+         .fn._bi_eucl_div_format_fn = bi_eucl_div, 100, 2},
+        {"bi_eucl_div", bi_eucl_div_format_type,
+         .fn._bi_eucl_div_format_fn = bi_eucl_div, 100, 4},
+        {"bi_eucl_div", bi_eucl_div_format_type,
+         .fn._bi_eucl_div_format_fn = bi_eucl_div, 100, 8},
+        {"bi_eucl_div", bi_eucl_div_format_type,
+         .fn._bi_eucl_div_format_fn = bi_eucl_div, 100, 32},
+        {"bi_eucl_div", bi_eucl_div_format_type,
+         .fn._bi_eucl_div_format_fn = bi_eucl_div, 100, 64},
+        {"bi_eucl_div", bi_eucl_div_format_type,
+         .fn._bi_eucl_div_format_fn = bi_eucl_div, 100, 128},
         {"rng", void_uint32, .fn._void_uint32_fn = will_rng_next, 100, 32},
         {"rng", void_uint32, .fn._void_uint32_fn = will_rng_next, 100, 64},
         {"rng", void_uint32, .fn._void_uint32_fn = will_rng_next, 100, 128},
