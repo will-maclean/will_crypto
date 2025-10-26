@@ -8,7 +8,7 @@ different components required in a crypto library. Includes:
 - Prime number generation (Probabilistic Miller-Rabin with optimisations)
 - RSA keygen (512, 1024, 2048, 4096 bit keys)
 - RSA encryption/decryption (no padding)
-- CLI (simple, no cli args yet)
+- CLI
 
 Note - this is a hobby project, and as such will probably contain bugs. Please
 don't use this in production systems!
@@ -25,7 +25,7 @@ make
 ```
 
 ## Usage: `will_crypto demo`
-Shows a demonstratino of RSA keygen, encryption, and decryption.
+Shows a demonstration of RSA keygen, encryption, and decryption.
 
 Run: `./bin/will_crypto demo`
 Sample output:
@@ -54,7 +54,12 @@ Decrypted message=0x12345678
 ## Usage: `will_crypto gen_keys`
 Generates RSA keys and saves to file.
 
-Run: `./bin/will_crypto gen_keys`
+Run: `./bin/will_crypto gen_keys [--output_dir '.'] [--public_key_filename will_rsa.pub] [--private_key_filename will_rsa.priv] [--seed number] [--rsa_mode will_rsa_512]`
+
+Note: rsa_mode types are [will_rsa_512, will_rsa_1024, will_rsa_2048, will_rsa_4096].
+
+Note: if `seed` is not set, default is to use system random seed.
+
 Sample output:
 ```
 Generating keys for will_rsa
@@ -78,7 +83,10 @@ will_rsa(private)
 ## Usage: `will_crypto gen_prime`
 Generates and prints a prime.
 
-Run: `./bin/will_crypto gen_prime`
+Run: `./bin/will_crypto gen_prime [--words 32] [--seed number]`
+
+Note: if `seed` is not set, default is to use system random seed.
+
 Sample output:
 ```
 0x1a688433470372be645f517505de63ab6acf56a597cd22d97424afe85770966539995b70baf88311fc2fcfc7dbdb8b8c89afc3378835c7b1db8e805b5ca6a592d9a7a86ab5867f62e69036d414b1d0587d359b1387663bcc79e97f63ae1cdd02c48a9a41f8c227eb6b5eb93c71f84ae242edb0a82bb1b54e5accdefcfe1c20d3

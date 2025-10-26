@@ -23,6 +23,22 @@ void rsa_mode_to_str(rsa_mode_t mode, char *res) {
     }
 }
 
+int rsa_mode_from_str(char *str, rsa_mode_t *res) {
+    if (!strcmp(str, "will_rsa_512")) {
+        *res = RSA_MODE_512;
+    } else if (!strcmp(str, "will_rsa_1024")) {
+        *res = RSA_MODE_1024;
+    } else if (!strcmp(str, "will_rsa_2048")) {
+        *res = RSA_MODE_2048;
+    } else if (!strcmp(str, "will_rsa_4096")) {
+        *res = RSA_MODE_4096;
+    } else {
+        return 1;
+    }
+
+    return 0;
+}
+
 void load_new_primes(rsa_state_t *new_state, uint32_t seed, rsa_mode_t mode,
                      MPI e) {
     uint32_t prime_words;
@@ -54,7 +70,7 @@ void load_new_primes(rsa_state_t *new_state, uint32_t seed, rsa_mode_t mode,
         bi_dec(p);
         bi_dec(q);
 
-         ext_euc_res_t p_gcd = ext_euc(p, e);
+        ext_euc_res_t p_gcd = ext_euc(p, e);
 
         if (!signed_eq_val(p_gcd.gcd, 1, true)) {
             // p-1 is not coprime with e -> try again
@@ -68,7 +84,7 @@ void load_new_primes(rsa_state_t *new_state, uint32_t seed, rsa_mode_t mode,
 
         ext_euc_res_t q_gcd = ext_euc(q, e);
 
-        if (!signed_eq_val(q_gcd.gcd, 1, true )) {
+        if (!signed_eq_val(q_gcd.gcd, 1, true)) {
             // q-1 is not coprime with e -> try again
             bi_free(p);
             bi_free(q);
@@ -96,8 +112,6 @@ void load_new_primes(rsa_state_t *new_state, uint32_t seed, rsa_mode_t mode,
     new_state->q = gen_prime(prime_words);
 }
 
-
-
 lambda_n_d_res_t calc_lambda_n_d(MPI p, MPI q, MPI e) {
     lambda_n_d_res_t res;
 
@@ -108,7 +122,7 @@ lambda_n_d_res_t calc_lambda_n_d(MPI p, MPI q, MPI e) {
 
     res.lambda_n = bi_lcm(p_cpy, q_cpy);
     res.d = bi_mod_mult_inv(e, res.lambda_n);
-    
+
     bi_free(p_cpy);
     bi_free(q_cpy);
 
@@ -136,7 +150,7 @@ void gen_pub_priv_keys(long seed, rsa_public_token_t *pub,
     // assertion for safety
     // gcd(lambda(n), e) = 1
     ext_euc_res_t check = ext_euc(lambda_n_d.lambda_n, e);
-    if(!signed_eq_val(check.gcd, 1, true)){
+    if (!signed_eq_val(check.gcd, 1, true)) {
         printf("ERROR in RSA keygen: gcd(lambda(n), e) != 1. n=");
         bi_print(n);
         printf("\ne=");
@@ -193,7 +207,7 @@ void pub_key_to_file(rsa_public_token_t *pub, char *path, rsa_mode_t mode,
         fclose(fp);
 
     } else {
-        printf("Unable to open public key file %s. Private.", path);
+        printf("Unable to open public key file %s", path);
         exit(1);
     }
 }

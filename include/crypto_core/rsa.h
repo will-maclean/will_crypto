@@ -15,6 +15,9 @@ typedef enum {
 
 void rsa_mode_to_str(rsa_mode_t mode, char *res);
 
+// returns 0 if parse success, 1 otherwise
+int rsa_mode_from_str(char *str, rsa_mode_t *res);
+
 typedef struct {
     MPI e;
     MPI n;
@@ -32,7 +35,6 @@ typedef struct {
 
 void load_new_primes(rsa_state_t *new_state, uint32_t seed, rsa_mode_t mode,
                      MPI e);
-
 
 typedef struct {
     MPI lambda_n;

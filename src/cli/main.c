@@ -1,22 +1,38 @@
 #include <bigint/bigint.h>
 #include <crypto_core/primality.h>
 #include <crypto_core/rsa.h>
+#include <rng/rng.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
+#include "argparse.h"
+
 void print_help_and_exit(int exit_code) {
     if (exit_code != 0) {
         printf("Error, exiting.\n");
     }
-    char *help_message = "\n\nwill_crypto\n"
-                         "Usage: will_crypto [function]\n"
-                         "Functions:\n"
-                         "\thelp: prints help and usage message\n"
-                         "\tgen_keys: generates and saves keys\n"
-                         "\tgen_prime: generates and prints a prime"
-                         "\tdemo: demo of rsa keygen, encryption, decryption";
+    char *help_message =
+        "\nwill_crypto\n"
+        "\nUsage: will_crypto [function]\n"
+        "Functions (followed by arguments, optional in square brackets):\n"
+        "\n\thelp: prints help and usage message\n"
+        "\n\tgen_keys: generates and saves keys. [--output_dir '.'] "
+        "[--public_key_filename will_rsa.pub] [--private_key_filename "
+        "will_rsa.priv] [--seed number] [--rsa_mode will_rsa_512]\n"
+        "\n\tgen_prime: generates and prints a prime [--words 32]\n"
+        "\n\tdemo: demo of rsa keygen, encryption, decryption\n"
+        "\n\nNote: rsa_mode types are [will_rsa_512, will_rsa_1024, "
+        "will_rsa_2048, will_rsa_4096]\n"
+        "\nExamples:\n"
+        "\nGenerate a 2048 bit prime. 2048 / 32 = 64, so 64 words.\n"
+        "will_crypto gen_prime 64\n"
+        "\nGenerate RSA keys, with all default parameters\n"
+        "will_crypto gen_keys\n"
+        "\nGenerate RSA keys, setting paths, rsa mode, and random seed\n"
+        "will_crypto gen_keys --output_dir my/dir --public_key_filename "
+        "my_key.pub --rsa_mode will_rsa_2048 --seed 1234\n";
 
     printf("%s", help_message);
     exit(exit_code);
@@ -29,17 +45,17 @@ typedef enum program_function_t {
 } program_function_t;
 
 typedef struct {
-    char public_key_filename[256];  // set to NULL for will_rsa.pub
-    char private_key_filename[256]; // set to NULL for will_rsa.priv
-    char output_dir[256];           // set to NULL for curr dir
+    char public_key_filename[256];
+    char private_key_filename[256];
+    char output_dir[256];
 
-    uint64_t seed;       // default if not provided is random from system
-    rsa_mode_t rsa_mode; // default is RSA_1024
+    uint64_t seed;
+    rsa_mode_t rsa_mode;
 } gen_keys_args_t;
 
 typedef struct {
     uint32_t words;
-
+    uint64_t seed;
 } gen_prime_args_t;
 
 typedef struct {
@@ -63,18 +79,40 @@ program_inputs_t parse_args(int argc, char *argv[]) {
         // parse the gen_key args
         res.function = gen_keys;
 
-        // load args with default values
-        strcpy(res.args.gen_keys_args.output_dir, ".");
-        strcpy(res.args.gen_keys_args.private_key_filename, "will_rsa.priv");
-        strcpy(res.args.gen_keys_args.public_key_filename, "will_rsa.pub");
-        res.args.gen_keys_args.seed = time(NULL);
-        res.args.gen_keys_args.rsa_mode = RSA_MODE_1024;
+        parse_arg_string(argc - 2, argv + 2, "output_dir",
+                         res.args.gen_keys_args.output_dir, ".", true);
+        parse_arg_string(argc - 2, argv + 2, "public_key_filename",
+                         res.args.gen_keys_args.public_key_filename,
+                         "will_rsa.pub", true);
+        parse_arg_string(argc - 2, argv + 2, "private_key_filename",
+                         res.args.gen_keys_args.private_key_filename,
+                         "will_rsa.priv", true);
+        uint64_t default_seed = time(NULL);
+        parse_arg_uint64(argc - 2, argv + 2, "seed",
+                         &res.args.gen_keys_args.seed, &default_seed, true);
+        char rsa_mode_name[256];
+        parse_arg_string(argc - 2, argv + 2, "rsa_mode", rsa_mode_name,
+                         "will_rsa_512", true);
+        if (rsa_mode_from_str(rsa_mode_name,
+                              &res.args.gen_keys_args.rsa_mode)) {
+            printf("Failed parsing RSA mode from %s\n", rsa_mode_name);
+            exit(1);
+        }
+
     } else if (!strcmp(fn_name, "gen_prime")) {
         res.function = gen_prime_fn;
 
-        res.args.gen_prime_args.words = 32;
+        uint64_t default_words = 32;
+        parse_arg_uint64(argc - 2, argv + 2, "words",
+                         &res.args.gen_prime_args.words, &default_words, true);
+        uint64_t default_seed = time(NULL);
+        parse_arg_uint64(argc - 2, argv + 2, "seed",
+                         &res.args.gen_prime_args.seed, &default_seed, true);
 
-    }else if (!strcmp(fn_name, "demo")) {
+        printf("genning a prime with %d words\n\n",
+               res.args.gen_prime_args.words);
+
+    } else if (!strcmp(fn_name, "demo")) {
         res.function = demo;
 
     } else if (!strcmp(fn_name, "help")) {
@@ -102,6 +140,8 @@ void cmdline_gen_keys(gen_keys_args_t args) {
 
     printf("Generating keys for will_rsa\n");
 
+    will_rng_init(args.seed);
+
     gen_pub_priv_keys(args.seed, &pub, &priv, args.rsa_mode);
 
     char full_public_filepath[256];
@@ -124,7 +164,7 @@ void cmdline_gen_keys(gen_keys_args_t args) {
     bi_free(priv.d);
 }
 
-void run_demo(){
+void run_demo(void) {
     printf("Running RSA keygen, encryption, decryption demo\n\n");
 
     rsa_public_token_t pub;
@@ -170,6 +210,7 @@ int main(int argc, char *argv[]) {
         cmdline_gen_keys(args.args.gen_keys_args);
         break;
     case gen_prime_fn:
+        will_rng_init(args.args.gen_prime_args.seed);
         prime = gen_prime(args.args.gen_prime_args.words);
         bi_print(prime);
         bi_free(prime);
