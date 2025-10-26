@@ -102,8 +102,8 @@ program_inputs_t parse_args(int argc, char *argv[]) {
     } else if (!strcmp(fn_name, "gen_prime")) {
         res.function = gen_prime_fn;
 
-        uint64_t default_words = 32;
-        parse_arg_uint64(argc - 2, argv + 2, "words",
+        uint32_t default_words = 32;
+        parse_arg_uint32(argc - 2, argv + 2, "words",
                          &res.args.gen_prime_args.words, &default_words, true);
         uint64_t default_seed = time(NULL);
         parse_arg_uint64(argc - 2, argv + 2, "seed",

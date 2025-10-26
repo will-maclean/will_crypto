@@ -68,7 +68,7 @@ fn_benchmark_res_t bench_basic(test_config_t *config) {
         case bi_eucl_div_format_type:
             a = will_rng_next(config->n_words);
             b = will_rng_next(config->n_words);
-            if(bi_eq_val(b, 0)){
+            if (bi_eq_val(b, 0)) {
                 // just make sure b != 0
                 b->data[0] = 1;
             }
@@ -151,8 +151,8 @@ int main(void) {
         {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 100, 8},
         {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 10, 16},
         {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 1, 32},
-        // {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 10, 64},
-        // {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 1, 128},
+        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 1, 64},
+        {"gen_prime", void_uint32, .fn._void_uint32_fn = gen_prime, 1, 128},
     };
 
     int n_configs = sizeof(configs) / sizeof(test_config_t);

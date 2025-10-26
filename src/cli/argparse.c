@@ -2,6 +2,7 @@
 // --long_name value
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -54,6 +55,31 @@ void parse_arg_int32(int argc, char *argv[], char *argname, int32_t *result,
                 char *res;
                 // TODO: check res for a successfuly parse check
                 *result = strtol(argv[i + 1], &res, 10);
+                return;
+            }
+        }
+    }
+
+    if (default_)
+        *result = *default_;
+    else if (fail_hard) {
+        printf("Required argument %s was not set or not able to be parsed",
+               argname);
+    }
+}
+
+void parse_arg_uint32(int argc, char *argv[], char *argname, uint32_t *result,
+                      uint32_t *default_, bool fail_hard) {
+    for (int i = 0; i < argc - 1; i++) {
+        if (starts_with(argv[i], "--")) {
+            // extract the arg name
+            char parsed_arg_name[64];
+            strcpy(parsed_arg_name, argv[i] + 2);
+
+            if (!strcmp(parsed_arg_name, argname)) {
+                char *res;
+                // TODO: check res for a successfuly parse check
+                *result = (uint32_t)strtol(argv[i + 1], &res, 10);
                 return;
             }
         }
